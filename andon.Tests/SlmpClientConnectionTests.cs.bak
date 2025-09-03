@@ -1,0 +1,133 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Xunit;
+using Moq;
+using Microsoft.Extensions.Logging;
+using SlmpClient.Core;
+using SlmpClient.Transport;
+using SlmpClient.Exceptions;
+
+namespace andon.Tests
+{
+    public class SlmpClientConnectionTests
+    {
+        private readonly Mock<ILogger<SlmpClient.Core.SlmpClient>> _mockLogger;
+        private readonly Mock<ISlmpTransport> _mockTransport;
+
+        public SlmpClientConnectionTests()
+        {
+            _mockLogger = new Mock<ILogger<SlmpClient.Core.SlmpClient>>();
+            _mockTransport = new Mock<ISlmpTransport>();
+        }
+
+        [Fact]
+        public async Task OpenAsync_ValidConnection_EstablishesConnection()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+            
+            _mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
+                         .Returns(Task.CompletedTask);
+
+            // Act & Assert
+            await client.OpenAsync();
+            Assert.True(client.IsConnected);
+        }
+
+        [Fact]
+        public async Task CloseAsync_OpenConnection_ClosesConnection()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+            
+            _mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
+                         .Returns(Task.CompletedTask);
+            _mockTransport.Setup(t => t.DisconnectAsync())
+                         .Returns(Task.CompletedTask);
+
+            await client.OpenAsync();
+
+            // Act
+            await client.CloseAsync();
+
+            // Assert
+            Assert.False(client.IsConnected);
+        }
+
+        [Fact]
+        public async Task DisposeAsync_OpenConnection_ProperlyDisposesResources()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+
+            _mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
+                         .Returns(Task.CompletedTask);
+            _mockTransport.Setup(t => t.DisposeAsync())
+                         .Returns(ValueTask.CompletedTask);
+
+            await client.OpenAsync();
+
+            // Act
+            await client.DisposeAsync();
+
+            // Assert
+            _mockTransport.Verify(t => t.DisposeAsync(), Times.Once);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData(null)]
+        [InlineData("   ")]
+        public void Constructor_InvalidAddress_ThrowsArgumentException(string address)
+        {
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() => 
+                new SlmpClient.Core.SlmpClient(address, new SlmpConnectionSettings()));
+        }
+
+        [Fact]
+        public void Constructor_ValidParameters_InitializesCorrectly()
+        {
+            // Arrange
+            var address = "192.168.1.100";
+            var settings = new SlmpConnectionSettings { Port = 5001 };
+
+            // Act
+            var client = new SlmpClient.Core.SlmpClient(address, settings);
+
+            // Assert
+            Assert.Equal(address, client.Address);
+            Assert.Equal(5001, client.Settings.Port);
+            Assert.False(client.IsConnected);
+        }
+
+        [Fact]
+        public async Task OpenAsync_AlreadyConnected_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", new SlmpConnectionSettings());
+            
+            _mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
+                         .Returns(Task.CompletedTask);
+
+            await client.OpenAsync();
+
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => client.OpenAsync());
+        }
+
+        [Fact]
+        public async Task CloseAsync_NotConnected_DoesNotThrow()
+        {
+            // Arrange
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", new SlmpConnectionSettings());
+
+            // Act & Assert (should not throw)
+            await client.CloseAsync();
+        }
+    }
+}

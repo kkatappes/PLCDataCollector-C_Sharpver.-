@@ -1,0 +1,316 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+using Xunit;
+using Moq;
+using Microsoft.Extensions.Logging;
+using SlmpClient.Core;
+using SlmpClient.Constants;
+using SlmpClient.Transport;
+
+namespace andon.Tests
+{
+    [Collection("Performance Tests")]
+    public class SlmpClientPerformanceTests
+    {
+        private readonly Mock<ILogger<SlmpClient.Core.SlmpClient>> _mockLogger;
+        private readonly Mock<ISlmpTransport> _mockTransport;
+
+        public SlmpClientPerformanceTests()
+        {
+            _mockLogger = new Mock<ILogger<SlmpClient.Core.SlmpClient>>();
+            _mockTransport = new Mock<ISlmpTransport>();
+        }
+
+        [Fact]
+        public async Task ReadBitDevicesAsync_ResponseTime_Under10Milliseconds()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+            
+            var responseData = CreateBitReadResponse(new bool[] { true, false, true, false });
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(responseData);
+
+            var stopwatch = Stopwatch.StartNew();
+
+            // Act
+            await client.ReadBitDevicesAsync(DeviceCode.M, 100, 4);
+            
+            // Assert
+            stopwatch.Stop();
+            Assert.True(stopwatch.ElapsedMilliseconds < 10, 
+                $"Response time {stopwatch.ElapsedMilliseconds}ms exceeds 10ms threshold");
+        }
+
+        [Fact]
+        public async Task ReadWordDevicesAsync_ResponseTime_Under10Milliseconds()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+            
+            var responseData = CreateWordReadResponse(new ushort[] { 100, 200, 300, 400 });
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(responseData);
+
+            var stopwatch = Stopwatch.StartNew();
+
+            // Act
+            await client.ReadWordDevicesAsync(DeviceCode.D, 100, 4);
+            
+            // Assert
+            stopwatch.Stop();
+            Assert.True(stopwatch.ElapsedMilliseconds < 10, 
+                $"Response time {stopwatch.ElapsedMilliseconds}ms exceeds 10ms threshold");
+        }
+
+        [Fact]
+        public async Task ConcurrentReadOperations_10Concurrent_AllCompleteUnder100Milliseconds()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+            
+            var responseData = CreateWordReadResponse(new ushort[] { 100, 200 });
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(responseData);
+
+            var tasks = new List<Task>();
+            var stopwatch = Stopwatch.StartNew();
+
+            // Act
+            for (int i = 0; i < 10; i++)
+            {
+                int deviceAddr = 100 + (i * 10);
+                tasks.Add(client.ReadWordDevicesAsync(DeviceCode.D, (uint)deviceAddr, 2));
+            }
+
+            await Task.WhenAll(tasks);
+            
+            // Assert
+            stopwatch.Stop();
+            Assert.True(stopwatch.ElapsedMilliseconds < 100, 
+                $"Concurrent operations took {stopwatch.ElapsedMilliseconds}ms, exceeds 100ms threshold");
+        }
+
+        [Fact]
+        public async Task LargeDataRead_1000Words_CompletesUnder50Milliseconds()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+            
+            var largeData = new ushort[1000];
+            for (int i = 0; i < 1000; i++)
+            {
+                largeData[i] = (ushort)i;
+            }
+            
+            var responseData = CreateWordReadResponse(largeData);
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(responseData);
+
+            var stopwatch = Stopwatch.StartNew();
+
+            // Act
+            await client.ReadWordDevicesAsync(DeviceCode.D, 0, 1000);
+            
+            // Assert
+            stopwatch.Stop();
+            Assert.True(stopwatch.ElapsedMilliseconds < 50, 
+                $"Large data read took {stopwatch.ElapsedMilliseconds}ms, exceeds 50ms threshold");
+        }
+
+        [Fact]
+        public async Task RepeatedOperations_100Iterations_AverageUnder5Milliseconds()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+            
+            var responseData = CreateWordReadResponse(new ushort[] { 100 });
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(responseData);
+
+            var totalTime = 0L;
+            const int iterations = 100;
+
+            // Act
+            for (int i = 0; i < iterations; i++)
+            {
+                var stopwatch = Stopwatch.StartNew();
+                await client.ReadWordDevicesAsync(DeviceCode.D, 100, 1);
+                stopwatch.Stop();
+                totalTime += stopwatch.ElapsedMilliseconds;
+            }
+            
+            // Assert
+            var averageTime = totalTime / (double)iterations;
+            Assert.True(averageTime < 5.0, 
+                $"Average response time {averageTime:F2}ms exceeds 5ms threshold");
+        }
+
+        [Fact]
+        public async Task MemoryUsage_ContinuousOperations_StableMemoryConsumption()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+            
+            var responseData = CreateWordReadResponse(new ushort[] { 100, 200 });
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(responseData);
+
+            // Force garbage collection to get baseline
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            
+            var initialMemory = GC.GetTotalMemory(false);
+
+            // Act - Perform many operations
+            for (int i = 0; i < 1000; i++)
+            {
+                await client.ReadWordDevicesAsync(DeviceCode.D, 100, 2);
+            }
+
+            // Force garbage collection again
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            
+            var finalMemory = GC.GetTotalMemory(false);
+            
+            // Assert - Memory increase should be minimal (less than 1MB)
+            var memoryIncrease = finalMemory - initialMemory;
+            Assert.True(memoryIncrease < 1024 * 1024, 
+                $"Memory increased by {memoryIncrease} bytes, indicating potential memory leak");
+        }
+
+        [Fact]
+        public async Task ErrorHandling_WithContinuityMode_ResponseTimeUnder20Milliseconds()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            settings.ContinuitySettings.Mode = ErrorHandlingMode.ReturnDefaultAndContinue;
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+            
+            // Setup transport to simulate timeout
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ThrowsAsync(new TimeoutException("Simulated timeout"));
+
+            var stopwatch = Stopwatch.StartNew();
+
+            // Act
+            var result = await client.ReadWordDevicesAsync(DeviceCode.D, 100, 4);
+            
+            // Assert
+            stopwatch.Stop();
+            Assert.True(stopwatch.ElapsedMilliseconds < 20, 
+                $"Error handling took {stopwatch.ElapsedMilliseconds}ms, exceeds 20ms threshold");
+            Assert.NotNull(result);
+            Assert.Equal(4, result.Length);
+        }
+
+        [Fact]
+        public async Task RandomAccessOperations_Performance_Under15Milliseconds()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+            
+            var wordDevices = new List<(DeviceCode deviceCode, uint address)>
+            {
+                (DeviceCode.D, 100),
+                (DeviceCode.D, 200),
+                (DeviceCode.D, 300)
+            };
+            var dwordDevices = new List<(DeviceCode deviceCode, uint address)>
+            {
+                (DeviceCode.D, 400)
+            };
+
+            var responseData = CreateRandomReadResponse(new ushort[] { 1, 2, 3 }, new uint[] { 4 });
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(responseData);
+
+            var stopwatch = Stopwatch.StartNew();
+
+            // Act
+            await client.ReadRandomDevicesAsync(wordDevices, dwordDevices);
+            
+            // Assert
+            stopwatch.Stop();
+            Assert.True(stopwatch.ElapsedMilliseconds < 15, 
+                $"Random access took {stopwatch.ElapsedMilliseconds}ms, exceeds 15ms threshold");
+        }
+
+        [Fact]
+        public async Task SystemFunctions_Performance_Under30Milliseconds()
+        {
+            // Arrange
+            var settings = new SlmpConnectionSettings();
+            var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+            
+            var responseData = CreateTypeNameResponse("Q03UDECPU", SlmpClient.Constants.TypeCode.Q03UDECPU);
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(responseData);
+
+            var stopwatch = Stopwatch.StartNew();
+
+            // Act
+            await client.ReadTypeNameAsync();
+            
+            // Assert
+            stopwatch.Stop();
+            Assert.True(stopwatch.ElapsedMilliseconds < 30, 
+                $"System function took {stopwatch.ElapsedMilliseconds}ms, exceeds 30ms threshold");
+        }
+
+        // Helper methods for creating test responses
+        private byte[] CreateBitReadResponse(bool[] data)
+        {
+            var response = new List<byte> { 0x00, 0x00 }; // Success
+            var packed = SlmpClient.Utils.SlmpBitConverter.PackBits(data);
+            response.AddRange(packed);
+            return response.ToArray();
+        }
+
+        private byte[] CreateWordReadResponse(ushort[] data)
+        {
+            var response = new List<byte> { 0x00, 0x00 }; // Success
+            foreach (var value in data)
+            {
+                response.AddRange(BitConverter.GetBytes(value));
+            }
+            return response.ToArray();
+        }
+
+        private byte[] CreateRandomReadResponse(ushort[] wordData, uint[] dwordData)
+        {
+            var response = new List<byte> { 0x00, 0x00 }; // Success
+            foreach (var value in wordData)
+            {
+                response.AddRange(BitConverter.GetBytes(value));
+            }
+            foreach (var value in dwordData)
+            {
+                response.AddRange(BitConverter.GetBytes(value));
+            }
+            return response.ToArray();
+        }
+
+        private byte[] CreateTypeNameResponse(string typeName, SlmpClient.Constants.TypeCode typeCode)
+        {
+            var response = new List<byte> { 0x00, 0x00 }; // Success
+            response.AddRange(BitConverter.GetBytes((ushort)typeCode));
+            var nameBytes = System.Text.Encoding.ASCII.GetBytes(typeName.PadRight(16, '\0'));
+            response.AddRange(nameBytes.Take(16));
+            return response.ToArray();
+        }
+    }
+}

@@ -1,0 +1,231 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Xunit;
+using Moq;
+using Microsoft.Extensions.Logging;
+using SlmpClient.Core;
+using SlmpClient.Constants;
+using SlmpClient.Transport;
+using SlmpClient.Exceptions;
+using System.Collections.Generic;
+
+namespace andon.Tests
+{
+    public class SlmpClientMonitorTests
+    {
+        private readonly Mock<ILogger<SlmpClient.Core.SlmpClient>> _mockLogger;
+        private readonly Mock<ISlmpTransport> _mockTransport;
+        private readonly SlmpClient.Core.SlmpClient _client;
+
+        public SlmpClientMonitorTests()
+        {
+            _mockLogger = new Mock<ILogger<SlmpClient.Core.SlmpClient>>();
+            _mockTransport = new Mock<ISlmpTransport>();
+            
+            var settings = new SlmpConnectionSettings();
+            _client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings, _mockLogger.Object);
+        }
+
+        [Fact]
+        public async Task EntryMonitorDeviceAsync_ValidDevices_RegistersSuccessfully()
+        {
+            // Arrange
+            var wordDevices = new List<(DeviceCode deviceCode, uint address)>
+            {
+                (DeviceCode.D, 100),
+                (DeviceCode.D, 200),
+                (DeviceCode.D, 300)
+            };
+            var dwordDevices = new List<(DeviceCode deviceCode, uint address)>
+            {
+                (DeviceCode.D, 400),
+                (DeviceCode.D, 500)
+            };
+
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(CreateSuccessResponse());
+
+            // Act
+            await _client.EntryMonitorDeviceAsync(wordDevices, dwordDevices);
+
+            // Assert
+            _mockTransport.Verify(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task ExecuteMonitorAsync_AfterEntry_ReturnsMonitoredData()
+        {
+            // Arrange
+            var wordDevices = new List<(DeviceCode deviceCode, uint address)>
+            {
+                (DeviceCode.D, 100),
+                (DeviceCode.D, 200)
+            };
+            var dwordDevices = new List<(DeviceCode deviceCode, uint address)>
+            {
+                (DeviceCode.D, 300)
+            };
+
+            var expectedWordData = new ushort[] { 1000, 2000 };
+            var expectedDwordData = new uint[] { 300000 };
+
+            // Setup entry
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(CreateSuccessResponse());
+
+            // Setup execute
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(CreateMonitorResponse(expectedWordData, expectedDwordData));
+
+            await _client.EntryMonitorDeviceAsync(wordDevices, dwordDevices);
+
+            // Act
+            var result = await _client.ExecuteMonitorAsync();
+
+            // Assert
+            Assert.Equal(expectedWordData, result.wordData);
+            Assert.Equal(expectedDwordData, result.dwordData);
+        }
+
+        [Fact]
+        public async Task EntryMonitorDeviceAsync_TooManyDevices_ThrowsArgumentException()
+        {
+            // Arrange
+            var wordDevices = new List<(DeviceCode deviceCode, uint address)>();
+            var dwordDevices = new List<(DeviceCode deviceCode, uint address)>();
+            
+            // Add more than 192 devices total
+            for (int i = 0; i < 193; i++)
+            {
+                wordDevices.Add((DeviceCode.D, (uint)i));
+            }
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() => 
+                _client.EntryMonitorDeviceAsync(wordDevices, dwordDevices));
+        }
+
+        [Fact]
+        public async Task ExecuteMonitorAsync_WithoutEntry_ThrowsInvalidOperationException()
+        {
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _client.ExecuteMonitorAsync());
+        }
+
+        [Fact]
+        public async Task EntryMonitorDeviceAsync_EmptyDeviceLists_ThrowsArgumentException()
+        {
+            // Arrange
+            var wordDevices = new List<(DeviceCode deviceCode, uint address)>();
+            var dwordDevices = new List<(DeviceCode deviceCode, uint address)>();
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() => 
+                _client.EntryMonitorDeviceAsync(wordDevices, dwordDevices));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(5)]
+        [InlineData(10)]
+        public async Task EntryMonitorDeviceAsync_WithTimeout_CompletesWithinTimeout(ushort timeout)
+        {
+            // Arrange
+            var wordDevices = new List<(DeviceCode deviceCode, uint address)>
+            {
+                (DeviceCode.D, 100)
+            };
+            var dwordDevices = new List<(DeviceCode deviceCode, uint address)>();
+
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), timeout, It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(CreateSuccessResponse());
+
+            // Act
+            await _client.EntryMonitorDeviceAsync(wordDevices, dwordDevices, timeout);
+
+            // Assert
+            _mockTransport.Verify(t => t.SendReceiveAsync(It.IsAny<byte[]>(), timeout, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task ExecuteMonitorAsync_CommunicationError_ThrowsSlmpCommunicationException()
+        {
+            // Arrange
+            var wordDevices = new List<(DeviceCode deviceCode, uint address)>
+            {
+                (DeviceCode.D, 100)
+            };
+            var dwordDevices = new List<(DeviceCode deviceCode, uint address)>();
+
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(CreateSuccessResponse());
+
+            await _client.EntryMonitorDeviceAsync(wordDevices, dwordDevices);
+
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(CreateErrorResponse(EndCode.WrongCommand));
+
+            // Act & Assert
+            await Assert.ThrowsAsync<SlmpCommunicationException>(() => 
+                _client.ExecuteMonitorAsync());
+        }
+
+        [Fact]
+        public async Task EntryMonitorDeviceAsync_MixedDeviceTypes_RegistersCorrectly()
+        {
+            // Arrange
+            var wordDevices = new List<(DeviceCode deviceCode, uint address)>
+            {
+                (DeviceCode.D, 100),
+                (DeviceCode.R, 200),
+                (DeviceCode.ZR, 300)
+            };
+            var dwordDevices = new List<(DeviceCode deviceCode, uint address)>
+            {
+                (DeviceCode.D, 400),
+                (DeviceCode.R, 500)
+            };
+
+            _mockTransport.Setup(t => t.SendReceiveAsync(It.IsAny<byte[]>(), It.IsAny<ushort>(), It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(CreateSuccessResponse());
+
+            // Act & Assert (should not throw)
+            await _client.EntryMonitorDeviceAsync(wordDevices, dwordDevices);
+        }
+
+        private byte[] CreateSuccessResponse()
+        {
+            return new byte[] { 0x00, 0x00 }; // Success end code
+        }
+
+        private byte[] CreateErrorResponse(EndCode endCode)
+        {
+            var errorCode = (ushort)endCode;
+            return new byte[] { (byte)(errorCode & 0xFF), (byte)(errorCode >> 8) };
+        }
+
+        private byte[] CreateMonitorResponse(ushort[] wordData, uint[] dwordData)
+        {
+            var response = new List<byte>();
+            
+            // Success end code
+            response.AddRange(new byte[] { 0x00, 0x00 });
+            
+            // Word data
+            foreach (var value in wordData)
+            {
+                response.AddRange(BitConverter.GetBytes(value));
+            }
+            
+            // DWord data
+            foreach (var value in dwordData)
+            {
+                response.AddRange(BitConverter.GetBytes(value));
+            }
+            
+            return response.ToArray();
+        }
+    }
+}

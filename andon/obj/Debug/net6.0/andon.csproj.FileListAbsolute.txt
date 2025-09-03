@@ -1,0 +1,14 @@
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net6.0\andon.csproj.AssemblyReference.cache
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net6.0\andon.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net6.0\andon.AssemblyInfoInputs.cache
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net6.0\andon.AssemblyInfo.cs
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net6.0\andon.csproj.CoreCompileInputs.cache
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net6.0\andon.deps.json
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net6.0\andon.dll
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net6.0\andon.pdb
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net6.0\andon.xml
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net6.0\andon.dll
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net6.0\refint\andon.dll
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net6.0\andon.xml
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net6.0\andon.pdb
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net6.0\ref\andon.dll

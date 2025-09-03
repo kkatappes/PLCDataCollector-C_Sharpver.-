@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "wF/LRMe9S0A=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\1010821\\Desktop\\python\\andon\\andon\\andon.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\1010821\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\8.0.0\\microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
+    "C:\\Users\\1010821\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\8.0.0\\microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
+    "C:\\Users\\1010821\\.nuget\\packages\\system.buffers\\4.5.1\\system.buffers.4.5.1.nupkg.sha512"
+  ],
+  "logs": []
+}
