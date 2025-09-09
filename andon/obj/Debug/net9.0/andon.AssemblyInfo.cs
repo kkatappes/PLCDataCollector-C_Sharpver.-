@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyDescriptionAttribute(("C# implementation of SLMP (Seamless Message Protocol) client for PLC communicatio" +
     "n"))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e799c43746ee1c4e6772ff3865d07ddc29d96322")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0a2cf06068fc62f5186bc4bc07f0500ccda36584")]
 [assembly: System.Reflection.AssemblyProductAttribute("andon")]
 [assembly: System.Reflection.AssemblyTitleAttribute("andon")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

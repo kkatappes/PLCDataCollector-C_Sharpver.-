@@ -6,18 +6,22 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using SlmpClient.Exceptions;
+using SlmpClient.Utils;
 
 namespace SlmpClient.Transport
 {
     /// <summary>
-    /// SLMP TCP通信トランスポート
+    /// SLMP TCP通信トランスポート（メモリ最適化版）
+    /// ストリーミング処理とArrayPoolを活用した低メモリ実装
     /// </summary>
     public class SlmpTcpTransport : ISlmpTransport
     {
         #region Private Fields
 
         private readonly ILogger<SlmpTcpTransport> _logger;
-        private readonly object _connectionLock = new();
+        private readonly SemaphoreSlim _connectionSemaphore = new(1, 1);
+        private readonly IMemoryOptimizer _memoryOptimizer;
+        private readonly IStreamingFrameProcessor _frameProcessor;
         private TcpClient? _tcpClient;
         private NetworkStream? _networkStream;
         private volatile bool _disposed = false;
@@ -62,14 +66,15 @@ namespace SlmpClient.Transport
         #region Constructor
 
         /// <summary>
-        /// TCP通信トランスポートを初期化
+        /// TCP通信トランスポートを初期化（Dependency Injection対応）
         /// </summary>
         /// <param name="address">通信先IPアドレスまたはホスト名</param>
         /// <param name="port">通信先ポート番号</param>
         /// <param name="logger">ロガー</param>
+        /// <param name="memoryOptimizer">メモリ最適化器（nullの場合は内部作成）</param>
         /// <exception cref="ArgumentException">addressが無効な場合</exception>
         /// <exception cref="ArgumentOutOfRangeException">portが範囲外の場合</exception>
-        public SlmpTcpTransport(string address, int port, ILogger<SlmpTcpTransport>? logger = null)
+        public SlmpTcpTransport(string address, int port, ILogger<SlmpTcpTransport>? logger = null, IMemoryOptimizer? memoryOptimizer = null)
         {
             if (string.IsNullOrWhiteSpace(address))
                 throw new ArgumentException("Address cannot be null or empty", nameof(address));
@@ -79,6 +84,10 @@ namespace SlmpClient.Transport
             Address = address.Trim();
             Port = port;
             _logger = logger ?? NullLogger<SlmpTcpTransport>.Instance;
+            _memoryOptimizer = memoryOptimizer ?? new MemoryOptimizer(_logger as ILogger<MemoryOptimizer>);
+            _frameProcessor = new StreamingFrameProcessor(_memoryOptimizer, _logger as ILogger<StreamingFrameProcessor>);
+            
+            _logger.LogDebug("SlmpTcpTransport initialized with memory optimization");
         }
 
         #endregion
@@ -102,7 +111,8 @@ namespace SlmpClient.Transport
                 return;
             }
 
-            lock (_connectionLock)
+            await _connectionSemaphore.WaitAsync(cancellationToken);
+            try
             {
                 if (IsConnected)
                     return;
@@ -117,10 +127,10 @@ namespace SlmpClient.Transport
                     _tcpClient.ReceiveTimeout = (int)ReceiveTimeout.TotalMilliseconds;
                     _tcpClient.SendTimeout = (int)SendTimeout.TotalMilliseconds;
 
-                    // 接続実行
+                    // 接続実行（非同期で適切に処理）
                     var connectTask = _tcpClient.ConnectAsync(Address, Port);
                     var timeoutTask = Task.Delay(ConnectTimeout, cancellationToken);
-                    var completedTask = Task.WhenAny(connectTask, timeoutTask).Result;
+                    var completedTask = await Task.WhenAny(connectTask, timeoutTask);
 
                     if (completedTask == timeoutTask)
                     {
@@ -156,6 +166,10 @@ namespace SlmpClient.Transport
                     throw new SlmpConnectionException("Connection failed", Address, Port, ex);
                 }
             }
+            finally
+            {
+                _connectionSemaphore.Release();
+            }
         }
 
         /// <summary>
@@ -171,7 +185,8 @@ namespace SlmpClient.Transport
                 return;
             }
 
-            lock (_connectionLock)
+            await _connectionSemaphore.WaitAsync(cancellationToken);
+            try
             {
                 try
                 {
@@ -184,6 +199,10 @@ namespace SlmpClient.Transport
                     _logger.LogError(ex, "Error during TCP disconnection from {Address}:{Port}", Address, Port);
                     // 切断時のエラーは例外をスローしない（ベストエフォート）
                 }
+            }
+            finally
+            {
+                _connectionSemaphore.Release();
             }
 
             await Task.CompletedTask;
@@ -329,39 +348,26 @@ namespace SlmpClient.Transport
         #region Private Methods
 
         /// <summary>
-        /// フレームを受信（TCP用）
+        /// フレームを受信（TCP用・メモリ最適化版）
+        /// ストリーミング処理による低メモリ実装
         /// </summary>
         /// <param name="cancellationToken">キャンセレーショントークン</param>
         /// <returns>受信したフレーム</returns>
         private async Task<byte[]> ReceiveFrameAsync(CancellationToken cancellationToken)
         {
-            const int bufferSize = 8192;
-            var buffer = new byte[bufferSize];
-            var receivedData = new MemoryStream();
-
-            // フレームヘッダーを読み取って応答の全体サイズを決定
-            // 現在は簡易実装：固定サイズまたは受信可能な分だけ読み取り
-            int totalBytesReceived = 0;
-            
-            do
+            try
             {
-                int bytesRead = await _networkStream!.ReadAsync(buffer, 0, bufferSize, cancellationToken);
-                if (bytesRead == 0)
-                    break; // 接続が閉じられた
-
-                await receivedData.WriteAsync(buffer, 0, bytesRead, cancellationToken);
-                totalBytesReceived += bytesRead;
-
-                // TODO: 実際のSLMPプロトコルでは、ヘッダーを解析してフレーム全体の長さを決定する必要がある
-                // 現在は簡易実装として、一定のデータを受信したら終了
-                if (totalBytesReceived >= 11) // 最小応答サイズ
-                {
-                    // 簡易的な完了判定（実際にはプロトコル仕様に基づく）
-                    break;
-                }
-            } while (totalBytesReceived < bufferSize);
-
-            return receivedData.ToArray();
+                // ストリーミングフレーム処理を使用してメモリ効率化
+                var frame = await _frameProcessor.ProcessFrameAsync(_networkStream!, cancellationToken);
+                
+                _logger.LogTrace("Received frame via streaming processor: {Size} bytes", frame.Length);
+                return frame;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error receiving frame via streaming processor");
+                throw;
+            }
         }
 
         /// <summary>
@@ -456,6 +462,10 @@ namespace SlmpClient.Transport
                 }
 
                 CleanupConnection();
+                
+                _frameProcessor?.Dispose();
+                _memoryOptimizer?.Dispose();
+                _connectionSemaphore?.Dispose();
             }
 
             _disposed = true;
@@ -480,6 +490,9 @@ namespace SlmpClient.Transport
             }
 
             CleanupConnection();
+            _frameProcessor?.Dispose();
+            _memoryOptimizer?.Dispose();
+            _connectionSemaphore?.Dispose();
             _disposed = true;
         }
 

@@ -1,0 +1,6 @@
+C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\TestTcpConnection.csproj.AssemblyReference.cache
+C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\TestTcpConnection.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\TestTcpConnection.AssemblyInfoInputs.cache
+C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\TestTcpConnection.AssemblyInfo.cs
+C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\TestTcpConnection.csproj.CoreCompileInputs.cache
+C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\TestTcpConnection.sourcelink.json

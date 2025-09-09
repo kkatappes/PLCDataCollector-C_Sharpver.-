@@ -9,6 +9,11 @@ C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net9.0\andon.dll
 C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net9.0\refint\andon.dll
 C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net9.0\andon.pdb
 C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net9.0\ref\andon.dll
-C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\andon.xml
 C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net9.0\andon.csproj.AssemblyReference.cache
-C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net9.0\andon.xml
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net9.0\andon.sourcelink.json
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\andon.exe
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\andon.runtimeconfig.json
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.Logging.Abstractions.dll
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net9.0\andon.csproj.Up2Date
+C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net9.0\andon.genruntimeconfig.cache

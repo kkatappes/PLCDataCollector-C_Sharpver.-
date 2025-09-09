@@ -28,9 +28,6 @@
             "projectReferences": {}
           }
         },
-        "warningProperties": {
-          "allWarningsAsErrors": true
-        },
         "restoreAuditProperties": {
           "enableAudit": "true",
           "auditLevel": "low",

@@ -7,7 +7,7 @@
     <authors>Andon Team</authors>
     <description>C# implementation of SLMP (Seamless Message Protocol) client for PLC communication</description>
     <tags>SLMP PLC CC-Link Industrial Automation</tags>
-    <repository type="git" commit="e799c43746ee1c4e6772ff3865d07ddc29d96322" />
+    <repository type="git" commit="0a2cf06068fc62f5186bc4bc07f0500ccda36584" />
     <dependencies>
       <group targetFramework="net9.0">
         <dependency id="Microsoft.Extensions.Logging.Abstractions" version="8.0.0" exclude="Build,Analyzers" />

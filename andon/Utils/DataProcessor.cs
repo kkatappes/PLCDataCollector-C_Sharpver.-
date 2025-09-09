@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,8 +8,9 @@ using SlmpClient.Constants;
 namespace SlmpClient.Utils
 {
     /// <summary>
-    /// データ処理ユーティリティ
+    /// データ処理ユーティリティ（メモリ最適化版）
     /// Python版のstr2bytes_buf/extracts_word_dword_data/device2ascii相当機能
+    /// ArrayPoolを活用したゼロアロケーション処理
     /// </summary>
     public static class DataProcessor
     {
@@ -165,6 +167,26 @@ namespace SlmpClient.Utils
         }
 
         /// <summary>
+        /// バイト配列をushort配列に変換（ゼロアロケーション版）
+        /// </summary>
+        /// <param name="data">変換元バイトSpan</param>
+        /// <param name="result">結果格納先Span</param>
+        /// <exception cref="ArgumentException">データ長が2の倍数でない場合</exception>
+        public static void BytesToUshortArray(ReadOnlySpan<byte> data, Span<ushort> result)
+        {
+            if (data.Length % 2 != 0)
+                throw new ArgumentException("Data length must be even for ushort conversion");
+
+            if (result.Length < data.Length / 2)
+                throw new ArgumentException("Result span too small");
+
+            for (int i = 0; i < data.Length / 2; i++)
+            {
+                result[i] = (ushort)(data[i * 2] | (data[i * 2 + 1] << 8));
+            }
+        }
+
+        /// <summary>
         /// バイト配列をuint配列に変換（リトルエンディアン）
         /// </summary>
         /// <param name="data">変換元バイト配列</param>
@@ -261,6 +283,107 @@ namespace SlmpClient.Utils
                 result[i] = value;
             }
             return result;
+        }
+
+        /// <summary>
+        /// 16進文字列をバイト配列に変換（ゼロアロケーション版）
+        /// ArrayPoolを活用したメモリ効率化
+        /// </summary>
+        /// <param name="hexString">16進文字列</param>
+        /// <param name="arrayPool">配列プール（nullの場合は共有プール）</param>
+        /// <returns>プールされたメモリオーナー</returns>
+        public static IMemoryOwner<byte> HexStringToBytesPooled(ReadOnlySpan<char> hexString, ArrayPool<byte>? arrayPool = null)
+        {
+            if (hexString.Length % 2 != 0)
+                throw new ArgumentException("Hex string length must be even");
+
+            arrayPool ??= ArrayPool<byte>.Shared;
+            var resultLength = hexString.Length / 2;
+            var owner = MemoryPool<byte>.Shared.Rent(resultLength);
+            var resultSpan = owner.Memory.Span[..resultLength];
+
+            try
+            {
+                for (int i = 0; i < resultLength; i++)
+                {
+                    var hexByte = hexString.Slice(i * 2, 2);
+                    if (!byte.TryParse(hexByte, System.Globalization.NumberStyles.HexNumber, null, out byte value))
+                        throw new ArgumentException($"Invalid hex string at position {i * 2}");
+                    resultSpan[i] = value;
+                }
+
+                return owner;
+            }
+            catch
+            {
+                owner.Dispose();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 大量データ処理用のチャンク分割処理
+        /// </summary>
+        /// <typeparam name="T">処理データ型</typeparam>
+        /// <param name="data">処理対象データ</param>
+        /// <param name="chunkSize">チャンクサイズ</param>
+        /// <param name="processor">チャンク処理関数</param>
+        /// <returns>処理結果</returns>
+        public static IEnumerable<TResult> ProcessInChunks<T, TResult>(
+            T[] data, 
+            int chunkSize, 
+            Func<ReadOnlySpan<T>, TResult> processor)
+        {
+            if (chunkSize <= 0)
+                throw new ArgumentException("Chunk size must be positive", nameof(chunkSize));
+
+            for (int offset = 0; offset < data.Length; offset += chunkSize)
+            {
+                int currentChunkSize = Math.Min(chunkSize, data.Length - offset);
+                var chunk = data.AsSpan().Slice(offset, currentChunkSize);
+                yield return processor(chunk);
+            }
+        }
+    }
+
+    /// <summary>
+    /// メモリ効率的なデータ変換ヘルパー
+    /// </summary>
+    public static class MemoryEfficientConverter
+    {
+        /// <summary>
+        /// Spanベースの効率的なデータ変換
+        /// </summary>
+        /// <param name="source">変換元データ</param>
+        /// <param name="converter">変換関数</param>
+        /// <returns>変換結果</returns>
+        public static Span<TResult> ConvertSpan<TSource, TResult>(
+            ReadOnlySpan<TSource> source,
+            Func<TSource, TResult> converter)
+            where TResult : unmanaged
+        {
+            var result = new TResult[source.Length];
+            var resultSpan = result.AsSpan();
+            
+            for (int i = 0; i < source.Length; i++)
+            {
+                resultSpan[i] = converter(source[i]);
+            }
+            
+            return resultSpan;
+        }
+
+        /// <summary>
+        /// インプレース変換（メモリコピーなし）
+        /// </summary>
+        /// <param name="data">変換対象データ</param>
+        /// <param name="converter">変換関数</param>
+        public static void ConvertInPlace<T>(Span<T> data, Func<T, T> converter)
+        {
+            for (int i = 0; i < data.Length; i++)
+            {
+                data[i] = converter(data[i]);
+            }
         }
     }
 }
