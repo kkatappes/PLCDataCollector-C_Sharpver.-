@@ -731,9 +731,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\1010821\\Desktop\\python\\andon\\TestTcpConnection.csproj",
-      "projectName": "TestTcpConnection",
-      "projectPath": "C:\\Users\\1010821\\Desktop\\python\\andon\\TestTcpConnection.csproj",
+      "projectUniqueName": "C:\\Users\\1010821\\Desktop\\python\\andon\\IsAliveAsyncTest.csproj",
+      "projectName": "IsAliveAsyncTest",
+      "projectPath": "C:\\Users\\1010821\\Desktop\\python\\andon\\IsAliveAsyncTest.csproj",
       "packagesPath": "C:\\Users\\1010821\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\1010821\\Desktop\\python\\andon\\obj\\",
       "projectStyle": "PackageReference",

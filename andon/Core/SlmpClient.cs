@@ -1325,6 +1325,369 @@ namespace SlmpClient.Core
         
         #endregion
         
+        #region Phase 4: Mixed Device Reading API with Pseudo-Dword Integration
+        
+        /// <summary>
+        /// 混合デバイス読み取り（Phase 4: 擬似ダブルワード統合）
+        /// DWordデバイスを内部的にWordペアに分割してSLMP制限内で読み取り、結果を結合
+        /// </summary>
+        /// <param name="wordDevices">読み取り対象のWordデバイス群</param>
+        /// <param name="bitDevices">読み取り対象のBitデバイス群</param>
+        /// <param name="dwordDevices">読み取り対象のDWordデバイス群（内部分割される）</param>
+        /// <param name="timeout">タイムアウト値（250ms単位）</param>
+        /// <param name="cancellationToken">キャンセレーショントークン</param>
+        /// <returns>読み取り結果（Word配列、Bit配列、DWord配列）</returns>
+        /// <exception cref="ArgumentException">制限値超過時</exception>
+        /// <exception cref="SlmpCommunicationException">通信エラー時</exception>
+        public async Task<(ushort[] wordData, bool[] bitData, uint[] dwordData)> ReadMixedDevicesAsync(
+            IList<(DeviceCode deviceCode, uint address)> wordDevices,
+            IList<(DeviceCode deviceCode, uint address)> bitDevices,
+            IList<(DeviceCode deviceCode, uint address)> dwordDevices,
+            ushort timeout = 0,
+            CancellationToken cancellationToken = default)
+        {
+            ThrowIfDisposed();
+            ThrowIfNotConnected();
+            
+            // 入力パラメータの検証
+            if (wordDevices == null)
+                throw new ArgumentNullException(nameof(wordDevices));
+            if (bitDevices == null)
+                throw new ArgumentNullException(nameof(bitDevices));
+            if (dwordDevices == null)
+                throw new ArgumentNullException(nameof(dwordDevices));
+            
+            // Phase 4: SLMP制限との整合性検証
+            ValidateMixedDeviceConstraints(wordDevices, bitDevices, dwordDevices);
+            
+            _logger.LogDebug("Reading mixed devices: {WordCount} words, {BitCount} bits, {DwordCount} dwords", 
+                wordDevices.Count, bitDevices.Count, dwordDevices.Count);
+            
+            try
+            {
+                // Phase 4: 擬似ダブルワード分割処理
+                var pseudoDwordSplitter = new PseudoDwordSplitter(
+                    addressValidator: new DeviceAddressValidator(),
+                    dwordConverter: new DwordConverter(),
+                    options: new ConversionOptions { EnableValidation = true, EnableStatistics = true },
+                    continuitySettings: Settings.ContinuitySettings,
+                    errorStatistics: _errorStatistics
+                );
+                
+                // DWordデバイスをWordペアに分割
+                var dwordDevicesWithValues = dwordDevices
+                    .Select(d => (d.deviceCode, d.address, (uint)0)) // 読み取り前なので値は0
+                    .ToList();
+                
+                var wordPairs = pseudoDwordSplitter.SplitDwordToWordPairs(dwordDevicesWithValues);
+                
+                // 分割されたWordペアを個別のWordデバイスとして展開
+                var expandedWordDevices = new List<(DeviceCode deviceCode, uint address)>(wordDevices);
+                foreach (var wordPair in wordPairs)
+                {
+                    expandedWordDevices.Add((wordPair.LowWord.deviceCode, wordPair.LowWord.address));
+                    expandedWordDevices.Add((wordPair.HighWord.deviceCode, wordPair.HighWord.address));
+                }
+                
+                // 同時読み取り処理
+                Task<ushort[]> wordTask = expandedWordDevices.Count > 0 
+                    ? ReadMultipleWordDevicesAsync(expandedWordDevices, timeout, cancellationToken)
+                    : Task.FromResult(new ushort[0]);
+                
+                Task<bool[]> bitTask = bitDevices.Count > 0 
+                    ? ReadMultipleBitDevicesAsync(bitDevices, timeout, cancellationToken)
+                    : Task.FromResult(new bool[0]);
+                
+                // 並列実行
+                await Task.WhenAll(wordTask, bitTask);
+                
+                var allWordData = await wordTask;
+                var bitData = await bitTask;
+                
+                // 結果データを分離
+                var originalWordData = new ushort[wordDevices.Count];
+                var dwordWordData = new List<ushort>();
+                
+                // 元のWordデバイス結果を取得
+                for (int i = 0; i < wordDevices.Count; i++)
+                {
+                    originalWordData[i] = allWordData[i];
+                }
+                
+                // DWord用のWordデータを取得
+                for (int i = wordDevices.Count; i < allWordData.Length; i++)
+                {
+                    dwordWordData.Add(allWordData[i]);
+                }
+                
+                // WordペアをDWordに結合
+                var dwordData = await CombineWordPairsToDwords(wordPairs, dwordWordData, pseudoDwordSplitter);
+                
+                _logger.LogDebug("Successfully read mixed devices: {WordCount} words, {BitCount} bits, {DwordCount} dwords", 
+                    originalWordData.Length, bitData.Length, dwordData.Length);
+                
+                return (originalWordData, bitData, dwordData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading mixed devices");
+                
+                // Phase 4: エラーハンドリング統合
+                if (Settings.ContinuitySettings.Mode != ErrorHandlingMode.ThrowException)
+                {
+                    return HandleMixedDeviceReadError(wordDevices, bitDevices, dwordDevices, ex);
+                }
+                
+                throw new SlmpCommunicationException("Failed to read mixed devices", ex);
+            }
+        }
+        
+        /// <summary>
+        /// Phase 4: SLMP制限値検証
+        /// </summary>
+        private void ValidateMixedDeviceConstraints(
+            IList<(DeviceCode deviceCode, uint address)> wordDevices,
+            IList<(DeviceCode deviceCode, uint address)> bitDevices,
+            IList<(DeviceCode deviceCode, uint address)> dwordDevices)
+        {
+            // DWordデバイス数制限: 最大480個（960÷2）
+            if (dwordDevices.Count > 480)
+                throw new ArgumentException($"DWord device count must not exceed 480, got {dwordDevices.Count}");
+            
+            // 総Word数制限（元のWord + DWordから展開されるWord）
+            var totalWordCount = wordDevices.Count + (dwordDevices.Count * 2);
+            if (totalWordCount > 960)
+                throw new ArgumentException($"Total word count (including expanded dwords) must not exceed 960, got {totalWordCount}");
+            
+            // Bitデバイス制限
+            if (bitDevices.Count > 7168)
+                throw new ArgumentException($"Bit device count must not exceed 7168, got {bitDevices.Count}");
+            
+            // 総デバイス数制限（ランダムアクセス制限）
+            var totalDeviceCount = wordDevices.Count + bitDevices.Count + dwordDevices.Count;
+            if (totalDeviceCount > 192)
+                throw new ArgumentException($"Total device count must not exceed 192, got {totalDeviceCount}");
+            
+            // 各DWordデバイスのアドレス境界検証
+            var addressValidator = new DeviceAddressValidator();
+            foreach (var device in dwordDevices)
+            {
+                try
+                {
+                    addressValidator.ValidateAddressBoundary(device.deviceCode, device.address);
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new ArgumentException($"DWord device validation failed: {ex.Message}", ex);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 複数WordデバイスをバッチREAD
+        /// </summary>
+        private async Task<ushort[]> ReadMultipleWordDevicesAsync(
+            IList<(DeviceCode deviceCode, uint address)> wordDevices,
+            ushort timeout,
+            CancellationToken cancellationToken)
+        {
+            // 効率化のため、連続アドレスは一括読み取り、そうでなければランダムアクセス
+            if (CanUseSequentialRead(wordDevices))
+            {
+                return await ReadSequentialWordDevicesAsync(wordDevices, timeout, cancellationToken);
+            }
+            else
+            {
+                return await ReadRandomWordDevicesAsync(wordDevices, timeout, cancellationToken);
+            }
+        }
+        
+        /// <summary>
+        /// 複数BitデバイスをバッチREAD
+        /// </summary>
+        private async Task<bool[]> ReadMultipleBitDevicesAsync(
+            IList<(DeviceCode deviceCode, uint address)> bitDevices,
+            ushort timeout,
+            CancellationToken cancellationToken)
+        {
+            // 効率化のため、連続アドレスは一括読み取り、そうでなければ個別読み取り
+            if (CanUseSequentialRead(bitDevices))
+            {
+                return await ReadSequentialBitDevicesAsync(bitDevices, timeout, cancellationToken);
+            }
+            else
+            {
+                return await ReadIndividualBitDevicesAsync(bitDevices, timeout, cancellationToken);
+            }
+        }
+        
+        /// <summary>
+        /// 連続アドレス読み取りが可能かチェック
+        /// </summary>
+        private bool CanUseSequentialRead(IList<(DeviceCode deviceCode, uint address)> devices)
+        {
+            if (devices.Count <= 1) return true;
+            
+            var sortedDevices = devices.OrderBy(d => d.deviceCode).ThenBy(d => d.address).ToList();
+            
+            for (int i = 1; i < sortedDevices.Count; i++)
+            {
+                if (sortedDevices[i].deviceCode != sortedDevices[i-1].deviceCode ||
+                    sortedDevices[i].address != sortedDevices[i-1].address + 1)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        /// <summary>
+        /// 連続Wordデバイス読み取り
+        /// </summary>
+        private async Task<ushort[]> ReadSequentialWordDevicesAsync(
+            IList<(DeviceCode deviceCode, uint address)> wordDevices,
+            ushort timeout,
+            CancellationToken cancellationToken)
+        {
+            if (wordDevices.Count == 0) return new ushort[0];
+            
+            var sorted = wordDevices.OrderBy(d => d.deviceCode).ThenBy(d => d.address).ToList();
+            var firstDevice = sorted[0];
+            
+            return await ReadWordDevicesAsync(firstDevice.deviceCode, firstDevice.address, 
+                (ushort)wordDevices.Count, timeout, cancellationToken);
+        }
+        
+        /// <summary>
+        /// ランダムWordデバイス読み取り
+        /// </summary>
+        private async Task<ushort[]> ReadRandomWordDevicesAsync(
+            IList<(DeviceCode deviceCode, uint address)> wordDevices,
+            ushort timeout,
+            CancellationToken cancellationToken)
+        {
+            var (wordData, _) = await ReadRandomDevicesAsync(wordDevices, new List<(DeviceCode, uint)>(), timeout, cancellationToken);
+            return wordData;
+        }
+        
+        /// <summary>
+        /// 連続Bitデバイス読み取り
+        /// </summary>
+        private async Task<bool[]> ReadSequentialBitDevicesAsync(
+            IList<(DeviceCode deviceCode, uint address)> bitDevices,
+            ushort timeout,
+            CancellationToken cancellationToken)
+        {
+            if (bitDevices.Count == 0) return new bool[0];
+            
+            var sorted = bitDevices.OrderBy(d => d.deviceCode).ThenBy(d => d.address).ToList();
+            var firstDevice = sorted[0];
+            
+            return await ReadBitDevicesAsync(firstDevice.deviceCode, firstDevice.address, 
+                (ushort)bitDevices.Count, timeout, cancellationToken);
+        }
+        
+        /// <summary>
+        /// 個別Bitデバイス読み取り
+        /// </summary>
+        private async Task<bool[]> ReadIndividualBitDevicesAsync(
+            IList<(DeviceCode deviceCode, uint address)> bitDevices,
+            ushort timeout,
+            CancellationToken cancellationToken)
+        {
+            var results = new bool[bitDevices.Count];
+            var tasks = new Task[bitDevices.Count];
+            
+            for (int i = 0; i < bitDevices.Count; i++)
+            {
+                var index = i;
+                var device = bitDevices[i];
+                tasks[i] = Task.Run(async () =>
+                {
+                    var result = await ReadBitDevicesAsync(device.deviceCode, device.address, 1, timeout, cancellationToken);
+                    results[index] = result[0];
+                });
+            }
+            
+            await Task.WhenAll(tasks);
+            return results;
+        }
+        
+        /// <summary>
+        /// WordペアをDWordに結合
+        /// </summary>
+        private async Task<uint[]> CombineWordPairsToDwords(
+            IList<WordPair> wordPairs,
+            IList<ushort> wordData,
+            PseudoDwordSplitter splitter)
+        {
+            return await Task.Run(() =>
+            {
+                var updatedWordPairs = new List<WordPair>();
+                
+                for (int i = 0; i < wordPairs.Count; i++)
+                {
+                    var pair = wordPairs[i];
+                    var lowIndex = i * 2;
+                    var highIndex = i * 2 + 1;
+                    
+                    if (lowIndex < wordData.Count && highIndex < wordData.Count)
+                    {
+                        var updatedPair = new WordPair
+                        {
+                            LowWord = (pair.LowWord.deviceCode, pair.LowWord.address, wordData[lowIndex]),
+                            HighWord = (pair.HighWord.deviceCode, pair.HighWord.address, wordData[highIndex])
+                        };
+                        updatedWordPairs.Add(updatedPair);
+                    }
+                }
+                
+                var dwordResults = splitter.CombineWordPairsToDword(updatedWordPairs);
+                return dwordResults.Select(d => d.value).ToArray();
+            });
+        }
+        
+        /// <summary>
+        /// Phase 4: 混合デバイス読み取りエラーハンドリング
+        /// </summary>
+        private (ushort[] wordData, bool[] bitData, uint[] dwordData) HandleMixedDeviceReadError(
+            IList<(DeviceCode deviceCode, uint address)> wordDevices,
+            IList<(DeviceCode deviceCode, uint address)> bitDevices,
+            IList<(DeviceCode deviceCode, uint address)> dwordDevices,
+            Exception exception)
+        {
+            var continuitySettings = Settings.ContinuitySettings;
+            
+            // エラー統計記録
+            if (continuitySettings.EnableErrorStatistics)
+            {
+                _errorStatistics.RecordError("MixedDeviceReadError", "Mixed", 0, exception, continuitySettings);
+            }
+            
+            // デフォルト値配列を作成
+            var defaultWordData = CreateDefaultWordArray((ushort)wordDevices.Count, continuitySettings.DefaultWordValue);
+            var defaultBitData = CreateDefaultBitArray((ushort)bitDevices.Count, continuitySettings.DefaultBitValue);
+            var defaultDwordData = new uint[dwordDevices.Count];
+            
+            // DWordのデフォルト値を設定
+            var defaultDwordValue = (uint)(continuitySettings.DefaultWordValue | (continuitySettings.DefaultWordValue << 16));
+            for (int i = 0; i < defaultDwordData.Length; i++)
+            {
+                defaultDwordData[i] = defaultDwordValue;
+            }
+            
+            // 継続動作を記録
+            if (continuitySettings.EnableErrorStatistics)
+            {
+                _errorStatistics.RecordContinuedOperation("MixedDeviceReadError", "Mixed", 0, 
+                    $"Returned defaults: {wordDevices.Count} words, {bitDevices.Count} bits, {dwordDevices.Count} dwords");
+            }
+            
+            return (defaultWordData, defaultBitData, defaultDwordData);
+        }
+        
+        #endregion
+        
         #region Synchronous Methods (Python compatibility)
         
         /// <summary>

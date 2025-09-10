@@ -21,6 +21,19 @@
 | `write_bit_devices(dc2, start_num, data, timeout=0)` | `WriteBitDevicesAsync(DeviceCode deviceCode, uint startAddress, bool[] data, ushort timeout = 0, CancellationToken cancellationToken = default)` | 引数名統一 | `void` → `Task` | 非同期化 |
 | `write_word_devices(dc2, start_num, data, timeout=0)` | `WriteWordDevicesAsync(DeviceCode deviceCode, uint startAddress, ushort[] data, ushort timeout = 0, CancellationToken cancellationToken = default)` | 引数名統一 | `void` → `Task` | 非同期化 |
 
+### ⭐ 混合デバイス読み取り（C#拡張機能）
+
+| Python | C# | 引数変更 | 戻り値変更 | 備考 |
+|--------|----|----|-------|------|
+| 🚫 **なし（新機能）** | `ReadMixedDevicesAsync(IList<(DeviceCode deviceCode, uint address)> wordDevices, IList<(DeviceCode deviceCode, uint address)> bitDevices, IList<(DeviceCode deviceCode, uint address)> dwordDevices, ushort timeout = 0, CancellationToken cancellationToken = default)` | 擬似ダブルワード統合 | `Task<(ushort[] wordData, bool[] bitData, uint[] dwordData)>` | **Phase 4拡張**: Word/Bit/DWordの同時読み取り、DWordは内部でWordペアに分割・結合 |
+
+**🎯 Phase 4拡張機能の特徴**:
+- **SLMP制約統合**: DWord480個、Word960個、Bit7168個、総デバイス192個の制限値自動検証
+- **自動最適化**: 連続アドレス検出による効率的読み取り（逐次/ランダムアクセス自動選択）
+- **並列処理**: Word/Bitデバイスの並列読み取り実行
+- **擬似ダブルワード**: DWordデバイスを内部的に(address, address+1)のWordペアに分割し、読み取り後にuint値に結合
+- **エラー継続**: 既存ContinuitySettings完全統合、製造業向け稼働第一思想
+
 ### ランダムアクセス
 
 | Python | C# | 引数変更 | 戻り値変更 | 備考 |

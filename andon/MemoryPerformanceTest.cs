@@ -11,9 +11,9 @@ namespace SlmpClient.Performance
     public class MemoryPerformanceTest
     {
         /// <summary>
-        /// メイン性能テスト実行
+        /// 性能テスト実行
         /// </summary>
-        public static void Main(string[] args)
+        public static void RunTest(string[] args)
         {
             Console.WriteLine("=== SLMP Client Memory Optimization Performance Test ===");
             Console.WriteLine();

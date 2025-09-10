@@ -211,6 +211,27 @@ namespace SlmpClient.Core
         
         #endregion
         
+        #region Phase 4: Mixed Device Reading API with Pseudo-Dword Integration
+        
+        /// <summary>
+        /// 混合デバイス読み取り（Phase 4: 擬似ダブルワード統合）
+        /// DWordデバイスを内部的にWordペアに分割してSLMP制限内で読み取り、結果を結合
+        /// </summary>
+        /// <param name="wordDevices">読み取り対象のWordデバイス群</param>
+        /// <param name="bitDevices">読み取り対象のBitデバイス群</param>
+        /// <param name="dwordDevices">読み取り対象のDWordデバイス群（内部分割される）</param>
+        /// <param name="timeout">タイムアウト値（250ms単位）</param>
+        /// <param name="cancellationToken">キャンセレーショントークン</param>
+        /// <returns>読み取り結果（Word配列、Bit配列、DWord配列）</returns>
+        Task<(ushort[] wordData, bool[] bitData, uint[] dwordData)> ReadMixedDevicesAsync(
+            IList<(DeviceCode deviceCode, uint address)> wordDevices,
+            IList<(DeviceCode deviceCode, uint address)> bitDevices,
+            IList<(DeviceCode deviceCode, uint address)> dwordDevices,
+            ushort timeout = 0,
+            CancellationToken cancellationToken = default);
+        
+        #endregion
+        
         #region Synchronous Methods (Python compatibility)
         
         /// <summary>

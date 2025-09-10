@@ -10,14 +10,12 @@
 using System;
 using System.Reflection;
 
-[assembly: System.Reflection.AssemblyCompanyAttribute("Andon Team")]
+[assembly: System.Reflection.AssemblyCompanyAttribute("IsAliveAsyncTest")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
-[assembly: System.Reflection.AssemblyDescriptionAttribute(("C# implementation of SLMP (Seamless Message Protocol) client for PLC communicatio" +
-    "n"))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
 [assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7f4cb8efabe64b5fe897950b5cf992a2209496a2")]
-[assembly: System.Reflection.AssemblyProductAttribute("andon")]
-[assembly: System.Reflection.AssemblyTitleAttribute("andon")]
+[assembly: System.Reflection.AssemblyProductAttribute("IsAliveAsyncTest")]
+[assembly: System.Reflection.AssemblyTitleAttribute("IsAliveAsyncTest")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
 
 // MSBuild WriteCodeFragment クラスによって生成されました。

@@ -222,9 +222,20 @@ namespace SlmpClient.Transport
 
             try
             {
-                // TCPの場合は単純に接続状態をチェック
+                // TCPの場合は接続状態をチェックし、可能であればKeepAlive確認
+                await Task.Delay(1, cancellationToken); // 非同期操作のシミュレーション
+                
+                // 基本的な接続状態チェック
+                bool basicCheck = _tcpClient?.Connected == true && 
+                                 _networkStream?.CanRead == true && 
+                                 _networkStream?.CanWrite == true;
+                
+                if (!basicCheck)
+                    return false;
+                
                 // 実際のアプリケーションではハートビートやKeepAliveを使用することも可能
-                return _tcpClient?.Connected == true && _networkStream?.CanRead == true && _networkStream?.CanWrite == true;
+                // 現在は基本チェックのみ
+                return true;
             }
             catch (Exception ex)
             {

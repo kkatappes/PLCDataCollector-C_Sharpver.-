@@ -371,7 +371,7 @@ namespace SlmpClient.Exceptions
         /// <param name="port">接続先ポート</param>
         /// <param name="innerException">内部例外</param>
         public SlmpConnectionException(string message, string address, int port, Exception? innerException = null)
-            : base($"SLMP connection error to {address}:{port} - {message}", innerException)
+            : base($"SLMP connection error to {address}:{port} - {message}", innerException!)
         {
             Address = address;
             Port = port;
