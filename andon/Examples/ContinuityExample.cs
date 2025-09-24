@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SlmpClient.Core;
 using SlmpClient.Constants;
@@ -17,25 +19,24 @@ namespace SlmpClient.Examples
         /// </summary>
         public static async Task RunExample()
         {
+            // 設定ファイルを読み込み
+            var config = LoadConfiguration();
+
             // 簡単なロガー設定
             ILogger<SlmpClient.Core.SlmpClient>? logger = null;
 
-            // 製造現場向け稼働第一設定
-            var settings = new SlmpConnectionSettings();
-            settings.ApplyManufacturingOperationFirstSettings();
-
-            // カスタム継続設定（必要に応じて）
-            settings.ContinuitySettings.DefaultBitValue = false;   // ビットデバイスのデフォルト値
-            settings.ContinuitySettings.DefaultWordValue = 0;     // ワードデバイスのデフォルト値
-            settings.ContinuitySettings.MaxNotificationFrequencySeconds = 60; // エラー通知間隔
+            // 設定ファイルから SLMP設定を生成
+            var settings = config.ToSlmpConnectionSettings();
 
             Console.WriteLine("=== 稼働第一のSLMP継続機能デモ ===");
+            Console.WriteLine($"設定ファイル: appsettings.json");
+            Console.WriteLine($"接続先: {config.PlcConnection.IpAddress}:{config.PlcConnection.Port}");
             Console.WriteLine($"設定: {settings}");
             Console.WriteLine($"継続モード: {settings.ContinuitySettings.Mode}");
             Console.WriteLine();
 
-            // PLCに接続（存在しないIPでデモ）
-            using var client = new SlmpClient.Core.SlmpClient("192.168.999.999", settings, logger);
+            // PLCに接続（設定ファイルのIPアドレスを使用）
+            using var client = new SlmpClient.Core.SlmpClient(config.PlcConnection.IpAddress, settings, logger);
 
             try
             {
@@ -44,8 +45,8 @@ namespace SlmpClient.Examples
 
                 // 製造ラインの監視ループをシミュレート
                 Console.WriteLine("製造ライン監視開始...");
-                
-                for (int cycle = 1; cycle <= 10; cycle++)
+
+                for (int cycle = 1; cycle <= config.MonitoringSettings.MaxCycles; cycle++)
                 {
                     Console.WriteLine($"\n--- サイクル {cycle} ---");
                     
@@ -71,8 +72,8 @@ namespace SlmpClient.Examples
                         Console.WriteLine($"⚠ 予期しないエラー: {ex.Message}");
                     }
 
-                    // サイクル間の待機
-                    await Task.Delay(2000);
+                    // サイクル間の待機（設定ファイルから読み込み）
+                    await Task.Delay(config.MonitoringSettings.CycleIntervalMs);
                 }
 
                 Console.WriteLine("\n=== 統計情報 ===");
@@ -105,6 +106,46 @@ namespace SlmpClient.Examples
         }
 
         /// <summary>
+        /// 設定ファイルを読み込み
+        /// </summary>
+        private static ApplicationConfiguration LoadConfiguration()
+        {
+            // 設定ファイルのパスを決定
+            var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
+
+            // 設定ファイルが存在しない場合の警告とデフォルト設定
+            if (!File.Exists(configPath))
+            {
+                Console.WriteLine($"⚠ 設定ファイルが見つかりません: {configPath}");
+                Console.WriteLine("デフォルト設定を使用します。");
+                return new ApplicationConfiguration();
+            }
+
+            try
+            {
+                // 設定ビルダーを作成
+                var builder = new ConfigurationBuilder()
+                    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false);
+
+                var config = builder.Build();
+
+                // ApplicationConfigurationオブジェクトにバインド
+                var appConfig = new ApplicationConfiguration();
+                config.Bind(appConfig);
+
+                Console.WriteLine($"✓ 設定ファイルを読み込みました: {configPath}");
+                return appConfig;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"✗ 設定ファイル読み込みエラー: {ex.Message}");
+                Console.WriteLine("デフォルト設定を使用します。");
+                return new ApplicationConfiguration();
+            }
+        }
+
+        /// <summary>
         /// カスタム設定例
         /// </summary>
         public static SlmpConnectionSettings CreateCustomContinuitySettings()
@@ -133,10 +174,12 @@ namespace SlmpClient.Examples
         /// </summary>
         public static async Task HighReliabilityModeExample()
         {
-            var settings = new SlmpConnectionSettings();
+            // 設定ファイルを読み込み
+            var config = LoadConfiguration();
+            var settings = config.ToSlmpConnectionSettings();
             settings.ContinuitySettings.ApplyHighReliabilityMode(); // 高信頼性設定
 
-            using var client = new SlmpClient.Core.SlmpClient("192.168.1.100", settings);
+            using var client = new SlmpClient.Core.SlmpClient(config.PlcConnection.IpAddress, settings);
             
             try
             {

@@ -17,3 +17,13 @@ C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extension
 C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.Logging.Abstractions.dll
 C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net9.0\andon.csproj.Up2Date
 C:\Users\1010821\Desktop\python\andon\andon\obj\Debug\net9.0\andon.genruntimeconfig.cache
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\appsettings.json
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.Configuration.dll
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.Configuration.Abstractions.dll
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.Configuration.Binder.dll
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.Configuration.FileExtensions.dll
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.Configuration.Json.dll
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.FileProviders.Abstractions.dll
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.FileProviders.Physical.dll
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.FileSystemGlobbing.dll
+C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\Microsoft.Extensions.Primitives.dll
