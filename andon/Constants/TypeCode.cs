@@ -93,12 +93,37 @@ namespace SlmpClient.Constants
         Q100UDEHCPU = 0x26E,
         
         #endregion
-        
+
+        #region FXシリーズ (FX Series) - 7項目
+
+        /// <summary>FX5U-32MR/ES</summary>
+        FX5U = 0x01F0,
+
+        /// <summary>FX5UC-32MT/DS</summary>
+        FX5UC = 0x01F1,
+
+        /// <summary>FX5UJ-24MT/ES</summary>
+        FX5UJ = 0x01F2,
+
+        /// <summary>FX3U-32MR/ES</summary>
+        FX3U = 0x01E0,
+
+        /// <summary>FX3UC-32MT/D</summary>
+        FX3UC = 0x01E1,
+
+        /// <summary>FX3G-24MR/ES</summary>
+        FX3G = 0x01D0,
+
+        /// <summary>FX3GC-32MT/D</summary>
+        FX3GC = 0x01D1,
+
+        #endregion
+
         #region QSシリーズ (QS Series) - 1項目
-        
+
         /// <summary>QS001CPU</summary>
         QS001CPU = 0x230,
-        
+
         #endregion
         
         #region Lシリーズ (L Series) - 7項目
@@ -237,6 +262,15 @@ namespace SlmpClient.Constants
     public static class TypeCodeExtensions
     {
         /// <summary>
+        /// FXシリーズ CPUタイプコード
+        /// </summary>
+        private static readonly HashSet<TypeCode> FXSeriesTypes = new()
+        {
+            TypeCode.FX5U, TypeCode.FX5UC, TypeCode.FX5UJ, TypeCode.FX3U,
+            TypeCode.FX3UC, TypeCode.FX3G, TypeCode.FX3GC
+        };
+
+        /// <summary>
         /// Qシリーズ CPUタイプコード
         /// </summary>
         private static readonly HashSet<TypeCode> QSeriesTypes = new()
@@ -294,6 +328,16 @@ namespace SlmpClient.Constants
             TypeCode.R32PCPU, TypeCode.R32PSFCPU, TypeCode.R120PCPU, TypeCode.R120PSFCPU
         };
         
+        /// <summary>
+        /// CPUがFXシリーズかどうかを判定
+        /// </summary>
+        /// <param name="typeCode">CPUタイプコード</param>
+        /// <returns>FXシリーズの場合はtrue</returns>
+        public static bool IsFXSeries(this TypeCode typeCode)
+        {
+            return FXSeriesTypes.Contains(typeCode);
+        }
+
         /// <summary>
         /// CPUがQシリーズかどうかを判定
         /// </summary>
@@ -363,6 +407,7 @@ namespace SlmpClient.Constants
         {
             return typeCode switch
             {
+                _ when typeCode.IsFXSeries() => "FXシリーズ",
                 _ when typeCode.IsQSeries() => "Qシリーズ",
                 _ when typeCode.IsQSSeries() => "QSシリーズ",
                 _ when typeCode.IsLSeries() => "Lシリーズ",

@@ -12,7 +12,7 @@ namespace SlmpClient.Core
     /// SLMPエラー統計情報管理クラス
     /// 稼働第一の思想に基づくエラー監視機能
     /// </summary>
-    public class SlmpErrorStatistics
+    public class SlmpErrorStatistics : ISlmpErrorStatistics
     {
         #region Private Fields
 
@@ -52,6 +52,10 @@ namespace SlmpClient.Core
         /// 継続動作率（パーセント）
         /// </summary>
         public double ContinuityRate => _totalErrors > 0 ? (_totalContinuedOperations * 100.0) / _totalErrors : 0.0;
+
+        // ISlmpErrorStatistics明示的実装
+        int ISlmpErrorStatistics.TotalErrors => (int)Math.Min(_totalErrors, int.MaxValue);
+        int ISlmpErrorStatistics.TotalContinuedOperations => (int)Math.Min(_totalContinuedOperations, int.MaxValue);
 
         #endregion
 

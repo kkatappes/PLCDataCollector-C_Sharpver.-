@@ -1,0 +1,12 @@
+{
+  "EntryType": "SYSTEM_EVENT",
+  "Timestamp": "2025-09-30T15:51:05.2037516+09:00",
+  "SessionId": "IntelligentMonitoringDemo_Completed",
+  "EventType": "IntelligentMonitoringExample",
+  "Message": "Intelligent monitoring demo completed",
+  "AdditionalData": {
+    "FinalReport": "システム状態: Error, 待機中, 探索未実行, PLC: 未取得",
+    "DemoSuccess": false,
+    "Summary": "6ステップフロー実行失敗: UDP communication timeout"
+  }
+}

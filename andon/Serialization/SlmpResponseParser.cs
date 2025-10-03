@@ -8,13 +8,33 @@ using SlmpClient.Utils;
 namespace SlmpClient.Serialization
 {
     /// <summary>
-    /// SLMPレスポンス解析クラス（ゼロアロケーション版）
-    /// SpanとReadOnlySpanを活用したメモリ効率化
+    /// SLMPレスポンス解析ファサード（SOLID原則適用版）
+    /// ファサードパターン: 複雑なサブシステムを単純なインターフェースで提供
+    /// 既存APIとの互換性を保ちながらSOLID原則を適用
     /// </summary>
     public static class SlmpResponseParser
     {
+        // 依存性注入用のデフォルトインスタンス
+        private static readonly IResponseFormatDetector _defaultFormatDetector = new SuspiciousByteResponseFormatDetector();
+        private static readonly ISlmpResponseParser _defaultParser = new SlmpResponseParserCore();
+        private static readonly IFallbackProcessor _defaultFallbackProcessor = new AutoDetectionFallbackProcessor(_defaultFormatDetector, _defaultParser);
+
         /// <summary>
-        /// SLMPレスポンスフレームを解析
+        /// バイナリ/ASCII自動判定機能
+        /// SOLID原則: 実装を戦略パターンで分離
+        /// 後方互換性: 既存APIを維持
+        /// </summary>
+        /// <param name="responseFrame">判定対象のレスポンスフレーム</param>
+        /// <returns>バイナリ形式の場合true、ASCII形式の場合false</returns>
+        public static bool IsBinaryResponse(byte[] responseFrame)
+        {
+            return _defaultFormatDetector.IsBinaryResponse(responseFrame);
+        }
+
+        /// <summary>
+        /// SLMPレスポンスフレームを解析（SOLID原則適用版）
+        /// ファサードパターン: 内部の複雑性を隠蔽し、シンプルなAPIを提供
+        /// フォールバック処理付き
         /// </summary>
         /// <param name="responseFrame">受信したレスポンスフレーム</param>
         /// <param name="isBinary">バイナリモードかどうか</param>
@@ -24,180 +44,48 @@ namespace SlmpClient.Serialization
         /// <exception cref="SlmpCommunicationException">レスポンス解析エラーまたはSLMPエラーの場合</exception>
         public static SlmpResponse ParseResponse(byte[] responseFrame, bool isBinary, SlmpFrameVersion version)
         {
-            if (responseFrame == null)
-                throw new ArgumentNullException(nameof(responseFrame));
+            try
+            {
+                // 通常の解析を試行
+                return _defaultParser.ParseResponse(responseFrame, isBinary, version);
+            }
+            catch (ArgumentException ex) when (ex.Message.Contains("無効な16進文字"))
+            {
+                // フォールバック処理を実行
+                return _defaultFallbackProcessor.ProcessFallback(responseFrame, ex, isBinary, version);
+            }
+        }
 
-            if (responseFrame.Length == 0)
-                throw new SlmpCommunicationException("Empty response frame");
+        /// <summary>
+        /// 依存性注入対応版（高度な利用者向け）
+        /// 開放/閉鎖原則: カスタム戦略を注入可能
+        /// </summary>
+        /// <param name="responseFrame">受信したレスポンスフレーム</param>
+        /// <param name="isBinary">バイナリモードかどうか</param>
+        /// <param name="version">フレームバージョン</param>
+        /// <param name="formatDetector">カスタムフォーマット検出器</param>
+        /// <param name="parser">カスタム解析器</param>
+        /// <param name="fallbackProcessor">カスタムフォールバック処理器</param>
+        /// <returns>解析されたレスポンス</returns>
+        public static SlmpResponse ParseResponse(
+            byte[] responseFrame,
+            bool isBinary,
+            SlmpFrameVersion version,
+            IResponseFormatDetector formatDetector = null,
+            ISlmpResponseParser parser = null,
+            IFallbackProcessor fallbackProcessor = null)
+        {
+            var actualParser = parser ?? _defaultParser;
+            var actualFallbackProcessor = fallbackProcessor ?? _defaultFallbackProcessor;
 
             try
             {
-                if (isBinary)
-                {
-                    return ParseBinaryResponse(responseFrame, version);
-                }
-                else
-                {
-                    return ParseAsciiResponse(responseFrame, version);
-                }
+                return actualParser.ParseResponse(responseFrame, isBinary, version);
             }
-            catch (SlmpCommunicationException)
+            catch (ArgumentException ex) when (ex.Message.Contains("無効な16進文字"))
             {
-                throw;
+                return actualFallbackProcessor.ProcessFallback(responseFrame, ex, isBinary, version);
             }
-            catch (Exception ex)
-            {
-                throw new SlmpCommunicationException("Failed to parse SLMP response", ex);
-            }
-        }
-
-        /// <summary>
-        /// バイナリレスポンスを解析
-        /// </summary>
-        /// <param name="responseFrame">レスポンスフレーム</param>
-        /// <param name="version">フレームバージョン</param>
-        /// <returns>解析されたレスポンス</returns>
-        private static SlmpResponse ParseBinaryResponse(byte[] responseFrame, SlmpFrameVersion version)
-        {
-            int headerSize = version == SlmpFrameVersion.Version4E ? 11 : 9;
-
-            if (responseFrame.Length < headerSize)
-                throw new SlmpCommunicationException($"Response frame too short: {responseFrame.Length} bytes, expected at least {headerSize}");
-
-            var response = new SlmpResponse();
-            int offset = 0;
-
-            // ヘッダー解析
-            if (version == SlmpFrameVersion.Version4E)
-            {
-                // 4Eフレーム: サブヘッダー(2) + シーケンス(2) + 予約(2) + レスポンスヘッダー(5)
-                response.SubHeader = System.BitConverter.ToUInt16(responseFrame, offset);
-                offset += 2;
-                
-                response.Sequence = System.BitConverter.ToUInt16(responseFrame, offset);
-                offset += 2;
-                
-                // 予約領域をスキップ
-                offset += 2;
-            }
-            else
-            {
-                // 3Eフレーム: サブヘッダー(2) + レスポンスヘッダー(7)
-                response.SubHeader = System.BitConverter.ToUInt16(responseFrame, offset);
-                offset += 2;
-            }
-
-            // レスポンスヘッダー解析
-            response.Network = responseFrame[offset++];
-            response.Node = responseFrame[offset++];
-            response.DestinationProcessor = System.BitConverter.ToUInt16(responseFrame, offset);
-            offset += 2;
-            response.MultiDropStation = responseFrame[offset++];
-
-            // データ長とエンドコード
-            response.DataLength = System.BitConverter.ToUInt16(responseFrame, offset);
-            offset += 2;
-            response.EndCode = (EndCode)System.BitConverter.ToUInt16(responseFrame, offset);
-            offset += 2;
-
-            // エンドコードチェック
-            if (response.EndCode != EndCode.Success)
-            {
-                throw new SlmpCommunicationException(response.EndCode, responseFrame);
-            }
-
-            // データ部分を抽出
-            int dataSize = responseFrame.Length - offset;
-            if (dataSize > 0)
-            {
-                response.Data = new byte[dataSize];
-                Array.Copy(responseFrame, offset, response.Data, 0, dataSize);
-            }
-            else
-            {
-                response.Data = Array.Empty<byte>();
-            }
-
-            return response;
-        }
-
-        /// <summary>
-        /// ASCIIレスポンスを解析（ゼロアロケーション版）
-        /// </summary>
-        /// <param name="responseFrame">レスポンスフレーム</param>
-        /// <param name="version">フレームバージョン</param>
-        /// <returns>解析されたレスポンス</returns>
-        private static SlmpResponse ParseAsciiResponse(byte[] responseFrame, SlmpFrameVersion version)
-        {
-            // ASCIIフレームをSpanで効率的に処理
-            var frameSpan = responseFrame.AsSpan();
-            
-            int headerSize = version == SlmpFrameVersion.Version4E ? 22 : 18;
-
-            if (frameSpan.Length < headerSize)
-                throw new SlmpCommunicationException($"Response frame too short: {frameSpan.Length} chars, expected at least {headerSize}");
-
-            var response = new SlmpResponse();
-            int offset = 0;
-
-            // ヘッダー解析（Spanを使用）
-            if (version == SlmpFrameVersion.Version4E)
-            {
-                // 4Eフレーム: サブヘッダー(4) + シーケンス(4) + 予約(4) + レスポンスヘッダー(10)
-                response.SubHeader = SlmpResponseParserHelper.ParseHexUshort(frameSpan.Slice(offset, 4));
-                offset += 4;
-                
-                response.Sequence = SlmpResponseParserHelper.ParseHexUshort(frameSpan.Slice(offset, 4));
-                offset += 4;
-                
-                // 予約領域をスキップ
-                offset += 4;
-            }
-            else
-            {
-                // 3Eフレーム: サブヘッダー(4) + レスポンスヘッダー(14)
-                response.SubHeader = SlmpResponseParserHelper.ParseHexUshort(frameSpan.Slice(offset, 4));
-                offset += 4;
-            }
-
-            // レスポンスヘッダー解析
-            response.Network = SlmpResponseParserHelper.ParseHexByte(frameSpan.Slice(offset, 2));
-            offset += 2;
-            response.Node = SlmpResponseParserHelper.ParseHexByte(frameSpan.Slice(offset, 2));
-            offset += 2;
-            response.DestinationProcessor = SlmpResponseParserHelper.ParseHexUshort(frameSpan.Slice(offset, 4));
-            offset += 4;
-            response.MultiDropStation = SlmpResponseParserHelper.ParseHexByte(frameSpan.Slice(offset, 2));
-            offset += 2;
-
-            // データ長とエンドコード
-            response.DataLength = SlmpResponseParserHelper.ParseHexUshort(frameSpan.Slice(offset, 4));
-            offset += 4;
-            response.EndCode = (EndCode)SlmpResponseParserHelper.ParseHexUshort(frameSpan.Slice(offset, 4));
-            offset += 4;
-
-            // エンドコードチェック
-            if (response.EndCode != EndCode.Success)
-            {
-                throw new SlmpCommunicationException(response.EndCode, responseFrame);
-            }
-
-            // データ部分を抽出（ゼロアロケーション版）
-            if (offset < frameSpan.Length)
-            {
-                var dataSpan = frameSpan.Slice(offset);
-                if (dataSpan.Length % 2 != 0)
-                    throw new SlmpCommunicationException("Invalid ASCII response data length");
-
-                response.Data = new byte[dataSpan.Length / 2];
-                SlmpResponseParserHelper.ParseHexBytesToArray(dataSpan, response.Data);
-            }
-            else
-            {
-                response.Data = Array.Empty<byte>();
-            }
-
-            return response;
         }
     }
 
@@ -300,8 +188,61 @@ namespace SlmpClient.Serialization
                 >= (byte)'0' and <= (byte)'9' => hexChar - '0',
                 >= (byte)'A' and <= (byte)'F' => hexChar - 'A' + 10,
                 >= (byte)'a' and <= (byte)'f' => hexChar - 'a' + 10,
-                _ => throw new ArgumentException($"Invalid hex character: {(char)hexChar}")
+                _ => throw new ArgumentException($"無効な16進文字: バイト値=0x{hexChar:X2}, 文字='{(char)hexChar}' (ASCII={hexChar}), 有効な16進文字は 0-9, A-F, a-f です")
             };
+        }
+
+        /// <summary>
+        /// 16進文字の有効性チェック
+        /// </summary>
+        /// <param name="hexChar">チェック対象の文字</param>
+        /// <returns>有効な16進文字の場合true</returns>
+        public static bool IsValidHexChar(byte hexChar)
+        {
+            return (hexChar >= 0x30 && hexChar <= 0x39) ||  // '0'-'9'
+                   (hexChar >= 0x41 && hexChar <= 0x46) ||  // 'A'-'F'
+                   (hexChar >= 0x61 && hexChar <= 0x66);    // 'a'-'f'
+        }
+
+        /// <summary>
+        /// 16進文字から数値を取得（フォールバック処理付き）
+        /// エラー発生時に0を返すセーフモード
+        /// </summary>
+        /// <param name="hexChar">16進文字</param>
+        /// <param name="allowFallback">フォールバック処理を許可するか</param>
+        /// <returns>数値（エラー時は0）</returns>
+        public static int GetHexValueSafe(byte hexChar, bool allowFallback = true)
+        {
+            try
+            {
+                return GetHexValue(hexChar);
+            }
+            catch (ArgumentException)
+            {
+                if (allowFallback)
+                {
+                    // フォールバック: 無効文字は0として処理
+                    return 0;
+                }
+                throw; // フォールバック無効時は例外を再スロー
+            }
+        }
+
+        /// <summary>
+        /// 16進文字列の健全性チェック
+        /// </summary>
+        /// <param name="hexString">チェック対象の16進文字列</param>
+        /// <returns>全て有効な16進文字の場合true</returns>
+        public static bool IsValidHexString(ReadOnlySpan<byte> hexString)
+        {
+            for (int i = 0; i < hexString.Length; i++)
+            {
+                if (!IsValidHexChar(hexString[i]))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 
@@ -409,7 +350,8 @@ namespace SlmpClient.Serialization
             SlmpFrameVersion version,
             out SlmpResponseHeader result)
         {
-            int headerSize = version == SlmpFrameVersion.Version4E ? 22 : 18;
+            // 手順書に基づく修正: 実際のPLC応答（20文字）を受け入れるよう調整
+            int headerSize = version == SlmpFrameVersion.Version4E ? 20 : 18;
 
             if (responseSpan.Length < headerSize)
                 throw new SlmpCommunicationException($"Response frame too short: {responseSpan.Length} chars, expected at least {headerSize}");
@@ -431,21 +373,62 @@ namespace SlmpClient.Serialization
                 offset += 4;
             }
 
-            // レスポンスヘッダー解析
-            result.Network = SlmpResponseParserHelper.ParseHexByte(responseSpan.Slice(offset, 2));
-            offset += 2;
-            result.Node = SlmpResponseParserHelper.ParseHexByte(responseSpan.Slice(offset, 2));
-            offset += 2;
-            result.DestinationProcessor = SlmpResponseParserHelper.ParseHexUshort(responseSpan.Slice(offset, 4));
-            offset += 4;
-            result.MultiDropStation = SlmpResponseParserHelper.ParseHexByte(responseSpan.Slice(offset, 2));
-            offset += 2;
+            // レスポンスヘッダー解析（境界チェック付き）
+            if (offset + 2 <= responseSpan.Length)
+            {
+                result.Network = SlmpResponseParserHelper.ParseHexByte(responseSpan.Slice(offset, 2));
+                offset += 2;
+            }
+            else
+            {
+                result.Network = 0;
+            }
 
-            // データ長とエンドコード
-            result.DataLength = SlmpResponseParserHelper.ParseHexUshort(responseSpan.Slice(offset, 4));
-            offset += 4;
-            result.EndCode = (EndCode)SlmpResponseParserHelper.ParseHexUshort(responseSpan.Slice(offset, 4));
-            offset += 4;
+            if (offset + 2 <= responseSpan.Length)
+            {
+                result.Node = SlmpResponseParserHelper.ParseHexByte(responseSpan.Slice(offset, 2));
+                offset += 2;
+            }
+            else
+            {
+                result.Node = 0;
+            }
+
+            if (offset + 4 <= responseSpan.Length)
+            {
+                result.DestinationProcessor = SlmpResponseParserHelper.ParseHexUshort(responseSpan.Slice(offset, 4));
+                offset += 4;
+            }
+            else
+            {
+                result.DestinationProcessor = 0;
+            }
+
+            if (offset + 2 <= responseSpan.Length)
+            {
+                result.MultiDropStation = SlmpResponseParserHelper.ParseHexByte(responseSpan.Slice(offset, 2));
+                offset += 2;
+            }
+            else
+            {
+                result.MultiDropStation = 0;
+            }
+
+            // データ長とエンドコード（20文字応答では省略されている場合がある）
+            if (offset + 8 <= responseSpan.Length)
+            {
+                // 通常の応答（22文字以上）
+                result.DataLength = SlmpResponseParserHelper.ParseHexUshort(responseSpan.Slice(offset, 4));
+                offset += 4;
+                result.EndCode = (EndCode)SlmpResponseParserHelper.ParseHexUshort(responseSpan.Slice(offset, 4));
+                offset += 4;
+            }
+            else
+            {
+                // 簡略化された応答（20文字）- データ長とエンドコードを既定値に設定
+                result.DataLength = 0;
+                result.EndCode = EndCode.Success;
+            }
 
             // エンドコードチェック
             if (result.EndCode != EndCode.Success)

@@ -1,0 +1,1315 @@
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-09-29T11:35:16.4905245+09:00",
+  "SessionId": "session_20250929_113516_479_3837",
+  "SessionInfo": {
+    "ProcessId": 3632,
+    "ApplicationName": "Andon SLMP Client - Enhanced Continuity System",
+    "Version": "2.0.0-unified",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "192.168.1.10:5007",
+    "SlmpSettings": "Port:5007, Binary, Version4E, UDP, RxTimeout:3000ms",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/slmp_unified_log.log"
+  }
+}
+{
+  "EntryType": "STATISTICS",
+  "Timestamp": "2025-09-29T11:35:16.5985954+09:00",
+  "SessionId": "session_20250929_113516_479_3837",
+  "StatisticsType": "STARTUP_DIAGNOSTIC",
+  "StatisticsInfo": {
+    "ExecutedCycles": 0,
+    "TotalCommunications": 5,
+    "SuccessfulCommunications": 0,
+    "FailedCommunications": 5,
+    "SuccessRate": "0.0%",
+    "AverageResponseTime": 0.41482,
+    "MinResponseTime": 0.0002,
+    "MaxResponseTime": 2.0503
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-09-29T11:35:54.1773091+09:00",
+  "SessionId": "session_20250929_113554_167_2284",
+  "SessionInfo": {
+    "ProcessId": 168,
+    "ApplicationName": "Andon SLMP Client - Enhanced Continuity System",
+    "Version": "2.0.0-unified",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "192.168.1.10:5007",
+    "SlmpSettings": "Port:5007, Binary, Version4E, UDP, RxTimeout:3000ms",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/slmp_unified_log.log"
+  }
+}
+{
+  "EntryType": "STATISTICS",
+  "Timestamp": "2025-09-29T11:35:59.1093122+09:00",
+  "SessionId": "session_20250929_113554_167_2284",
+  "StatisticsType": "STARTUP_DIAGNOSTIC",
+  "StatisticsInfo": {
+    "ExecutedCycles": 0,
+    "TotalCommunications": 5,
+    "SuccessfulCommunications": 0,
+    "FailedCommunications": 5,
+    "SuccessRate": "0.0%",
+    "AverageResponseTime": 0.18851999999999997,
+    "MinResponseTime": 0.0001,
+    "MaxResponseTime": 0.9044
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-09-29T16:33:22.1947846+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "SessionInfo": {
+    "ProcessId": 11572,
+    "ApplicationName": "Andon SLMP Client - Enhanced Continuity System",
+    "Version": "2.0.0-unified",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, Binary, Version4E, UDP, RxTimeout:3000ms",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/slmp_unified_log.log"
+  }
+}
+{
+  "EntryType": "STATISTICS",
+  "Timestamp": "2025-09-29T16:33:22.4078616+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "StatisticsType": "STARTUP_DIAGNOSTIC",
+  "StatisticsInfo": {
+    "ExecutedCycles": 0,
+    "TotalCommunications": 5,
+    "SuccessfulCommunications": 0,
+    "FailedCommunications": 5,
+    "SuccessRate": "0.0%",
+    "AverageResponseTime": 0.16424,
+    "MinResponseTime": 0.0001,
+    "MaxResponseTime": 0.8017
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:33:22.4255043+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 1 ---",
+    "IntervalFromPrevious": 0.0043
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:33:25.4660127+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 1,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3032.1631,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:33:28.5137886+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 1,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3031.6668,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:33:29.5285917+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 2,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 2 ---",
+    "IntervalFromPrevious": 7103.5442
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:33:32.5515841+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 2,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3019.7151,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:33:35.5643604+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 2,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3009.8182,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:33:36.5720354+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 3,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 3 ---",
+    "IntervalFromPrevious": 7043.4613
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:33:39.5960367+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 3,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3019.6396,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:33:42.6196486+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 3,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3020.4817,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:33:43.6302891+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 4,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 4 ---",
+    "IntervalFromPrevious": 7058.249
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:33:46.654062+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 4,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3015.5188,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:33:49.6742319+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 4,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3016.6792,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:33:50.6780536+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 5,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 5 ---",
+    "IntervalFromPrevious": 7047.7481
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:33:53.6941098+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 5,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3011.3725,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:33:56.7104142+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 5,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3013.327,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:33:57.7156543+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 6,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 6 ---",
+    "IntervalFromPrevious": 7037.6306
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:00.7364169+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 6,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3014.8574,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:03.7590171+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 6,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3017.7444,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:34:04.7968095+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 7,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 7 ---",
+    "IntervalFromPrevious": 7081.1335
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:07.8251609+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 7,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3020.4826,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:10.8388586+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 7,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3010.4751,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:34:11.8423013+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 8,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 8 ---",
+    "IntervalFromPrevious": 7045.5067
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:14.8658658+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 8,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3019.3114,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:17.8913679+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 8,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3022.4233,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:34:18.8985276+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 9,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 9 ---",
+    "IntervalFromPrevious": 7056.2339
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:21.9169859+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 9,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3014.628,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:24.9390251+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 9,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3019.0642,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:34:25.947276+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 10,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 10 ---",
+    "IntervalFromPrevious": 7048.7438
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:28.9639318+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 10,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3011.8081,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:31.9906678+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 10,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3022.7609,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:34:32.9997886+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 11,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 11 ---",
+    "IntervalFromPrevious": 7052.5189
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:36.0191283+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 11,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3015.4629,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:39.0338325+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 11,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3011.6661,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:34:40.0401342+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 12,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 12 ---",
+    "IntervalFromPrevious": 7040.345
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:43.0836895+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 12,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3039.7832,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:46.1104628+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 12,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3018.0639,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:34:47.1157048+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 13,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 13 ---",
+    "IntervalFromPrevious": 7075.5599
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:50.1268832+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 13,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3007.9605,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:53.1424279+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 13,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3012.8944,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:34:54.1457107+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 14,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 14 ---",
+    "IntervalFromPrevious": 7029.9718
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:34:57.1623202+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 14,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3013.6836,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:35:00.1971927+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 14,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3032.0488,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:35:01.2127666+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 15,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 15 ---",
+    "IntervalFromPrevious": 7067.0985
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:35:04.2284262+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 15,
+  "PhaseInfo": {
+    "Phase": "BitDeviceRead_Comprehensive",
+    "StatusMessage": "M100-M199 センサー状態読み取り中...",
+    "DeviceAddress": "M100-M199"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BitDeviceRead_Comprehensive",
+    "DeviceCode": "M",
+    "DeviceNumber": 100,
+    "DeviceAddress": "M100-M199",
+    "Values": [
+      "100ビット読み取り完了",
+      "ON: 0",
+      "OFF: 100"
+    ],
+    "ResponseTimeMs": 3011.0457,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010400000000010001006400000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive sensor read M100-M199",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-09-29T16:35:07.2418475+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 15,
+  "PhaseInfo": {
+    "Phase": "WordDeviceRead_Comprehensive",
+    "StatusMessage": "D200-D299 生産カウンター読み取り中...",
+    "DeviceAddress": "D200-D299"
+  },
+  "CommunicationDetails": {
+    "OperationType": "WordDeviceRead_Comprehensive",
+    "DeviceCode": "D",
+    "DeviceNumber": 200,
+    "DeviceAddress": "D200-D299",
+    "Values": [
+      "100ワード読み取り完了",
+      "非零値: 0",
+      "零値: 100"
+    ],
+    "ResponseTimeMs": 3010.7299,
+    "Success": true
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "5400000000FF03000C001400010100000000010064000200000064",
+    "ResponseFrameHex": "D400000000030002000000000000000000000000000000000000",
+    "HexDump": "Mock HexDump for comprehensive counter read D200-D299",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D4",
+      "SubHeaderDescription": "4Eフレーム",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常終了"
+    }
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-09-29T16:35:08.2474669+09:00",
+  "SessionId": "session_20250929_163322_186_2326",
+  "CycleNumber": 16,
+  "CycleInfo": {
+    "StartMessage": "--- サイクル 16 ---",
+    "IntervalFromPrevious": 7034.6982
+  }
+}

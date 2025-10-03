@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -28,7 +29,54 @@ namespace SlmpClient.Core
         private readonly object _connectionLock = new();
         
         #endregion
-        
+
+        #region Diagnostic Methods
+
+        /// <summary>
+        /// SLMP生レスポンスデータの16進ダンプ出力
+        /// エラー診断用の詳細情報記録機能
+        /// </summary>
+        /// <param name="responseData">生レスポンスデータ</param>
+        /// <param name="context">コンテキスト情報（メソッド名など）</param>
+        private void LogRawResponse(byte[] responseData, string context)
+        {
+            if (!_logger.IsEnabled(LogLevel.Debug)) return;
+
+            var hexDump = Convert.ToHexString(responseData);
+            var asciiDump = System.Text.Encoding.ASCII.GetString(responseData)
+                .Replace("\0", "\\0")  // NULL文字を可視化
+                .Replace("\r", "\\r")  // CR文字を可視化
+                .Replace("\n", "\\n"); // LF文字を可視化
+
+            _logger.LogDebug("SLMP生レスポンスダンプ [{Context}]:", context);
+            _logger.LogDebug("  16進: {HexDump}", hexDump);
+            _logger.LogDebug("  ASCII: {AsciiDump}", asciiDump);
+            _logger.LogDebug("  サイズ: {Size}バイト", responseData.Length);
+
+            // バイト単位の詳細ダンプ（デバッグ用）
+            if (responseData.Length <= 64) // 64バイト以下の場合のみ詳細表示
+            {
+                var detailedDump = string.Join(" ",
+                    responseData.Select((b, i) => $"{i:D2}:{b:X2}({(b >= 32 && b <= 126 ? (char)b : '.')})"));
+                _logger.LogDebug("  詳細: {DetailedDump}", detailedDump);
+            }
+        }
+
+        /// <summary>
+        /// SLMP送信フレームの16進ダンプ出力
+        /// </summary>
+        /// <param name="requestData">送信フレームデータ</param>
+        /// <param name="context">コンテキスト情報</param>
+        private void LogRawRequest(byte[] requestData, string context)
+        {
+            if (!_logger.IsEnabled(LogLevel.Debug)) return;
+
+            var hexDump = Convert.ToHexString(requestData);
+            _logger.LogDebug("SLMP送信フレームダンプ [{Context}]: {HexDump}", context, hexDump);
+        }
+
+        #endregion
+
         #region Properties
         
         /// <summary>
@@ -55,6 +103,16 @@ namespace SlmpClient.Core
         /// エラー統計情報
         /// </summary>
         public SlmpErrorStatistics ErrorStatistics => _errorStatistics;
+
+        /// <summary>
+        /// 最後に送信したSLMPフレーム（生データ記録用）
+        /// </summary>
+        public byte[]? LastSentFrame { get; private set; }
+
+        /// <summary>
+        /// 最後に受信したSLMPフレーム（生データ記録用）
+        /// </summary>
+        public byte[]? LastReceivedFrame { get; private set; }
         
         #endregion
         
@@ -226,10 +284,16 @@ namespace SlmpClient.Core
                 var sequence = GetNextSequence();
                 var requestFrame = SlmpRequestBuilder.BuildBitDeviceReadRequest(
                     deviceCode, startAddress, count, Settings, Target, sequence, timeout);
-                
+
+                // 送信フレーム記録
+                LastSentFrame = requestFrame.ToArray();
+
                 // 通信実行
                 var timeoutMs = TimeSpan.FromMilliseconds(timeout > 0 ? timeout * 250 : Settings.ReceiveTimeout.TotalMilliseconds);
                 var responseFrame = await _transport.SendAndReceiveAsync(requestFrame, timeoutMs, cancellationToken);
+
+                // 受信フレーム記録
+                LastReceivedFrame = responseFrame.ToArray();
                 
                 // レスポンス解析
                 var response = SlmpResponseParser.ParseResponse(responseFrame, Settings.IsBinary, Settings.Version);
@@ -285,10 +349,16 @@ namespace SlmpClient.Core
                 var sequence = GetNextSequence();
                 var requestFrame = SlmpRequestBuilder.BuildWordDeviceReadRequest(
                     deviceCode, startAddress, count, Settings, Target, sequence, timeout);
-                
+
+                // 送信フレーム記録
+                LastSentFrame = requestFrame.ToArray();
+
                 // 通信実行
                 var timeoutMs = TimeSpan.FromMilliseconds(timeout > 0 ? timeout * 250 : Settings.ReceiveTimeout.TotalMilliseconds);
                 var responseFrame = await _transport.SendAndReceiveAsync(requestFrame, timeoutMs, cancellationToken);
+
+                // 受信フレーム記録
+                LastReceivedFrame = responseFrame.ToArray();
                 
                 // レスポンス解析
                 var response = SlmpResponseParser.ParseResponse(responseFrame, Settings.IsBinary, Settings.Version);
@@ -1005,18 +1075,30 @@ namespace SlmpClient.Core
             ThrowIfNotConnected();
             
             _logger.LogDebug("Reading type name");
-            
+
             try
             {
                 // 要求フレームを構築
                 var sequence = GetNextSequence();
                 var requestFrame = SlmpRequestBuilder.BuildReadTypeNameRequest(
                     Settings, Target, sequence, timeout);
-                
+
+                // 送信フレーム記録
+                LastSentFrame = requestFrame.ToArray();
+
+                // 診断用: 送信フレームの16進ダンプ出力
+                LogRawRequest(requestFrame, "ReadTypeName");
+
                 // 通信実行
                 var timeoutMs = TimeSpan.FromMilliseconds(timeout > 0 ? timeout * 250 : Settings.ReceiveTimeout.TotalMilliseconds);
                 var responseFrame = await _transport.SendAndReceiveAsync(requestFrame, timeoutMs, cancellationToken);
-                
+
+                // 受信フレーム記録
+                LastReceivedFrame = responseFrame.ToArray();
+
+                // 診断用: 生レスポンスデータの16進ダンプ出力
+                LogRawResponse(responseFrame, "ReadTypeName");
+
                 // レスポンス解析
                 var response = SlmpResponseParser.ParseResponse(responseFrame, Settings.IsBinary, Settings.Version);
                 
@@ -1179,6 +1261,16 @@ namespace SlmpClient.Core
             // Python版との互換性を保つために主要な型名のみマッピング
             return typeName.ToUpper() switch
             {
+                // FXシリーズ (追加) - 長い文字列から先にマッチ
+                string s when s.Contains("FX5UC") => Constants.TypeCode.FX5UC,
+                string s when s.Contains("FX5UJ") => Constants.TypeCode.FX5UJ,
+                string s when s.Contains("FX5U") => Constants.TypeCode.FX5U,
+                string s when s.Contains("FX3UC") => Constants.TypeCode.FX3UC,
+                string s when s.Contains("FX3GC") => Constants.TypeCode.FX3GC,
+                string s when s.Contains("FX3U") => Constants.TypeCode.FX3U,
+                string s when s.Contains("FX3G") => Constants.TypeCode.FX3G,
+
+                // Qシリーズ
                 string s when s.Contains("Q00JCPU") => Constants.TypeCode.Q00JCPU,
                 string s when s.Contains("Q00CPU") => Constants.TypeCode.Q00CPU,
                 string s when s.Contains("Q01CPU") => Constants.TypeCode.Q01CPU,
@@ -1186,11 +1278,16 @@ namespace SlmpClient.Core
                 string s when s.Contains("Q06HCPU") => Constants.TypeCode.Q06HCPU,
                 string s when s.Contains("Q12HCPU") => Constants.TypeCode.Q12HCPU,
                 string s when s.Contains("Q25HCPU") => Constants.TypeCode.Q25HCPU,
+
+                // Rシリーズ
                 string s when s.Contains("R00CPU") => Constants.TypeCode.R00CPU,
                 string s when s.Contains("R01CPU") => Constants.TypeCode.R01CPU,
                 string s when s.Contains("R02CPU") => Constants.TypeCode.R02CPU,
+
+                // Lシリーズ
                 string s when s.Contains("L02SCPU") => Constants.TypeCode.L02SCPU,
                 string s when s.Contains("L02CPU") => Constants.TypeCode.L02CPU,
+
                 _ => Constants.TypeCode.Q00CPU // デフォルト値（不明な場合）
             };
         }

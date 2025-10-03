@@ -1,0 +1,495 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Xunit;
+using SlmpClient.Core;
+using SlmpClient.Constants;
+using SlmpClient.Exceptions;
+using TypeCode = SlmpClient.Constants.TypeCode;
+
+namespace SlmpClient.Tests.Core
+{
+    /// <summary>
+    /// インテリジェント監視システムのテスト
+    /// ユーザー要求の4ステップフローの動作を検証
+    /// </summary>
+    public class IntelligentMonitoringTests
+    {
+        /// <summary>
+        /// DeviceDiscoveryManager のTypeCode別設定生成テスト（基本モード）
+        /// </summary>
+        [Theory]
+        [InlineData(TypeCode.FX5U, 4, 3, 32)] // FX5U: 4種類デバイス, 3同時スキャン, バッチサイズ32
+        [InlineData(TypeCode.Q00CPU, 8, 4, 64)] // Q00CPU: 8種類デバイス, 4同時スキャン, バッチサイズ64
+        [InlineData(TypeCode.R01CPU, 9, 8, 96)] // R01CPU: 9種類デバイス, 8同時スキャン, バッチサイズ96
+        [InlineData(TypeCode.L02CPU, 5, 3, 32)] // L02CPU: 5種類デバイス, 3同時スキャン, バッチサイズ32
+        public void DeviceDiscoveryManager_GetDiscoveryConfiguration_BasicMode_ReturnsCorrectConfiguration(
+            TypeCode typeCode, int expectedTotalDevices, int expectedMaxConcurrentScans, int expectedBatchSize)
+        {
+            // Arrange
+            var logger = NullLogger<DeviceDiscoveryManager>.Instance;
+            var manager = new DeviceDiscoveryManager(logger)
+            {
+                Mode = DeviceDiscoveryManager.DiscoveryMode.Basic // 基本モード
+            };
+
+            // Act
+            var config = manager.GetDiscoveryConfigurationForTypeCode(typeCode);
+
+            // Assert
+            Assert.NotNull(config);
+            Assert.Equal(expectedTotalDevices, config.BitDevices.Length + config.WordDevices.Length);
+            Assert.Equal(expectedMaxConcurrentScans, config.MaxConcurrentScans);
+            Assert.Equal(expectedBatchSize, config.BatchSize);
+            Assert.True(manager.ValidateConfiguration(config));
+
+            // TypeCode別の期待されるデバイスをチェック
+            switch (typeCode)
+            {
+                case TypeCode.FX5U:
+                    Assert.Contains(DeviceCode.M, config.BitDevices);
+                    Assert.Contains(DeviceCode.X, config.BitDevices);
+                    Assert.Contains(DeviceCode.Y, config.BitDevices);
+                    Assert.Contains(DeviceCode.D, config.WordDevices);
+                    break;
+
+                case TypeCode.Q00CPU:
+                    Assert.Contains(DeviceCode.M, config.BitDevices);
+                    Assert.Contains(DeviceCode.B, config.BitDevices);
+                    Assert.Contains(DeviceCode.D, config.WordDevices);
+                    Assert.Contains(DeviceCode.W, config.WordDevices);
+                    break;
+
+                case TypeCode.R01CPU:
+                    Assert.Contains(DeviceCode.M, config.BitDevices);
+                    Assert.Contains(DeviceCode.L, config.BitDevices);
+                    Assert.Contains(DeviceCode.D, config.WordDevices);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// DeviceScanner のアクティブデバイス検出テスト
+        /// </summary>
+        [Fact]
+        public void DeviceScanner_FindActiveBitDevices_AnyTrue_ReturnsCorrectDevices()
+        {
+            // Arrange
+            var mockClient = new MockSlmpClient();
+            var logger = NullLogger<DeviceScanner>.Instance;
+            var threshold = new ActiveDeviceThreshold { BitDevice = BitDeviceThreshold.AnyTrue };
+            var scanner = new DeviceScanner(mockClient, logger, threshold);
+
+            // プライベートメソッドのテストのため、リフレクションを使用
+            var method = typeof(DeviceScanner).GetMethod("FindActiveBitDevices",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            var data = new bool[] { false, true, false, true, false };
+            uint startAddress = 100;
+
+            // Act
+            var result = (List<uint>)method.Invoke(scanner, new object[] { data, startAddress, threshold.BitDevice });
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+            Assert.Contains(101u, result); // data[1] = true
+            Assert.Contains(103u, result); // data[3] = true
+        }
+
+        /// <summary>
+        /// DeviceScanner のワードデバイス検出テスト
+        /// </summary>
+        [Fact]
+        public void DeviceScanner_FindActiveWordDevices_NonZero_ReturnsCorrectDevices()
+        {
+            // Arrange
+            var mockClient = new MockSlmpClient();
+            var logger = NullLogger<DeviceScanner>.Instance;
+            var threshold = new ActiveDeviceThreshold { WordDevice = WordDeviceThreshold.NonZero };
+            var scanner = new DeviceScanner(mockClient, logger, threshold);
+
+            // プライベートメソッドのテストのため、リフレクションを使用
+            var method = typeof(DeviceScanner).GetMethod("FindActiveWordDevices",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            var data = new ushort[] { 0, 1234, 0, 5678, 0 };
+            uint startAddress = 200;
+
+            // Act
+            var result = (List<uint>)method.Invoke(scanner, new object[] { data, startAddress, threshold.WordDevice });
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+            Assert.Contains(201u, result); // data[1] = 1234
+            Assert.Contains(203u, result); // data[3] = 5678
+        }
+
+        /// <summary>
+        /// AdaptiveMonitoringManager の監視デバイス登録テスト
+        /// </summary>
+        [Fact]
+        public void AdaptiveMonitoringManager_RegisterDevices_UpdatesCount()
+        {
+            // Arrange
+            var mockClient = new MockSlmpClient();
+            var logger = NullLogger<AdaptiveMonitoringManager>.Instance;
+            var manager = new AdaptiveMonitoringManager(mockClient, logger);
+
+            var devices = new List<(DeviceCode deviceCode, uint address)>
+            {
+                (DeviceCode.M, 100),
+                (DeviceCode.M, 101),
+                (DeviceCode.D, 200),
+                (DeviceCode.D, 201)
+            };
+
+            // Act
+            manager.RegisterDevices(devices);
+
+            // Assert
+            Assert.Equal(4, manager.MonitoredDeviceCount);
+            Assert.False(manager.IsMonitoring);
+        }
+
+        /// <summary>
+        /// DeviceDiscoveryManager の完全対応モードテスト
+        /// </summary>
+        [Theory]
+        [InlineData(TypeCode.FX5U)] // FX5U: 完全対応（タイマー・カウンタ含む）
+        [InlineData(TypeCode.Q00CPU)] // Q00CPU: 完全対応（特殊デバイス含む）
+        [InlineData(TypeCode.R01CPU)] // R01CPU: 完全対応（全デバイス）
+        public void DeviceDiscoveryManager_ComprehensiveMode_SupportsAllDevices(TypeCode typeCode)
+        {
+            // Arrange
+            var logger = NullLogger<DeviceDiscoveryManager>.Instance;
+            var manager = new DeviceDiscoveryManager(logger)
+            {
+                Mode = DeviceDiscoveryManager.DiscoveryMode.Comprehensive // 完全対応モード
+            };
+
+            // Act
+            var config = manager.GetDiscoveryConfigurationForTypeCode(typeCode);
+            var statistics = manager.GetDeviceStatistics(typeCode);
+
+            // Assert
+            Assert.NotNull(config);
+            Assert.True(manager.ValidateConfiguration(config));
+
+            // 完全対応モードでは基本モードより多くのデバイスが対応
+            var totalDevices = config.BitDevices.Length + config.WordDevices.Length;
+            Assert.True(totalDevices >= 4, $"完全対応モードでは4デバイス以上: 実際は{totalDevices}デバイス");
+
+            // 統計情報の検証
+            Assert.Equal(typeCode, statistics.TypeCode);
+            Assert.True(statistics.TotalSupportedDevices >= totalDevices);
+            Assert.True(statistics.SupportedBitDevices > 0);
+            Assert.True(statistics.SupportedWordDevices > 0);
+
+            // TypeCode別の拡張デバイス確認
+            switch (typeCode)
+            {
+                case TypeCode.FX5U:
+                    // FX5Uはタイマーやカウンタなどの拡張デバイスも対応
+                    Assert.True(config.BitDevices.Contains(DeviceCode.TS) ||
+                               config.BitDevices.Contains(DeviceCode.CS),
+                               "FX5Uはタイマーまたはカウンタデバイスに対応すべき");
+                    break;
+
+                case TypeCode.Q00CPU:
+                    // Q00CPUは特殊デバイスやリンクデバイスも対応
+                    Assert.True(config.BitDevices.Contains(DeviceCode.F) ||
+                               config.BitDevices.Contains(DeviceCode.V),
+                               "Q00CPUは特殊デバイスに対応すべき");
+                    break;
+
+                case TypeCode.R01CPU:
+                    // R01CPUは最新デバイスに幅広く対応
+                    Assert.True(config.BitDevices.Contains(DeviceCode.L) ||
+                               config.BitDevices.Contains(DeviceCode.F),
+                               "R01CPUは幅広いデバイスに対応すべき");
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// DeviceCompatibilityMatrix統合テスト
+        /// </summary>
+        [Theory]
+        [InlineData(TypeCode.FX5U, DeviceCode.M, DeviceCompatibilityMatrix.DeviceCompatibilityLevel.RecommendedSupport)]
+        [InlineData(TypeCode.Q00CPU, DeviceCode.B, DeviceCompatibilityMatrix.DeviceCompatibilityLevel.FullSupport)]
+        [InlineData(TypeCode.R01CPU, DeviceCode.L, DeviceCompatibilityMatrix.DeviceCompatibilityLevel.FullSupport)]
+        [InlineData(TypeCode.FX3U, DeviceCode.LTS, DeviceCompatibilityMatrix.DeviceCompatibilityLevel.NotSupported)] // FX3Uは長時間タイマー非対応
+        public void DeviceCompatibilityMatrix_GetCompatibilityInfo_ReturnsExpectedLevel(
+            TypeCode typeCode, DeviceCode deviceCode, DeviceCompatibilityMatrix.DeviceCompatibilityLevel expectedLevel)
+        {
+            // Act
+            var compatibilityInfo = DeviceCompatibilityMatrix.GetCompatibilityInfo(typeCode, deviceCode);
+
+            // Assert
+            Assert.NotNull(compatibilityInfo);
+            Assert.Equal(expectedLevel, compatibilityInfo.CompatibilityLevel);
+
+            if (expectedLevel != DeviceCompatibilityMatrix.DeviceCompatibilityLevel.NotSupported)
+            {
+                Assert.True(compatibilityInfo.RecommendedBatchSize > 0);
+                Assert.True(compatibilityInfo.UsagePriority >= 1 && compatibilityInfo.UsagePriority <= 5);
+            }
+        }
+
+        /// <summary>
+        /// CompleteDeviceMap全39デバイス対応テスト
+        /// </summary>
+        [Fact]
+        public void CompleteDeviceMap_AllDevices_Covers39DeviceTypes()
+        {
+            // Act
+            var allBitDevices = CompleteDeviceMap.AllBitDevices;
+            var allWordDevices = CompleteDeviceMap.AllWordDevices;
+            var totalDevices = allBitDevices.Length + allWordDevices.Length;
+
+            // Assert
+            Assert.Equal(39, totalDevices); // 全39デバイス
+            Assert.Equal(21, allBitDevices.Length); // ビットデバイス21種類
+            Assert.Equal(18, allWordDevices.Length); // ワードデバイス18種類
+
+            // 重複がないことを確認
+            var intersection = allBitDevices.Intersect(allWordDevices);
+            Assert.Empty(intersection);
+
+            // 主要デバイスが含まれていることを確認
+            Assert.Contains(DeviceCode.M, allBitDevices);
+            Assert.Contains(DeviceCode.X, allBitDevices);
+            Assert.Contains(DeviceCode.Y, allBitDevices);
+            Assert.Contains(DeviceCode.D, allWordDevices);
+            Assert.Contains(DeviceCode.TS, allBitDevices); // タイマー接点
+            Assert.Contains(DeviceCode.TN, allWordDevices); // タイマー現在値
+        }
+
+        /// <summary>
+        /// IntelligentMonitoringSystem の統合テスト（モック使用）
+        /// </summary>
+        [Fact]
+        public async Task IntelligentMonitoringSystem_RunFullAuto_WithMockClient_ReturnsSuccess()
+        {
+            // Arrange
+            var mockClient = new MockSlmpClient();
+            mockClient.SetTypeName("FX5U-32MR/ES", TypeCode.FX5U);
+
+            // FX5U用のモックデータを設定（M100-M103にアクティブデバイス、D200-D203にアクティブデバイス）
+            mockClient.SetBitDeviceData(DeviceCode.M, 100, new bool[] { false, true, true, false }); // M101, M102がアクティブ
+            mockClient.SetWordDeviceData(DeviceCode.D, 200, new ushort[] { 0, 1234, 5678, 0 }); // D201, D202がアクティブ
+
+            var logger = NullLogger<IntelligentMonitoringSystem>.Instance;
+            var system = new IntelligentMonitoringSystem(mockClient, logger);
+
+            // Act
+            var result = await system.RunFullAutoAsync(CancellationToken.None);
+
+            // Assert
+            Assert.True(result.Success);
+            Assert.Equal("FX5U-32MR/ES", result.PlcTypeName);
+            Assert.Equal(TypeCode.FX5U, result.PlcTypeCode);
+            Assert.NotNull(result.DiscoveryResult);
+            Assert.True(result.MonitoringStarted);
+            Assert.Contains("実行成功", result.Summary);
+
+            // 探索結果の確認
+            var discoveryResult = result.DiscoveryResult;
+            Assert.True(discoveryResult.TotalActiveDevices >= 4); // 最低でもM101, M102, D201, D202の4個
+
+            // システム状態の確認
+            var statusReport = system.GetStatusReport();
+            Assert.Equal(IntelligentMonitoringState.Monitoring, statusReport.CurrentState);
+            Assert.True(statusReport.IsMonitoring);
+
+            // クリーンアップ
+            await system.StopMonitoringAsync();
+        }
+
+        /// <summary>
+        /// IntelligentMonitoringSystem のステップ別実行テスト
+        /// </summary>
+        [Fact]
+        public async Task IntelligentMonitoringSystem_StepByStep_ExecutesCorrectly()
+        {
+            // Arrange
+            var mockClient = new MockSlmpClient();
+            mockClient.SetTypeName("Q00CPU", TypeCode.Q00CPU);
+            mockClient.SetBitDeviceData(DeviceCode.M, 100, new bool[] { true, false, true });
+            mockClient.SetWordDeviceData(DeviceCode.D, 200, new ushort[] { 1000, 0, 2000 });
+
+            var logger = NullLogger<IntelligentMonitoringSystem>.Instance;
+            var system = new IntelligentMonitoringSystem(mockClient, logger);
+
+            // Act & Assert
+
+            // Step 1: PLC型名取得
+            var (typeName, typeCode) = await system.Step1_GetPlcTypeAsync();
+            Assert.Equal("Q00CPU", typeName);
+            Assert.Equal(TypeCode.Q00CPU, typeCode);
+
+            // Step 2: 探索設定構築
+            var config = system.Step2_BuildDiscoveryConfig(typeCode);
+            Assert.NotNull(config);
+            Assert.Contains(DeviceCode.M, config.BitDevices);
+            Assert.Contains(DeviceCode.D, config.WordDevices);
+
+            // Step 3: デバイススキャン（制限範囲で）
+            var limitedConfig = new DeviceDiscoveryConfiguration
+            {
+                BitDevices = new[] { DeviceCode.M },
+                WordDevices = new[] { DeviceCode.D },
+                BatchSize = 16,
+                MaxConcurrentScans = 2,
+                ScanRanges = new Dictionary<DeviceCode, DeviceRange>
+                {
+                    [DeviceCode.M] = new DeviceRange { Start = 100, End = 102, Priority = 3 },
+                    [DeviceCode.D] = new DeviceRange { Start = 200, End = 202, Priority = 3 }
+                }
+            };
+
+            var scanResults = await system.Step3_ScanDeviceRangesAsync(limitedConfig);
+            Assert.NotEmpty(scanResults);
+
+            var totalActive = scanResults.Sum(r => r.ActiveDevices.Count);
+            Assert.True(totalActive >= 4); // M100, M102, D200, D202
+
+            // Step 4: 監視開始
+            var monitoringStarted = await system.Step4_StartActiveDeviceMonitoringAsync(scanResults);
+            Assert.True(monitoringStarted);
+
+            // 状態確認
+            var statusReport = system.GetStatusReport();
+            Assert.Equal(IntelligentMonitoringState.Monitoring, statusReport.CurrentState);
+
+            // クリーンアップ
+            await system.StopMonitoringAsync();
+            Assert.Equal(IntelligentMonitoringState.Idle, system.GetStatusReport().CurrentState);
+        }
+
+        /// <summary>
+        /// エラーハンドリングテスト
+        /// </summary>
+        [Fact]
+        public async Task IntelligentMonitoringSystem_WithConnectionError_HandlesGracefully()
+        {
+            // Arrange
+            var mockClient = new MockSlmpClient();
+            mockClient.SimulateConnectionError = true; // 接続エラーを模擬
+
+            var logger = NullLogger<IntelligentMonitoringSystem>.Instance;
+            var system = new IntelligentMonitoringSystem(mockClient, logger);
+
+            // Act
+            var result = await system.RunFullAutoAsync(CancellationToken.None);
+
+            // Assert
+            Assert.False(result.Success);
+            Assert.NotNull(result.ErrorMessage);
+            Assert.Contains("接続エラー", result.ErrorMessage);
+            Assert.False(result.MonitoringStarted);
+            Assert.Equal(IntelligentMonitoringState.Error, system.GetStatusReport().CurrentState);
+        }
+    }
+
+    /// <summary>
+    /// テスト用のモックSLMPクライアント
+    /// </summary>
+    public class MockSlmpClient : ISlmpClientFull
+    {
+        private string _typeName = "MockPLC";
+        private TypeCode _typeCode = TypeCode.Q00CPU;
+        private readonly Dictionary<string, bool[]> _bitDeviceData = new();
+        private readonly Dictionary<string, ushort[]> _wordDeviceData = new();
+
+        public bool SimulateConnectionError { get; set; } = false;
+        public bool IsConnected { get; private set; } = true;
+
+        public void SetTypeName(string typeName, TypeCode typeCode)
+        {
+            _typeName = typeName;
+            _typeCode = typeCode;
+        }
+
+        public void SetBitDeviceData(DeviceCode deviceCode, uint startAddress, bool[] data)
+        {
+            var key = $"{deviceCode}:{startAddress}";
+            _bitDeviceData[key] = data;
+        }
+
+        public void SetWordDeviceData(DeviceCode deviceCode, uint startAddress, ushort[] data)
+        {
+            var key = $"{deviceCode}:{startAddress}";
+            _wordDeviceData[key] = data;
+        }
+
+        public Task<(string typeName, TypeCode typeCode)> ReadTypeNameAsync(ushort timeout = 0, CancellationToken cancellationToken = default)
+        {
+            if (SimulateConnectionError)
+                throw new SlmpCommunicationException("接続エラー");
+
+            return Task.FromResult((_typeName, _typeCode));
+        }
+
+        public Task<bool[]> ReadBitDevicesAsync(DeviceCode deviceCode, uint startAddress, ushort count, ushort timeout = 0, CancellationToken cancellationToken = default)
+        {
+            if (SimulateConnectionError)
+                throw new SlmpCommunicationException("接続エラー");
+
+            var key = $"{deviceCode}:{startAddress}";
+            if (_bitDeviceData.TryGetValue(key, out var data))
+            {
+                return Task.FromResult(data.Take(count).ToArray());
+            }
+
+            // デフォルトデータを返却
+            return Task.FromResult(new bool[count]);
+        }
+
+        public Task<ushort[]> ReadWordDevicesAsync(DeviceCode deviceCode, uint startAddress, ushort count, ushort timeout = 0, CancellationToken cancellationToken = default)
+        {
+            if (SimulateConnectionError)
+                throw new SlmpCommunicationException("接続エラー");
+
+            var key = $"{deviceCode}:{startAddress}";
+            if (_wordDeviceData.TryGetValue(key, out var data))
+            {
+                return Task.FromResult(data.Take(count).ToArray());
+            }
+
+            // デフォルトデータを返却
+            return Task.FromResult(new ushort[count]);
+        }
+
+        // 以下は最小限の実装（テストに必要な部分のみ）
+        public Task ConnectAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task DisconnectAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<bool> IsAliveAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+
+        public Task WriteBitDevicesAsync(DeviceCode deviceCode, uint startAddress, bool[] data, ushort timeout = 0, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task WriteWordDevicesAsync(DeviceCode deviceCode, uint startAddress, ushort[] data, ushort timeout = 0, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        // その他のメソッドは実装省略（テストで使用しない）
+        public Task<(ushort[] wordData, uint[] dwordData)> ReadRandomDevicesAsync(IList<(DeviceCode deviceCode, uint address)> wordDevices, IList<(DeviceCode deviceCode, uint address)> dwordDevices, ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task WriteRandomBitDevicesAsync(IList<(DeviceCode deviceCode, uint address, bool value)> devices, ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task WriteRandomWordDevicesAsync(IList<(DeviceCode deviceCode, uint address, ushort value)> wordDevices, IList<(DeviceCode deviceCode, uint address, uint value)> dwordDevices, ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<(ushort[][] wordBlocks, bool[][] bitBlocks)> ReadBlockAsync(IList<(DeviceCode deviceCode, uint address, ushort count)> wordBlocks, IList<(DeviceCode deviceCode, uint address, ushort count)> bitBlocks, ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task WriteBlockAsync(IList<(DeviceCode deviceCode, uint address, ushort count, ushort[] data)> wordBlocks, IList<(DeviceCode deviceCode, uint address, ushort count, bool[] data)> bitBlocks, ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task EntryMonitorDeviceAsync(IList<(DeviceCode deviceCode, uint address)> wordDevices, IList<(DeviceCode deviceCode, uint address)> dwordDevices, ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<(ushort[] wordData, uint[] dwordData)> ExecuteMonitorAsync(ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<bool> SelfTestAsync(string? data = null, ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task ClearErrorAsync(ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<byte[]> MemoryReadAsync(uint address, ushort length, ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task MemoryWriteAsync(uint address, byte[] data, ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<(ushort[] wordData, bool[] bitData, uint[] dwordData)> ReadMixedDevicesAsync(IList<(DeviceCode deviceCode, uint address)> wordDevices, IList<(DeviceCode deviceCode, uint address)> bitDevices, IList<(DeviceCode deviceCode, uint address)> dwordDevices, ushort timeout = 0, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
+        public void Dispose() { }
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+}
