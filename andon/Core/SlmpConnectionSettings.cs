@@ -47,43 +47,43 @@ namespace SlmpClient.Core
         /// <summary>
         /// エラーハンドリングモード（デフォルト：継続動作）
         /// </summary>
-        public ErrorHandlingMode Mode { get; set; } = ErrorHandlingMode.ReturnDefaultAndContinue;
+        public ErrorHandlingMode Mode { get; set; }
 
         /// <summary>
         /// エラー通知レベル（デフォルト：警告）
         /// </summary>
-        public ErrorNotificationLevel NotificationLevel { get; set; } = ErrorNotificationLevel.Warning;
+        public ErrorNotificationLevel NotificationLevel { get; set; }
 
         /// <summary>
         /// ビットデバイスのデフォルト値（デフォルト：false）
         /// </summary>
-        public bool DefaultBitValue { get; set; } = false;
+        public bool DefaultBitValue { get; set; }
 
         /// <summary>
         /// ワードデバイスのデフォルト値（デフォルト：0）
         /// </summary>
-        public ushort DefaultWordValue { get; set; } = 0;
+        public ushort DefaultWordValue { get; set; }
 
         /// <summary>
         /// エラー統計収集フラグ（デフォルト：有効）
         /// </summary>
-        public bool EnableErrorStatistics { get; set; } = true;
+        public bool EnableErrorStatistics { get; set; }
 
         /// <summary>
         /// エラー通知の最大頻度（秒単位、デフォルト：30秒）
         /// 同じエラーの連続通知を抑制
         /// </summary>
-        public int MaxNotificationFrequencySeconds { get; set; } = 30;
+        public int MaxNotificationFrequencySeconds { get; set; }
 
         /// <summary>
         /// システム継続動作のログ出力フラグ（デフォルト：有効）
         /// </summary>
-        public bool EnableContinuityLogging { get; set; } = true;
+        public bool EnableContinuityLogging { get; set; }
 
         /// <summary>
         /// 継続動作時のデバッグ情報出力フラグ（デフォルト：無効）
         /// </summary>
-        public bool EnableDebugOutput { get; set; } = false;
+        public bool EnableDebugOutput { get; set; }
 
         /// <summary>
         /// デフォルトコンストラクタ
@@ -144,11 +144,11 @@ namespace SlmpClient.Core
     /// </summary>
     public class SlmpConnectionSettings
     {
-        private int _port = 5000;
-        private TimeSpan _receiveTimeout = TimeSpan.FromSeconds(1);
-        private TimeSpan _connectTimeout = TimeSpan.FromSeconds(5);
-        private int _maxConcurrentRequests = 4;
-        private Encoding _textEncoding = Encoding.ASCII;
+        private int _port;
+        private TimeSpan _receiveTimeout;
+        private TimeSpan _connectTimeout;
+        private int _maxConcurrentRequests;
+        private Encoding _textEncoding;
 
         /// <summary>
         /// 通信ポート番号 (1-65535)
@@ -168,18 +168,18 @@ namespace SlmpClient.Core
         /// バイナリモード使用フラグ
         /// true: バイナリフレーム, false: ASCIIフレーム
         /// </summary>
-        public bool IsBinary { get; set; } = true;
+        public bool IsBinary { get; set; }
 
         /// <summary>
         /// SLMPフレームバージョン
         /// </summary>
-        public SlmpFrameVersion Version { get; set; } = SlmpFrameVersion.Version4E;
+        public SlmpFrameVersion Version { get; set; }
 
         /// <summary>
         /// TCP使用フラグ
         /// true: TCP, false: UDP
         /// </summary>
-        public bool UseTcp { get; set; } = false;
+        public bool UseTcp { get; set; }
 
         /// <summary>
         /// 受信タイムアウト時間
@@ -230,7 +230,7 @@ namespace SlmpClient.Core
         /// <summary>
         /// パイプライニング有効フラグ
         /// </summary>
-        public bool EnablePipelining { get; set; } = true;
+        public bool EnablePipelining { get; set; }
 
         /// <summary>
         /// テキストエンコーディング (ASCIIモード使用時)
@@ -244,12 +244,12 @@ namespace SlmpClient.Core
         /// <summary>
         /// リトライ設定
         /// </summary>
-        public SlmpRetrySettings RetrySettings { get; set; } = new();
+        public SlmpRetrySettings RetrySettings { get; set;}
 
         /// <summary>
         /// システム継続動作設定（稼働第一）
         /// </summary>
-        public ContinuitySettings ContinuitySettings { get; set; } = new();
+        public ContinuitySettings ContinuitySettings { get; set; }
 
         /// <summary>
         /// デフォルトコンストラクタ
@@ -378,10 +378,10 @@ namespace SlmpClient.Core
     /// </summary>
     public class SlmpRetrySettings
     {
-        private int _maxRetryCount = 3;
-        private TimeSpan _initialDelay = TimeSpan.FromMilliseconds(100);
-        private TimeSpan _maxDelay = TimeSpan.FromSeconds(5);
-        private double _backoffMultiplier = 2.0;
+        private int _maxRetryCount;
+        private TimeSpan _initialDelay;
+        private TimeSpan _maxDelay;
+        private double _backoffMultiplier;
 
         /// <summary>
         /// 最大リトライ回数 (0-10)

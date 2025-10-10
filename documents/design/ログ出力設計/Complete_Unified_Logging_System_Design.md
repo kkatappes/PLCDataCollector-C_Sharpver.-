@@ -3,9 +3,16 @@
 ## 📅 作成日・更新履歴
 - 2025-09-26: 初版作成（完全単一ファイル統合設計）
 - 2025-10-02: **重要更新** - ハイブリッド統合設計への変更
+- 2025-10-06: **最新更新** - 2ステップフロー対応エントリタイプ追加
 
 ## 概要
-現在のSLMP継続監視アプリケーションにおいて、技術的詳細情報を統合ログファイル（rawdata_analysis.log）に統合し、加えて人間可読なコンソール出力を専用JSONファイル（console_output.json）に分離保存するハイブリッド統合ログシステムの設計仕様。
+**2ステップフロー対応のSLMP継続監視アプリケーション（SimpleMonitoringService）**において、技術的詳細情報を統合ログファイル（rawdata_analysis.log）に統合し、加えて人間可読なコンソール出力を専用JSONファイル（terminal_output.txt）に分離保存するハイブリッド統合ログシステムの設計仕様。
+
+### 🔄 2ステップフロー対応概要
+- **従来**: 6ステップフロー（IntelligentMonitoringSystem）
+- **最新**: 2ステップフロー（SimpleMonitoringService）
+- **対象範囲**: M000-M999, D000-D999固定範囲データ取得
+- **ログ最適化**: 固定範囲処理に特化したエントリタイプ追加
 
 ### 🎯 ハイブリッド統合の目的
 1. **技術情報統合**: SLMP通信・診断・詳細情報を単一ファイルに統合
@@ -40,68 +47,95 @@
 4. **検索性**: SessionId、CycleNumber等による関連付け
 5. **相互連携**: 両ログファイル間での情報関連付け
 
-### エントリータイプ分類
+### エントリータイプ分類（2ステップフロー対応拡張）
 
-#### 1. SESSION_START - セッション開始情報
+#### 既存エントリタイプ（6ステップ・2ステップ共通）
+1. **SESSION_START** - セッション開始情報
+2. **CYCLE_START** - サイクル開始情報
+3. **CYCLE_COMMUNICATION** - 通信実行詳細
+4. **ERROR_OCCURRED** - エラー発生詳細
+5. **STATISTICS** - 統計・サマリー情報
+6. **PERFORMANCE_METRICS** - パフォーマンス詳細
+7. **SESSION_END** - セッション終了情報
+
+#### 🆕 2ステップフロー専用エントリタイプ
+8. **SIMPLE_MONITORING_START** - SimpleMonitoringService開始
+9. **FIXED_RANGE_COMMUNICATION** - 固定範囲（M/D）通信詳細
+10. **DEVICE_BATCH_PROCESSING** - デバイスバッチ処理詳細
+11. **MEMORY_OPTIMIZATION_METRICS** - メモリ最適化統計
+
+---
+
+#### 1. SESSION_START - セッション開始情報（2ステップフロー対応）
 ```json
 {
   "EntryType": "SESSION_START",
-  "Timestamp": "2025-09-26T11:47:27.527+09:00",
-  "SessionId": "session_20250926_114727",
+  "Timestamp": "2025-10-06T11:47:27.527+09:00",
+  "SessionId": "session_20251006_114727",
   "SessionInfo": {
     "ProcessId": 13296,
-    "ApplicationName": "Andon SLMP Client",
-    "Version": "1.0.0",
-    "Environment": "Production"
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production",
+    "MonitoringMode": "SimpleMonitoring"
   },
   "ConfigurationDetails": {
     "ConfigFile": "appsettings.json",
     "ConnectionTarget": "172.30.40.15:8192",
-    "SlmpSettings": "Port:8192, Binary, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:8, Pipelining:True",
+    "SlmpSettings": "Port:8192, Binary, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "MonitoringType": "2ステップフロー（固定範囲）",
+    "TargetDevices": "M000-M999, D000-D999",
     "ContinuityMode": "ReturnDefaultAndContinue",
     "RawDataLogging": "有効",
-    "LogOutputPath": "logs/rawdata_analysis.log"
+    "LogOutputPath": "logs/rawdata_analysis.log",
+    "MemoryOptimization": "有効（450KB制限）"
   }
 }
 ```
 
-#### 2. CYCLE_START - サイクル開始情報
+#### 2. CYCLE_START - サイクル開始情報（2ステップフロー対応）
 ```json
 {
   "EntryType": "CYCLE_START",
-  "Timestamp": "2025-09-26T11:47:27.655+09:00",
-  "SessionId": "session_20250926_114727",
+  "Timestamp": "2025-10-06T11:47:27.655+09:00",
+  "SessionId": "session_20251006_114727",
   "CycleNumber": 1,
   "CycleInfo": {
-    "StartMessage": "--- サイクル 1 ---",
-    "IntervalFromPrevious": 1000.0
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "MonitoringType": "SimpleMonitoring",
+    "TargetDevices": ["M000-M999", "D000-D999"],
+    "IntervalFromPrevious": 1000.0,
+    "ExpectedOperations": 2
   }
 }
 ```
 
-#### 3. CYCLE_COMMUNICATION - 通信実行詳細
+#### 3. CYCLE_COMMUNICATION - 通信実行詳細（2ステップフロー対応）
 ```json
 {
   "EntryType": "CYCLE_COMMUNICATION",
-  "Timestamp": "2025-09-26T11:47:30.676+09:00",
-  "SessionId": "session_20250926_114727",
+  "Timestamp": "2025-10-06T11:47:30.676+09:00",
+  "SessionId": "session_20251006_114727",
   "CycleNumber": 1,
   "PhaseInfo": {
-    "Phase": "BitDeviceRead",
-    "StatusMessage": "センサー状態読み取り中...",
-    "DeviceAddress": "M100"
+    "Phase": "FixedRangeRead",
+    "StatusMessage": "M000-M999固定範囲読み取り中...",
+    "DeviceRange": "M000-M999",
+    "BatchSize": 128
   },
   "CommunicationDetails": {
-    "OperationType": "BitDeviceRead",
+    "OperationType": "FixedRangeBitDeviceRead",
     "DeviceCode": "M",
-    "DeviceNumber": 100,
-    "DeviceAddress": "M100",
-    "ValueCount": 8,
-    "Values": [false, false, false, false, false, false, false, false],
-    "BinaryValues": ["0", "0", "0", "0", "0", "0", "0", "0"],
-    "HexValues": null,
-    "ResponseTimeMs": 3017.37,
-    "Success": true
+    "StartAddress": 0,
+    "DeviceCount": 1000,
+    "BatchProcessing": true,
+    "BatchesCompleted": 8,
+    "TotalBatches": 8,
+    "Values": "Array[1000] - M000-M999データ",
+    "ResponseTimeMs": 1200.45,
+    "Success": true,
+    "MemoryUsage": "28KB",
+    "OptimizationApplied": "ArrayPool+FixedRangeProcessor"
   },
   "RawDataAnalysis": {
     "RequestFrameHex": "5400000000FF03000C001400010400000000010001000064000000",
@@ -237,14 +271,154 @@
 ```json
 {
   "EntryType": "SESSION_END",
-  "Timestamp": "2025-09-26T11:47:43.213+09:00",
-  "SessionId": "session_20250926_114727",
+  "Timestamp": "2025-10-06T11:47:43.213+09:00",
+  "SessionId": "session_20251006_114727",
   "SessionSummary": {
     "Duration": "00:00:15.686",
     "FinalStatus": "正常終了",
     "ExitReason": "ユーザー停止要求 (Ctrl+C)",
-    "TotalLogEntries": 47,
-    "FinalMessage": "セッション終了"
+    "TotalLogEntries": 52,
+    "MonitoringMode": "2ステップフロー",
+    "ProcessedDevices": "M000-M999, D000-D999",
+    "MemoryPeakUsage": "450KB",
+    "FinalMessage": "2ステップフロー監視セッション終了"
+  }
+}
+```
+
+---
+
+## 🆕 2ステップフロー専用エントリタイプ詳細
+
+#### 8. SIMPLE_MONITORING_START - SimpleMonitoringService開始
+```json
+{
+  "EntryType": "SIMPLE_MONITORING_START",
+  "Timestamp": "2025-10-06T11:47:28.123+09:00",
+  "SessionId": "session_20251006_114727",
+  "ServiceInfo": {
+    "ServiceName": "SimpleMonitoringService",
+    "Version": "2.1.0",
+    "MonitoringMode": "FixedRange",
+    "TargetDevices": {
+      "MDeviceRange": "M000-M999 (1000デバイス)",
+      "DDeviceRange": "D000-D999 (1000デバイス)"
+    },
+    "OptimizationSettings": {
+      "MemoryOptimizer": "有効",
+      "ArrayPool": "有効",
+      "FixedRangeProcessor": "有効",
+      "ExpectedMemoryUsage": "450KB以下"
+    },
+    "MonitoringInterval": 1000,
+    "StartMessage": "2ステップフロー監視開始"
+  }
+}
+```
+
+#### 9. FIXED_RANGE_COMMUNICATION - 固定範囲（M/D）通信詳細
+```json
+{
+  "EntryType": "FIXED_RANGE_COMMUNICATION",
+  "Timestamp": "2025-10-06T11:47:29.456+09:00",
+  "SessionId": "session_20251006_114727",
+  "CycleNumber": 1,
+  "FixedRangeDetails": {
+    "DeviceType": "BitDevice",
+    "DeviceCode": "M",
+    "RangeDefinition": {
+      "StartAddress": 0,
+      "EndAddress": 999,
+      "TotalCount": 1000
+    },
+    "BatchProcessing": {
+      "OptimalBatchSize": 128,
+      "TotalBatches": 8,
+      "ProcessingMode": "Parallel"
+    },
+    "Performance": {
+      "ProcessingTimeMs": 1200.45,
+      "MemoryUsedKB": 28,
+      "ArrayPoolHits": 8,
+      "GCCollections": 0
+    },
+    "Results": {
+      "SuccessfulReads": 1000,
+      "FailedReads": 0,
+      "NonZeroValues": 0,
+      "ProcessingStatus": "完全成功"
+    }
+  }
+}
+```
+
+#### 10. DEVICE_BATCH_PROCESSING - デバイスバッチ処理詳細
+```json
+{
+  "EntryType": "DEVICE_BATCH_PROCESSING",
+  "Timestamp": "2025-10-06T11:47:30.789+09:00",
+  "SessionId": "session_20251006_114727",
+  "CycleNumber": 1,
+  "BatchDetails": {
+    "BatchId": "batch_M_001",
+    "DeviceCode": "M",
+    "BatchRange": {
+      "StartAddress": 0,
+      "Count": 128,
+      "EndAddress": 127
+    },
+    "ProcessingInfo": {
+      "BufferSize": "1024 bytes",
+      "ArrayPoolUsed": true,
+      "MemoryOptimized": true,
+      "ProcessingTimeMs": 150.23
+    },
+    "CommunicationFrame": {
+      "RequestSize": 32,
+      "ResponseSize": 48,
+      "FrameType": "4E",
+      "EndCode": "0x0000"
+    },
+    "BatchResult": {
+      "Success": true,
+      "ValuesRead": 128,
+      "NonZeroCount": 0,
+      "ProcessingStatus": "正常完了"
+    }
+  }
+}
+```
+
+#### 11. MEMORY_OPTIMIZATION_METRICS - メモリ最適化統計
+```json
+{
+  "EntryType": "MEMORY_OPTIMIZATION_METRICS",
+  "Timestamp": "2025-10-06T11:47:35.012+09:00",
+  "SessionId": "session_20251006_114727",
+  "CycleNumber": 1,
+  "MemoryMetrics": {
+    "CurrentUsage": {
+      "TotalMemoryKB": 445,
+      "ArrayPoolUsageKB": 256,
+      "FixedRangeBuffersKB": 128,
+      "ConnectionPoolKB": 61
+    },
+    "OptimizationStats": {
+      "ArrayPoolHitRate": "98.5%",
+      "MemoryReusedBytes": 1048576,
+      "GCPrevented": 15,
+      "BufferAllocationsAvoided": 32
+    },
+    "Performance": {
+      "AllocationSpeedupPercent": 92,
+      "MemoryFootprintReduction": "99.96%",
+      "GCPressureReduction": "98%"
+    },
+    "Comparison": {
+      "BeforeOptimization": "10.2MB",
+      "AfterOptimization": "445KB",
+      "ImprovementFactor": "22.9x"
+    }
   }
 }
 ```

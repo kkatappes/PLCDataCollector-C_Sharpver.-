@@ -34,15 +34,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var data = BuildDeviceReadData(deviceCode, startAddress, count);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Device_Read,
-                0x0001, // ビットデバイス読み取りサブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_Read,
+                    0x0001, // ビットデバイス読み取りサブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_Read,
+                    0x0001, // ビットデバイス読み取りサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -66,15 +82,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var data = BuildDeviceReadData(deviceCode, startAddress, count);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Device_Read,
-                0x0000, // ワードデバイス読み取りサブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_Read,
+                    0x0000, // ワードデバイス読み取りサブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_Read,
+                    0x0000, // ワードデバイス読み取りサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -98,15 +130,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var requestData = BuildDeviceWriteData(deviceCode, startAddress, data);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Device_Write,
-                0x0001, // ビットデバイス書き込みサブコマンド
-                requestData,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_Write,
+                    0x0001, // ビットデバイス書き込みサブコマンド
+                    requestData,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(requestData);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_Write,
+                    0x0001, // ビットデバイス書き込みサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -130,15 +178,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var requestData = BuildDeviceWriteData(deviceCode, startAddress, data);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Device_Write,
-                0x0000, // ワードデバイス書き込みサブコマンド
-                requestData,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_Write,
+                    0x0000, // ワードデバイス書き込みサブコマンド
+                    requestData,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(requestData);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_Write,
+                    0x0000, // ワードデバイス書き込みサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -248,15 +312,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var data = BuildRandomReadData(wordDevices, dwordDevices);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Device_ReadRandom,
-                0x0000, // ランダム読み取りサブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_ReadRandom,
+                    0x0000, // ランダム読み取りサブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_ReadRandom,
+                    0x0000, // ランダム読み取りサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -276,15 +356,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var data = BuildRandomBitWriteData(devices);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Device_WriteRandom,
-                0x0001, // ランダムビット書き込みサブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_WriteRandom,
+                    0x0001, // ランダムビット書き込みサブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_WriteRandom,
+                    0x0001, // ランダムビット書き込みサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -306,15 +402,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var data = BuildRandomWordWriteData(wordDevices, dwordDevices);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Device_WriteRandom,
-                0x0000, // ランダムワード書き込みサブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_WriteRandom,
+                    0x0000, // ランダムワード書き込みサブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_WriteRandom,
+                    0x0000, // ランダムワード書き込みサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -447,15 +559,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var data = BuildBlockReadData(wordBlocks, bitBlocks);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Device_ReadBlock,
-                0x0000, // ブロック読み取りサブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_ReadBlock,
+                    0x0000, // ブロック読み取りサブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_ReadBlock,
+                    0x0000, // ブロック読み取りサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -478,15 +606,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var data = BuildBlockWriteData(wordBlocks, bitBlocks);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Device_WriteBlock,
-                0x0000, // ブロック書き込みサブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_WriteBlock,
+                    0x0000, // ブロック書き込みサブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_WriteBlock,
+                    0x0000, // ブロック書き込みサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -603,15 +747,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var data = BuildMonitorDeviceEntryData(wordDevices, dwordDevices);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Device_EntryMonitorDevice,
-                0x0000, // モニタデバイス登録サブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_EntryMonitorDevice,
+                    0x0000, // モニタデバイス登録サブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_EntryMonitorDevice,
+                    0x0000, // モニタデバイス登録サブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -631,15 +791,31 @@ namespace SlmpClient.Serialization
         {
             // モニタ実行はデータ部分なし
             var data = new byte[0];
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Device_ExecuteMonitor,
-                0x0000, // モニタ実行サブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_ExecuteMonitor,
+                    0x0000, // モニタ実行サブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Device_ExecuteMonitor,
+                    0x0000, // モニタ実行サブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -698,15 +874,31 @@ namespace SlmpClient.Serialization
         {
             // 型名読み取りはデータ部分なし
             var data = new byte[0];
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.RemoteControl_ReadTypeName,
-                0x0000, // 型名読み取りサブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.RemoteControl_ReadTypeName,
+                    0x0000, // 型名読み取りサブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.RemoteControl_ReadTypeName,
+                    0x0000, // 型名読み取りサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -738,15 +930,31 @@ namespace SlmpClient.Serialization
                 // 16進文字列をバイト配列に変換
                 data = DataProcessor.HexStringToBytes(testData);
             }
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.SelfTest,
-                0x0000, // セルフテストサブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.SelfTest,
+                    0x0000, // セルフテストサブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.SelfTest,
+                    0x0000, // セルフテストサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -766,15 +974,31 @@ namespace SlmpClient.Serialization
         {
             // エラークリアはデータ部分なし
             var data = new byte[0];
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.ClearError_Code,
-                0x0000, // エラークリアサブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.ClearError_Code,
+                    0x0000, // エラークリアサブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.ClearError_Code,
+                    0x0000, // エラークリアサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -797,15 +1021,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var data = BuildMemoryReadData(address, length);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Memory_Read,
-                0x0000, // メモリ読み取りサブコマンド
-                data,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Memory_Read,
+                    0x0000, // メモリ読み取りサブコマンド
+                    data,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(data);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Memory_Read,
+                    0x0000, // メモリ読み取りサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -828,15 +1068,31 @@ namespace SlmpClient.Serialization
             ushort timeout)
         {
             var requestData = BuildMemoryWriteData(address, data);
-            
-            return FrameBuilder.BuildBinaryFrame(
-                sequence,
-                target,
-                timeout,
-                SlmpCommand.Memory_Write,
-                0x0000, // メモリ書き込みサブコマンド
-                requestData,
-                settings.Version);
+
+            // settings.IsBinaryに応じてフレーム構築方式を選択
+            if (settings.IsBinary)
+            {
+                return FrameBuilder.BuildBinaryFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Memory_Write,
+                    0x0000, // メモリ書き込みサブコマンド
+                    requestData,
+                    settings.Version);
+            }
+            else
+            {
+                var asciiData = ConvertToAsciiData(requestData);
+                return FrameBuilder.BuildAsciiFrame(
+                    sequence,
+                    target,
+                    timeout,
+                    SlmpCommand.Memory_Write,
+                    0x0000, // メモリ書き込みサブコマンド
+                    asciiData,
+                    settings.Version);
+            }
         }
 
         /// <summary>
@@ -887,6 +1143,18 @@ namespace SlmpClient.Serialization
             data.AddRange(writeData);
 
             return data.ToArray();
+        }
+
+        /// <summary>
+        /// バイナリデータをASCII形式に変換
+        /// </summary>
+        /// <param name="binaryData">変換対象のバイナリデータ</param>
+        /// <returns>ASCII形式に変換されたデータ</returns>
+        private static byte[] ConvertToAsciiData(byte[] binaryData)
+        {
+            // バイナリデータを16進ASCII文字列に変換
+            var hexString = Convert.ToHexString(binaryData);
+            return Encoding.ASCII.GetBytes(hexString);
         }
     }
 }

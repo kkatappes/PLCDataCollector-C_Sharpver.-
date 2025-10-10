@@ -45,12 +45,12 @@ namespace SlmpClient.Transport
         /// <summary>
         /// 受信タイムアウト
         /// </summary>
-        public TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromSeconds(1);
+        public TimeSpan ReceiveTimeout { get; set; }
 
         /// <summary>
         /// 送信タイムアウト
         /// </summary>
-        public TimeSpan SendTimeout { get; set; } = TimeSpan.FromSeconds(1);
+        public TimeSpan SendTimeout { get; set; }
 
         #endregion
 

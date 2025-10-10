@@ -48,27 +48,27 @@ namespace SlmpClient.Core
     {
         /// <summary>IPアドレス</summary>
         [Required]
-        public string IpAddress { get; set; } = "192.168.1.10";
+        public string IpAddress { get; set; }
 
         /// <summary>ポート番号</summary>
         [Range(1, 65535)]
-        public int Port { get; set; } = 5007;
+        public int Port { get; set; }
 
         /// <summary>TCP使用フラグ</summary>
-        public bool UseTcp { get; set; } = true;
+        public bool UseTcp { get; set; }
 
         /// <summary>バイナリモード使用フラグ</summary>
-        public bool IsBinary { get; set; } = true;
+        public bool IsBinary { get; set; }
 
         /// <summary>フレームバージョン</summary>
-        public string FrameVersion { get; set; } = "4E";
+        public string FrameVersion { get; set; }
 
         /// <summary>パイプライニング有効フラグ</summary>
-        public bool EnablePipelining { get; set; } = true;
+        public bool EnablePipelining { get; set; }
 
         /// <summary>最大同時リクエスト数</summary>
         [Range(1, 32)]
-        public int MaxConcurrentRequests { get; set; } = 8;
+        public int MaxConcurrentRequests { get; set; }
     }
 
     /// <summary>
@@ -109,11 +109,11 @@ namespace SlmpClient.Core
     {
         /// <summary>受信タイムアウト（ミリ秒）</summary>
         [Range(100, 60000)]
-        public int ReceiveTimeoutMs { get; set; } = 3000;
+        public int ReceiveTimeoutMs { get; set; }
 
         /// <summary>接続タイムアウト（ミリ秒）</summary>
         [Range(1000, 300000)]
-        public int ConnectTimeoutMs { get; set; } = 10000;
+        public int ConnectTimeoutMs { get; set; }
     }
 
     /// <summary>

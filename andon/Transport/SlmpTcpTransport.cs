@@ -49,17 +49,17 @@ namespace SlmpClient.Transport
         /// <summary>
         /// 接続タイムアウト
         /// </summary>
-        public TimeSpan ConnectTimeout { get; set; } = TimeSpan.FromSeconds(5);
+        public TimeSpan ConnectTimeout { get; set; }
 
         /// <summary>
         /// 受信タイムアウト
         /// </summary>
-        public TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromSeconds(1);
+        public TimeSpan ReceiveTimeout { get; set; }
 
         /// <summary>
         /// 送信タイムアウト
         /// </summary>
-        public TimeSpan SendTimeout { get; set; } = TimeSpan.FromSeconds(1);
+        public TimeSpan SendTimeout { get; set; }
 
         #endregion
 

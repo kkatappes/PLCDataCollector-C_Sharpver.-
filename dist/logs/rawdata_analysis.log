@@ -1,0 +1,65 @@
+{
+  "EntryType": "SLMP_RAW_DATA",
+  "Timestamp": "2025-10-07T12:57:15.4538375+09:00",
+  "RequestFrameHex": "50 00 00 FF FF 03 00 0C 00 10 00 01 04 01 00 00 00 00 9C E8 03",
+  "ResponseFrameHex": "D0 00 00 FF FF 03 00 04 00 00 00 00 00 00 00",
+  "DeviceAddress": "M000-M999, D000-D999",
+  "OperationType": "FixedRangeMonitoring",
+  "ResponseTimeMs": 6026.3844,
+  "Success": true,
+  "ReadValue": "M:0ON, D:0NonZero",
+  "DetailedFrameAnalysis": "SLMP 4E Binary",
+  "SubHeader": "0x00D0",
+  "EndCode": "0x0000",
+  "DataTypeAnalysis": "Contains data"
+}{
+  "EntryType": "CYCLE_COMMUNICATION",
+  "Timestamp": "2025-10-07T12:57:15.4509275+09:00",
+  "SessionId": "session_20251007_125709",
+  "CycleNumber": 1,
+  "PhaseInfo": {
+    "Phase": "FixedRangeMonitoring",
+    "StatusMessage": "M000-M999, D000-D999 固定範囲監視実行",
+    "DeviceAddress": "M000-M999, D000-D999"
+  },
+  "CommunicationDetails": {
+    "OperationType": "BatchRead",
+    "DeviceCode": "M/D",
+    "DeviceNumber": 0,
+    "DeviceAddress": "M000-M999, D000-D999",
+    "Values": [
+      "M: データ取得失敗",
+      "D: データ取得失敗"
+    ],
+    "ResponseTimeMs": 6026.3844,
+    "Success": false,
+    "DeviceValues": [
+      {
+        "DeviceAddress": "M000-M999",
+        "RawValue": 0,
+        "InterpretedValue": "0個ON, 0個OFF",
+        "StatusJudgment": "全デバイスOFF",
+        "ChangeDetection": ""
+      },
+      {
+        "DeviceAddress": "D000-D999",
+        "RawValue": 0,
+        "InterpretedValue": "0個非ゼロ, 0個ゼロ",
+        "StatusJudgment": "全デバイスゼロ",
+        "ChangeDetection": ""
+      }
+    ],
+    "BatchReadEfficiency": "バッチサイズ: 128, メモリ使用量: 0KB"
+  },
+  "RawDataAnalysis": {
+    "RequestFrameHex": "500000FFFF03000C001000010401000000009CE803",
+    "ResponseFrameHex": "D00000FFFF03000400000000000000",
+    "HexDump": "0000: D0 00 00 FF FF 03 00 04 00 00 00 00 00 00 00    ...............",
+    "FrameAnalysis": {
+      "SubHeader": "0x00D0",
+      "SubHeaderDescription": "4E Binary Response Frame",
+      "EndCode": "0x0000",
+      "EndCodeDescription": "正常完了 (Success)"
+    }
+  }
+}

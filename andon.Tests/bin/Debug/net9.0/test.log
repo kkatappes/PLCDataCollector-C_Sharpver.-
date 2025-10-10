@@ -1,0 +1,669 @@
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T09:59:57.4740204+09:00",
+  "SessionId": "session_20251006_095957",
+  "SessionInfo": {
+    "ProcessId": 14084,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-10-06T09:59:57.4789434+09:00",
+  "SessionId": "session_20251006_095957",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "IntervalFromPrevious": 0
+  }
+}
+{
+  "EntryType": "SYSTEM_EVENT",
+  "Timestamp": "2025-10-06T09:59:57.4839406+09:00",
+  "SessionId": "session_20251006_095957",
+  "EventType": "SIMPLE_MONITORING_START",
+  "Message": "2ステップフロー監視開始",
+  "AdditionalData": {
+    "ServiceName": "SimpleMonitoringService",
+    "Version": "2.1.0-simple-monitoring",
+    "MonitoringMode": "FixedRange",
+    "TargetDevices": {
+      "MDeviceRange": "M000-M999 (1000デバイス)",
+      "DDeviceRange": "D000-D999 (1000デバイス)"
+    },
+    "OptimizationSettings": {
+      "MemoryOptimizer": "有効",
+      "ArrayPool": "有効",
+      "FixedRangeProcessor": "有効",
+      "ExpectedMemoryUsage": "450KB以下"
+    },
+    "MonitoringInterval": 1000
+  }
+}
+{
+  "EntryType": "SESSION_END",
+  "Timestamp": "2025-10-06T09:59:57.7075408+09:00",
+  "SessionId": "session_20251006_095957",
+  "SessionSummary": {
+    "Duration": "00:00:00.7069542",
+    "FinalStatus": "正常停止",
+    "ExitReason": "ユーザー停止要求",
+    "TotalLogEntries": 0,
+    "FinalMessage": "2ステップフロー監視セッション終了"
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T09:59:57.7132401+09:00",
+  "SessionId": "session_20251006_095957",
+  "SessionInfo": {
+    "ProcessId": 14084,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-10-06T09:59:57.7132902+09:00",
+  "SessionId": "session_20251006_095957",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "IntervalFromPrevious": 0
+  }
+}
+mple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-10-06T09:59:57.7164739+09:00",
+  "SessionId": "session_20251006_095957",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "IntervalFromPrevious": 0
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T09:59:57.7296271+09:00",
+  "SessionId": "session_20251006_095957",
+  "SessionInfo": {
+    "ProcessId": 14084,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "SYSTEM_EVENT",
+  "Timestamp": "2025-10-06T09:59:57.7165136+09:00",
+  "SessionId": "session_20251006_095957",
+  "EventType": "SIMPLE_MONITORING_START",
+  "Message": "2ステップフロー監視開始",
+  "AdditionalData": {
+    "ServiceName": "SimpleMonitoringService",
+    "Version": "2.1.0-simple-monitoring",
+    "MonitoringMode": "FixedRange",
+    "TargetDevices": {
+      "MDeviceRange": "M000-M999 (1000デバイス)",
+      "DDeviceRange": "D000-D999 (1000デバイス)"
+    },
+    "OptimizationSettings": {
+      "MemoryOptimizer": "有効",
+      "ArrayPool": "有効",
+      "FixedRangeProcessor": "有効",
+      "ExpectedMemoryUsage": "450KB以下"
+    },
+    "MonitoringInterval": 1000
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T09:59:57.7282933+09:00",
+  "SessionId": "session_20251006_095957",
+  "SessionInfo": {
+    "ProcessId": 14084,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-10-06T09:59:57.7174938+09:00",
+  "SessionId": "session_20251006_095957",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "IntervalFromPrevious": 0
+  }
+}
+nitoringService",
+    "Version": "2.1.0-simple-monitoring",
+    "MonitoringMode": "FixedRange",
+    "TargetDevices": {
+      "MDeviceRange": "M000-M999 (1000デバイス)",
+      "DDeviceRange": "D000-D999 (1000デバイス)"
+    },
+    "OptimizationSettings": {
+      "MemoryOptimizer": "有効",
+      "ArrayPool": "有効",
+      "FixedRangeProcessor": "有効",
+      "ExpectedMemoryUsage": "450KB以下"
+    },
+    "MonitoringInterval": 1000
+  }
+}
+{
+  "EntryType": "SYSTEM_EVENT",
+  "Timestamp": "2025-10-06T09:59:57.7310987+09:00",
+  "SessionId": "session_20251006_095957",
+  "EventType": "SIMPLE_MONITORING_START",
+  "Message": "2ステップフロー監視開始",
+  "AdditionalData": {
+    "ServiceName": "SimpleMonitoringService",
+    "Version": "2.1.0-simple-monitoring",
+    "MonitoringMode": "FixedRange",
+    "TargetDevices": {
+      "MDeviceRange": "M000-M999 (1000デバイス)",
+      "DDeviceRange": "D000-D999 (1000デバイス)"
+    },
+    "OptimizationSettings": {
+      "MemoryOptimizer": "有効",
+      "ArrayPool": "有効",
+      "FixedRangeProcessor": "有効",
+      "ExpectedMemoryUsage": "450KB以下"
+    },
+    "MonitoringInterval": 1000
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T09:59:57.7449902+09:00",
+  "SessionId": "session_20251006_095957",
+  "SessionInfo": {
+    "ProcessId": 14084,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "SYSTEM_EVENT",
+  "Timestamp": "2025-10-06T09:59:57.717525+09:00",
+  "SessionId": "session_20251006_095957",
+  "EventType": "SIMPLE_MONITORING_START",
+  "Message": "2ステップフロー監視開始",
+  "AdditionalData": {
+    "ServiceName": "SimpleMonitoringService",
+    "Version": "2.1.0-simple-monitoring",
+    "MonitoringMode": "FixedRange",
+    "TargetDevices": {
+      "MDeviceRange": "M000-M999 (1000デバイス)",
+      "DDeviceRange": "D000-D999 (1000デバイス)"
+    },
+    "OptimizationSettings": {
+      "MemoryOptimizer": "有効",
+      "ArrayPool": "有効",
+      "FixedRangeProcessor": "有効",
+      "ExpectedMemoryUsage": "450KB以下"
+    },
+    "MonitoringInterval": 1000
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T09:59:57.7507545+09:00",
+  "SessionId": "session_20251006_095957",
+  "SessionInfo": {
+    "ProcessId": 14084,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "SYSTEM_EVENT",
+  "Timestamp": "2025-10-06T09:59:57.7283651+09:00",
+  "SessionId": "session_20251006_095957",
+  "EventType": "SIMPLE_MONITORING_START",
+  "Message": "2ステップフロー監視開始",
+  "AdditionalData": {
+    "ServiceName": "SimpleMonitoringService",
+    "Version": "2.1.0-simple-monitoring",
+    "MonitoringMode": "FixedRange",
+    "TargetDevices": {
+      "MDeviceRange": "M000-M999 (1000デバイス)",
+      "DDeviceRange": "D000-D999 (1000デバイス)"
+    },
+    "OptimizationSettings": {
+      "MemoryOptimizer": "有効",
+      "ArrayPool": "有効",
+      "FixedRangeProcessor": "有効",
+      "ExpectedMemoryUsage": "450KB以下"
+    },
+    "MonitoringInterval": 1000
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-10-06T09:59:57.7507882+09:00",
+  "SessionId": "session_20251006_095957",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "IntervalFromPrevious": 0
+  }
+}
+{
+  "EntryType": "ERROR_OCCURRED",
+  "Timestamp": "2025-10-06T09:59:57.7541908+09:00",
+  "SessionId": "session_20251006_095957",
+  "ErrorType": "ConnectionError",
+  "ErrorMessage": "Connection failed",
+  "DeviceAddress": "Step1_Connection"
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T10:02:05.8073949+09:00",
+  "SessionId": "session_20251006_100205",
+  "SessionInfo": {
+    "ProcessId": 21064,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-10-06T10:02:05.8102701+09:00",
+  "SessionId": "session_20251006_100205",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "IntervalFromPrevious": 0
+  }
+}
+{
+  "EntryType": "SYSTEM_EVENT",
+  "Timestamp": "2025-10-06T10:02:05.8164582+09:00",
+  "SessionId": "session_20251006_100205",
+  "EventType": "SIMPLE_MONITORING_START",
+  "Message": "2ステップフロー監視開始",
+  "AdditionalData": {
+    "ServiceName": "SimpleMonitoringService",
+    "Version": "2.1.0-simple-monitoring",
+    "MonitoringMode": "FixedRange",
+    "TargetDevices": {
+      "MDeviceRange": "M000-M999 (1000デバイス)",
+      "DDeviceRange": "D000-D999 (1000デバイス)"
+    },
+    "OptimizationSettings": {
+      "MemoryOptimizer": "有効",
+      "ArrayPool": "有効",
+      "FixedRangeProcessor": "有効",
+      "ExpectedMemoryUsage": "450KB以下"
+    },
+    "MonitoringInterval": 1000
+  }
+}
+{
+  "EntryType": "SESSION_END",
+  "Timestamp": "2025-10-06T10:02:06.1241416+09:00",
+  "SessionId": "session_20251006_100205",
+  "SessionSummary": {
+    "Duration": "00:00:01.1231199",
+    "FinalStatus": "正常停止",
+    "ExitReason": "ユーザー停止要求",
+    "TotalLogEntries": 0,
+    "FinalMessage": "2ステップフロー監視セッション終了"
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T10:02:06.1297294+09:00",
+  "SessionId": "session_20251006_100206",
+  "SessionInfo": {
+    "ProcessId": 21064,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T10:02:06.1343751+09:00",
+  "SessionId": "session_20251006_100206",
+  "SessionInfo": {
+    "ProcessId": 21064,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-10-06T10:02:06.1297853+09:00",
+  "SessionId": "session_20251006_100206",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "IntervalFromPrevious": 0
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T10:02:06.1360479+09:00",
+  "SessionId": "session_20251006_100206",
+  "SessionInfo": {
+    "ProcessId": 21064,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T10:02:06.1379324+09:00",
+  "SessionId": "session_20251006_100206",
+  "SessionInfo": {
+    "ProcessId": 21064,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T10:02:06.1410168+09:00",
+  "SessionId": "session_20251006_100206",
+  "SessionInfo": {
+    "ProcessId": 21064,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+
+    },
+    "MonitoringInterval": 1000
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-10-06T10:02:06.134419+09:00",
+  "SessionId": "session_20251006_100206",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "IntervalFromPrevious": 0
+  }
+}
+mple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T10:02:06.1461684+09:00",
+  "SessionId": "session_20251006_100206",
+  "SessionInfo": {
+    "ProcessId": 21064,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-10-06T10:02:06.1379789+09:00",
+  "SessionId": "session_20251006_100206",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "IntervalFromPrevious": 0
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-10-06T10:02:06.1423299+09:00",
+  "SessionId": "session_20251006_100206",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "IntervalFromPrevious": 0
+  }
+}
+nitoringService",
+    "Version": "2.1.0-simple-monitoring",
+    "MonitoringMode": "FixedRange",
+    "TargetDevices": {
+      "MDeviceRange": "M000-M999 (1000デバイス)",
+      "DDeviceRange": "D000-D999 (1000デバイス)"
+    },
+    "OptimizationSettings": {
+      "MemoryOptimizer": "有効",
+      "ArrayPool": "有効",
+      "FixedRangeProcessor": "有効",
+      "ExpectedMemoryUsage": "450KB以下"
+    },
+    "MonitoringInterval": 1000
+  }
+}
+{
+  "EntryType": "SYSTEM_EVENT",
+  "Timestamp": "2025-10-06T10:02:06.1380322+09:00",
+  "SessionId": "session_20251006_100206",
+  "EventType": "SIMPLE_MONITORING_START",
+  "Message": "2ステップフロー監視開始",
+  "AdditionalData": {
+    "ServiceName": "SimpleMonitoringService",
+    "Version": "2.1.0-simple-monitoring",
+    "MonitoringMode": "FixedRange",
+    "TargetDevices": {
+      "MDeviceRange": "M000-M999 (1000デバイス)",
+      "DDeviceRange": "D000-D999 (1000デバイス)"
+    },
+    "OptimizationSettings": {
+      "MemoryOptimizer": "有効",
+      "ArrayPool": "有効",
+      "FixedRangeProcessor": "有効",
+      "ExpectedMemoryUsage": "450KB以下"
+    },
+    "MonitoringInterval": 1000
+  }
+}
+{
+  "EntryType": "SESSION_START",
+  "Timestamp": "2025-10-06T10:02:06.1689228+09:00",
+  "SessionId": "session_20251006_100206",
+  "SessionInfo": {
+    "ProcessId": 21064,
+    "ApplicationName": "Andon SLMP Client - 2ステップフロー対応",
+    "Version": "2.1.0-simple-monitoring",
+    "Environment": "Production"
+  },
+  "ConfigurationDetails": {
+    "ConfigFile": "appsettings.json",
+    "ConnectionTarget": "172.30.40.15:8192",
+    "SlmpSettings": "Port:8192, ASCII, Version4E, UDP, RxTimeout:3000ms, ConnTimeout:10000ms, MaxReq:2",
+    "ContinuityMode": "ReturnDefaultAndContinue",
+    "RawDataLogging": "有効",
+    "LogOutputPath": "logs/rawdata_analysis.log"
+  }
+}
+{
+  "EntryType": "CYCLE_START",
+  "Timestamp": "2025-10-06T10:02:06.1630373+09:00",
+  "SessionId": "session_20251006_100206",
+  "CycleNumber": 1,
+  "CycleInfo": {
+    "StartMessage": "--- 2ステップフローサイクル 1 ---",
+    "IntervalFromPrevious": 0
+  }
+}
+{
+  "EntryType": "SYSTEM_EVENT",
+  "Timestamp": "2025-10-06T10:02:06.1423598+09:00",
+  "SessionId": "session_20251006_100206",
+  "EventType": "SIMPLE_MONITORING_START",
+  "Message": "2ステップフロー監視開始",
+  "AdditionalData": {
+    "ServiceName": "SimpleMonitoringService",
+    "Version": "2.1.0-simple-monitoring",
+    "MonitoringMode": "FixedRange",
+    "TargetDevices": {
+      "MDeviceRange": "M000-M999 (1000デバイス)",
+      "DDeviceRange": "D000-D999 (1000デバイス)"
+    },
+    "OptimizationSettings": {
+      "MemoryOptimizer": "有効",
+      "ArrayPool": "有効",
+      "FixedRangeProcessor": "有効",
+      "ExpectedMemoryUsage": "450KB以下"
+    },
+    "MonitoringInterval": 1000
+  }
+}
+{
+  "EntryType": "ERROR_OCCURRED",
+  "Timestamp": "2025-10-06T10:02:06.1703625+09:00",
+  "SessionId": "session_20251006_100206",
+  "ErrorType": "ConnectionError",
+  "ErrorMessage": "Connection failed",
+  "DeviceAddress": "Step1_Connection"
+}
+{
+  "EntryType": "ERROR_OCCURRED",
+  "Timestamp": "2025-10-06T10:02:06.1640972+09:00",
+  "SessionId": "session_20251006_100206",
+  "ErrorType": "ConnectionError",
+  "ErrorMessage": "Unexpected error",
+  "DeviceAddress": "Step1_Connection"
+}

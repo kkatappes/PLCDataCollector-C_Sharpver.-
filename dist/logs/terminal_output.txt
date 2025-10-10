@@ -1,0 +1,135 @@
+﻿
+================================================================================
+[2025-10-07 12:57:09.129] [SESSION] セッション開始: SLMP継続監視
+[2025-10-07 12:57:09.153] [SESSION] プロセスID: 11416
+================================================================================
+
+[2025-10-07 12:57:09.153] ===================================================
+[2025-10-07 12:57:09.154]     SLMP SimpleMonitoringService v2.1
+[2025-10-07 12:57:09.154]     2ステップフロー・メモリ最適化対応システム
+[2025-10-07 12:57:09.154] ===================================================
+
+[2025-10-07 12:57:09.159] 📁 現在のディレクトリ: C:\Users\1010821\Desktop\python\andon\dist
+[2025-10-07 12:57:09.159] 📄 設定ファイル存在確認: C:\Users\1010821\Desktop\python\andon\dist\appsettings.json -> ✅ 存在
+[2025-10-07 12:57:09.237] 🔧 設定確認: DeviceDiscoverySettings:DiscoveryMode = ''
+[2025-10-07 12:57:09.301] 実行モード: SimpleMonitoring (2ステップフロー)
+
+info[2025-10-07 12:57:09.318] 🚀 SimpleMonitoringService開始
+[2025-10-07 12:57:09.318] 2ステップフロー:
+[2025-10-07 12:57:09.319] 1. PLC接続確立
+[2025-10-07 12:57:09.319] 2. M000-M999, D000-D999固定範囲データの継続取得
+[2025-10-07 12:57:09.320] 📊 ターゲット: M000-M999（1000デバイス）, D000-D999（1000デバイス）
+[2025-10-07 12:57:09.320] 🔧 メモリ最適化: 99.96%削減（10.2MB → 450KB）
+
+: SlmpClient.Core.IntegratedOutputManager[0]
+      === セッション開始 ===
+info: SlmpClient.Core.IntegratedOutputManager[0]
+      📋 セッションID: session_20251007_125709
+[2025-10-07 12:57:09.369] ✅ 依存性注入設定完了 - SimpleMonitoringService準備完了
+
+info: SlmpClient.Core.IntegratedOutputManager[0]
+      🏢 アプリケーション: SLMP SimpleMonitoringService vv2.1
+[2025-10-07 12:57:09.395] 🎯 2ステップフロー実行開始
+info: SlmpClient.Core.IntegratedOutputManager[0]
+      🎯 接続先: M000-M999, D000-D999固定範囲データ取得
+info: SlmpClient.Core.IntegratedOutputManager[0]
+      ⚙️ モード: ReturnDefaultAndContinue
+info: SlmpClient.Core.IntegratedOutputManager[0]
+      📄 ログ出力: logs/rawdata_analysis.log
+fail: SlmpClient.Core.ConsoleOutputManager[0]
+      Error writing console entry to file: logs/terminal_output.txt
+      System.IO.IOException: The process cannot access the file 'C:\Users\1010821\Desktop\python\andon\dist\logs\terminal_output.txt' because it is being used by another process.
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+         at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+         at System.IO.File.WriteToFileAsync(String path, FileMode mode, ReadOnlyMemory`1 contents, Encoding encoding, CancellationToken cancellationToken)
+         at SlmpClient.Core.ConsoleOutputManager.WriteEntryToFileAsync(ConsoleEntry entry) in C:\Users\1010821\Desktop\python\andon\andon\Core\ConsoleOutputManager.cs:line 207
+[2025-10-07 12:57:09.478] ✅ 2ステップフロー実行完了
+[2025-10-07 12:57:09.479] 📊 セッションID: session_20251007_125709
+fail[2025-10-07 12:57:09.480] 🔗 接続情報: { IsConnected = True, Host = 172.30.40.15, Port = 8192, Protocol = UDP, FrameVersion = 4E }
+[2025-10-07 12:57:09.480] 🔄 監視開始: Yes
+: SlmpClient.Core.ConsoleOutputManager[0]
+      Error writing console entry to file: logs/terminal_output.txt
+      System.IO.IOException: The process cannot access the file 'C:\Users\1010821\Desktop\python\andon\dist\logs\terminal_output.txt' because it is being used by another process.
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+         at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+         at System.IO.File.WriteToFileAsync(String path, FileMode mode, ReadOnlyMemory`1 contents, Encoding encoding, CancellationToken cancellationToken)
+         at SlmpClient.Core.ConsoleOutputManager.WriteEntryToFileAsync(ConsoleEntry entry) in C:\Users\1010821\Desktop\python\andon\andon\Core\ConsoleOutputManager.cs:line 207
+
+[2025-10-07 12:57:09.545] 🚀 継続監視が開始されました
+[2025-10-07 12:57:09.545] 📄 ログ出力先: logs/rawdata_analysis.log
+[2025-10-07 12:57:09.546] 💡 Ctrl+C で停止できます
+
+fail: SlmpClient.Core.ConsoleOutputManager[0]
+      Error writing console entry to file: logs/terminal_output.txt
+      System.IO.IOException: The process cannot access the file 'C:\Users\1010821\Desktop\python\andon\dist\logs\terminal_output.txt' because it is being used by another process.
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+         at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+         at System.IO.File.WriteToFileAsync(String path, FileMode mode, ReadOnlyMemory`1 contents, Encoding encoding, CancellationToken cancellationToken)
+         at SlmpClient.Core.ConsoleOutputManager.WriteEntryToFileAsync(ConsoleEntry entry) in C:\Users\1010821\Desktop\python\andon\andon\Core\ConsoleOutputManager.cs:line 207
+fail: SlmpClient.Core.ConsoleOutputManager[0]
+      Error writing console entry to file: logs/terminal_output.txt
+      System.IO.IOException: The process cannot access the file 'C:\Users\1010821\Desktop\python\andon\dist\logs\terminal_output.txt' because it is being used by another process.
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+         at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+         at System.IO.File.WriteToFileAsync(String path, FileMode mode, ReadOnlyMemory`1 contents, Encoding encoding, CancellationToken cancellationToken)
+         at SlmpClient.Core.ConsoleOutputManager.WriteEntryToFileAsync(ConsoleEntry entry) in C:\Users\1010821\Desktop\python\andon\andon\Core\ConsoleOutputManager.cs:line 207
+info: SlmpClient.Core.SimpleMonitoringService[0]
+      Step 1: PLC接続を開始します
+info: SlmpClient.Core.SlmpClient[0]
+      Connecting to 172.30.40.15:8192
+info: SlmpClient.Core.SlmpClient[0]
+      Successfully connected to 172.30.40.15:8192
+info: SlmpClient.Core.SimpleMonitoringService[0]
+      Step 1完了: PLC接続成功 - 172.30.40.15:8192
+info: SlmpClient.Core.SimpleMonitoringService[0]
+      Step 2: 固定範囲監視を開始します (M000-M999, D000-D999)
+fail: SlmpClient.Core.ConsoleOutputManager[0]
+      Error writing console entry to file: logs/terminal_output.txt
+      System.IO.IOException: The process cannot access the file 'C:\Users\1010821\Desktop\python\andon\dist\logs\terminal_output.txt' because it is being used by another process.
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+         at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+         at System.IO.File.WriteToFileAsync(String path, FileMode mode, ReadOnlyMemory`1 contents, Encoding encoding, CancellationToken cancellationToken)
+         at SlmpClient.Core.ConsoleOutputManager.WriteEntryToFileAsync(ConsoleEntry entry) in C:\Users\1010821\Desktop\python\andon\andon\Core\ConsoleOutputManager.cs:line 207
+fail: SlmpClient.Core.ConsoleOutputManager[0]
+      Error writing console entry to file: logs/terminal_output.txt
+      System.IO.IOException: The process cannot access the file 'C:\Users\1010821\Desktop\python\andon\dist\logs\terminal_output.txt' because it is being used by another process.
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+         at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+         at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+         at System.IO.File.WriteToFileAsync(String path, FileMode mode, ReadOnlyMemory`1 contents, Encoding encoding, CancellationToken cancellationToken)
+         at SlmpClient.Core.ConsoleOutputManager.WriteEntryToFileAsync(ConsoleEntry entry) in C:\Users\1010821\Desktop\python\andon\andon\Core\ConsoleOutputManager.cs:line 207
+fail: SlmpClient.Core.SimpleMonitoringService[0]
+      Mデバイス読み取りエラー
+      SlmpClient.Exceptions.SlmpTimeoutException: UDP communication timeout
+         at SlmpClient.Core.SlmpClient.HandleBitDeviceReadError(Exception exception, DeviceCode deviceCode, UInt32 startAddress, UInt16 count, String errorType) in C:\Users\1010821\Desktop\python\andon\andon\Core\SlmpClient.cs:line 2015
+         at SlmpClient.Core.SlmpClient.ReadBitDevicesAsync(DeviceCode deviceCode, UInt32 startAddress, UInt16 count, UInt16 timeout, CancellationToken cancellationToken) in C:\Users\1010821\Desktop\python\andon\andon\Core\SlmpClient.cs:line 313
+         at SlmpClient.Core.SimpleMonitoringService.ReadMDevicesAsync(CancellationToken cancellationToken) in C:\Users\1010821\Desktop\python\andon\andon\Core\SimpleMonitoringService.cs:line 451
+Timestamp: 2025-10-07 03:57:12.426 UTC
+ElapsedTime: 3000ms
+TimeoutDuration: 3000ms
+TimeoutRatio: 100.0%
+[2025-10-07 12:57:14.565] 📊 12:57:14 - 監視中: M000-M999, D000-D999 | メモリ使用量: 0KB (最大: 0KB)
+fail: SlmpClient.Core.SimpleMonitoringService[0]
+      Dデバイス読み取りエラー
+      SlmpClient.Exceptions.SlmpTimeoutException: UDP communication timeout
+         at SlmpClient.Core.SlmpClient.HandleWordDeviceReadError(Exception exception, DeviceCode deviceCode, UInt32 startAddress, UInt16 count, String errorType) in C:\Users\1010821\Desktop\python\andon\andon\Core\SlmpClient.cs:line 2067
+         at SlmpClient.Core.SlmpClient.ReadWordDevicesAsync(DeviceCode deviceCode, UInt32 startAddress, UInt16 count, UInt16 timeout, CancellationToken cancellationToken) in C:\Users\1010821\Desktop\python\andon\andon\Core\SlmpClient.cs:line 378
+         at SlmpClient.Core.SimpleMonitoringService.ReadDDevicesAsync(CancellationToken cancellationToken) in C:\Users\1010821\Desktop\python\andon\andon\Core\SimpleMonitoringService.cs:line 484
+Timestamp: 2025-10-07 03:57:15.437 UTC
+ElapsedTime: 3000ms
+TimeoutDuration: 3000ms
+TimeoutRatio: 100.0%
+
+[2025-10-07 12:57:17.048] ===================================================
+[2025-10-07 12:57:17.048] 実行完了
+[2025-10-07 12:57:17.049] ===================================================
+
+================================================================================
+[2025-10-07 12:57:17.052] [SESSION] セッション終了
+================================================================================
+

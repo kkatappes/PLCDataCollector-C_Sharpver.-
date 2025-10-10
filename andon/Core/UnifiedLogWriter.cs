@@ -221,7 +221,7 @@ namespace SlmpClient.Core
         /// <summary>
         /// 個別デバイス値情報（新機能）
         /// </summary>
-        public DeviceValueInfo[] DeviceValues { get; set; } = Array.Empty<DeviceValueInfo>();
+        public DetailedDeviceValueInfo[] DeviceValues { get; set; } = Array.Empty<DetailedDeviceValueInfo>();
 
         /// <summary>
         /// バッチ読み取り効率情報
@@ -325,6 +325,18 @@ namespace SlmpClient.Core
         public double CpuUsage { get; set; }
         public double MemoryUsage { get; set; }
         public int ThreadCount { get; set; }
+    }
+
+    /// <summary>
+    /// 詳細デバイス値情報（設計仕様：デバイス解釈情報）
+    /// </summary>
+    public class DetailedDeviceValueInfo
+    {
+        public string DeviceAddress { get; set; } = string.Empty;
+        public object RawValue { get; set; } = 0;
+        public string InterpretedValue { get; set; } = string.Empty;
+        public string StatusJudgment { get; set; } = string.Empty;
+        public string ChangeDetection { get; set; } = string.Empty;
     }
 
     #endregion

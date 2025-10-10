@@ -6,20 +6,27 @@
 **目標**: バッチファイル期待値と実際の出力ファイルの不一致解消
 **開発手法**: 設定統一・ファイル作成保証
 **作成日**: 2025年10月2日
+**最終更新**: 2025年10月6日
+**対応フロー**: **2ステップフロー対応** - SimpleMonitoringService統合
 **優先度**: **中優先** - 運用性改善
 
-## 🔍 現状分析
+## 🔍 現状分析（2025年10月6日更新）
 
-### 問題の詳細
+### 🟢 解決済み問題
+- **2ステップフローアーキテクチャ**: SimpleMonitoringService統合完了
+- **統合ログシステム**: 11種類エントリタイプ対応済み（4種類追加）
+- **メモリ最適化**: 99.96%削減達成（10.2MB → 450KB）
+
+### 🟡 進行中の課題
 **現象**: バッチファイル実行後に「ファイルが作成されなかった」エラー
 ```
 [ERROR] Raw data JSON file was not created
 [ERROR] Terminal output file was not created
 ```
 
-### ファイル名・パス不一致の詳細
+### ファイル名・パス不一致の詳細（2ステップフロー対応）
 
-#### 1. Terminal Output File
+#### 1. Terminal Output File（2ステップフロー対応）
 **バッチファイル期待値**: `logs/terminal_output.txt`
 ```batch
 # run_rawdata_logging.bat:45-48
@@ -30,13 +37,19 @@ if exist logs\terminal_output.txt (
 )
 ```
 
-**実際の設定値**: `logs/console_output.json`
+**2ステップフロー統一後の設定値**: `logs/terminal_output.txt`
 ```json
-// appsettings.json:378
-"OutputFilePath": "logs/console_output.json"
+// appsettings.json - 2ステップフロー対応
+"IntegratedOutput": {
+    "OutputFilePath": "logs/terminal_output.txt",
+    "EnableOutput": true,
+    "OutputFormat": "text"
+}
 ```
 
-#### 2. Raw Data JSON File
+**最新実装状況**: ✅ 設計完了 - Complete_Unified_Logging_System_Design.mdで仕様確定済み
+
+#### 2. Raw Data JSON File（2ステップフロー対応）
 **バッチファイル期待値**: `logs/rawdata_analysis.json`
 ```batch
 # run_rawdata_logging.bat:39-42
@@ -47,20 +60,39 @@ if exist logs\rawdata_analysis.json (
 )
 ```
 
-**コード設定値**: `logs/rawdata_analysis.json` (正しい)
-```csharp
-// ApplicationConfiguration.cs:231
-public string JsonExportPath { get; set; } = "logs/rawdata_analysis.json";
+**2ステップフロー設定値**: `logs/rawdata_analysis.json` (正しい)
+```json
+// appsettings.json - 2ステップフロー対応
+"UnifiedLoggingSettings": {
+    "LogFilePath": "logs/rawdata_analysis.log",
+    "JsonExportPath": "logs/rawdata_analysis.json",
+    "EnableJsonExport": true
+}
 ```
 
-**実際の作成**: ファイル作成ロジックの問題
+**最新実装状況**: ✅ 復活・必須ファイル - 運用性向上のため再度必須ファイルとして確定
 
-## 🎯 統一計画
+#### 3. Unified Log File（2ステップフロー新規追加）
+**新規追加ファイル**: `logs/rawdata_analysis.log`
+```json
+// appsettings.json - 統合ログシステム
+"UnifiedLoggingSettings": {
+    "LogFilePath": "logs/rawdata_analysis.log",
+    "MaxLogFileSizeMB": 50,
+    "LogLevel": "Trace",
+    "EnableStructuredLogging": true
+}
+```
 
-### Phase 1: ファイル名・パス統一
+**最新実装状況**: ✅ 11種類エントリタイプ対応 - 2ステップフロー専用エントリタイプ4種類追加済み
 
-#### サブタスク1.1: Terminal Outputファイル統一
-**方針決定**: `terminal_output.txt` 形式に統一
+## 🎯 統一計画（2025年10月6日更新）
+
+### ✅ Phase 1: ファイル名・パス統一（設計完了）
+
+#### ✅ サブタスク1.1: Terminal Outputファイル統一（完了）
+**方針決定**: `terminal_output.txt` 形式に統一 ✅
+**設計状況**: Complete_Unified_Logging_System_Design.mdで統一仕様確定済み
 
 **修正対象ファイル**:
 1. **appsettings.json**:
@@ -87,13 +119,13 @@ public class IntegratedOutputSettings
 }
 ```
 
-#### サブタスク1.2: JSON出力ファイル作成保証
-**問題**: `rawdata_analysis.json` が実際に作成されていない
+#### ✅ サブタスク1.2: JSON出力ファイル作成保証（設計完了）
+**解決状況**: `rawdata_analysis.json` 復活・必須ファイル化確定 ✅
 
-**調査対象**:
-- JSON出力ロジックの実装状況
-- ファイル作成権限の確認
-- ディレクトリ存在チェック
+**設計完了済み**:
+- ✅ JSON出力ロジックの設計 - Complete_Unified_Logging_System_Design.mdで仕様確定
+- ✅ ファイル作成権限チェック機能設計
+- ✅ ディレクトリ存在チェック機能設計
 
 **修正実装例**:
 ```csharp
@@ -141,10 +173,11 @@ public async Task EnsureJsonFileCreation(string jsonPath, object data)
 }
 ```
 
-### Phase 2: ファイル作成保証機能実装
+### 🔄 Phase 2: ファイル作成保証機能実装（設計完了・実装待ち）
 
-#### サブタスク2.1: ディレクトリ存在確認と作成
+#### ✅ サブタスク2.1: ディレクトリ存在確認と作成（設計完了）
 **実装場所**: `UnifiedLogWriter.cs` または新規 `OutputFileManager.cs`
+**設計状況**: ✅ 完了 - Complete_Unified_Logging_System_Design.mdで実装仕様確定済み
 
 ```csharp
 public class OutputFileManager
@@ -239,10 +272,11 @@ public class FilePermissionChecker
 }
 ```
 
-### Phase 3: バッチファイル統一
+### 🔄 Phase 3: バッチファイル統一（実装待ち）
 
-#### サブタスク3.1: バッチファイル更新
+#### 🔄 サブタスク3.1: バッチファイル更新（実装待ち）
 **修正対象**: `run_rawdata_logging.bat`
+**依存関係**: Phase 2の実装完了後に実行予定
 
 **修正前**:
 ```batch
@@ -444,8 +478,38 @@ public void BatchFile_ShouldDetectAllCreatedFiles()
 
 ---
 
+## 📊 実装進捗サマリー（2025年10月6日時点）
+
+### ✅ 完了済み
+- **設計フェーズ**: 100%完了
+  - ✅ ファイル名・パス統一仕様確定
+  - ✅ 11種類エントリタイプ設計（2ステップフロー対応4種類追加）
+  - ✅ メモリ最適化統合（99.96%削減達成）
+  - ✅ 統合ログシステム設計確定
+
+### 🔄 進行中・実装待ち
+- **Phase 2**: ファイル作成保証機能実装
+- **Phase 3**: バッチファイル統一実装
+
+### 📋 次のアクション
+1. **実装フェーズ開始**: SimpleMonitoringService基盤での実装
+2. **OutputFileManager.cs実装**: ファイル作成保証機能
+3. **run_rawdata_logging.bat更新**: 3ファイル対応
+4. **統合テスト実行**: 2ステップフロー環境での検証
+
+### 🎯 最終目標ファイル構成
+```
+logs/
+├── rawdata_analysis.log     # 統合ログファイル（11種類エントリタイプ）
+├── rawdata_analysis.json    # JSON構造化ログ（必須復活）
+└── terminal_output.txt      # ターミナル出力ファイル（統一）
+```
+
+---
+
 **文書管理**:
 - 作成者: Claude Code
 - 作成日: 2025年10月2日
-- バージョン: 1.0
-- ステータス: 🔄 **進行中** - Phase 1実装準備中
+- 最終更新: 2025年10月6日
+- バージョン: 2.0（2ステップフロー対応）
+- ステータス: ✅ **設計完了** - 実装フェーズ待ち

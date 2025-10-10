@@ -1,0 +1,12 @@
+MCPによる機能拡張
+MCP（Model Context Protocol）を活用して、Claude Codeの機能を大幅に拡張できます。
+
+
+
+MCPを利用する上で楽で簡単な方法は、claude mcp addコマンドを使用することです。
+
+# Context7をグローバル設定に追加
+claude mcp add -s user context7 -- npx -y @upstash/context7-mcp@latest
+
+# プロジェクト共有設定として追加
+claude mcp add -s project context7 -- npx -y @upstash/context7-mcp@latest
