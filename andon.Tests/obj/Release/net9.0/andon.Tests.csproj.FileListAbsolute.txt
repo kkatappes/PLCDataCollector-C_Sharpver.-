@@ -1,7 +1,0 @@
-C:\Users\1010821\Desktop\python\andon\andon.Tests\bin\Release\net9.0\CoverletSourceRootsMapping_andon.Tests
-C:\Users\1010821\Desktop\python\andon\andon.Tests\obj\Release\net9.0\andon.Tests.csproj.AssemblyReference.cache
-C:\Users\1010821\Desktop\python\andon\andon.Tests\obj\Release\net9.0\andon.Tests.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\1010821\Desktop\python\andon\andon.Tests\obj\Release\net9.0\andon.Tests.AssemblyInfoInputs.cache
-C:\Users\1010821\Desktop\python\andon\andon.Tests\obj\Release\net9.0\andon.Tests.AssemblyInfo.cs
-C:\Users\1010821\Desktop\python\andon\andon.Tests\obj\Release\net9.0\andon.Tests.csproj.CoreCompileInputs.cache
-C:\Users\1010821\Desktop\python\andon\andon.Tests\obj\Release\net9.0\andon.Tests.sourcelink.json

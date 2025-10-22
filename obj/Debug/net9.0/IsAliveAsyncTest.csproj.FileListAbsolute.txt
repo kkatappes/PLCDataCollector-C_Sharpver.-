@@ -1,6 +1,0 @@
-C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\IsAliveAsyncTest.csproj.AssemblyReference.cache
-C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\IsAliveAsyncTest.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\IsAliveAsyncTest.AssemblyInfoInputs.cache
-C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\IsAliveAsyncTest.AssemblyInfo.cs
-C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\IsAliveAsyncTest.csproj.CoreCompileInputs.cache
-C:\Users\1010821\Desktop\python\andon\obj\Debug\net9.0\IsAliveAsyncTest.sourcelink.json
