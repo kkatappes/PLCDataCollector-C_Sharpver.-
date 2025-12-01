@@ -1,0 +1,129 @@
+  復元対象のプロジェクトを決定しています...
+  復元対象のすべてのプロジェクトは最新です。
+  andon -> C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\win-x64\andon.dll
+C:\Users\1010821\Desktop\python\andon\andon\Tests\TestUtilities\Mocks\MockSocket.cs(234,32): warning CS0109: メンバー 'MockSocket.ReceiveAsync(ArraySegment<byte>, SocketFlags, CancellationToken)' はアクセス可能なメンバーを非表示にしません。新しいキーワードは不要です。 [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Integration\PlcCommunicationManager_IntegrationTests_TC143_10.cs(180,67): warning CS8604: 'Task<BasicProcessedResponseData> PlcCommunicationManager.ProcessReceivedRawData(byte[] rawData, ProcessedDeviceRequestInfo processedRequestInfo, CancellationToken cancellationToken = default(CancellationToken))' 内のパラメーター 'rawData' に Null 参照引数がある可能性があります。 [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Integration\Core\Managers\PlcCommunicationManagerIntegrationTests.cs(47,41): warning CS8600: Null リテラルまたは Null の可能性がある値を Null 非許容型に変換しています。 [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Integration\PlcCommunicationManager_IntegrationTests_TC143_10.cs(245,67): warning CS8604: 'Task<BasicProcessedResponseData> PlcCommunicationManager.ProcessReceivedRawData(byte[] rawData, ProcessedDeviceRequestInfo processedRequestInfo, CancellationToken cancellationToken = default(CancellationToken))' 内のパラメーター 'rawData' に Null 参照引数がある可能性があります。 [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Integration\Core\Managers\PlcCommunicationManagerIntegrationTests.cs(242,41): warning CS8600: Null リテラルまたは Null の可能性がある値を Null 非許容型に変換しています。 [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Integration\Step3_6_IntegrationTests.cs(649,21): warning CS8629: Null 許容値型は Null になる場合があります。 [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\TestUtilities\Assertions\DataIntegrityAssertions.cs(53,9): warning xUnit2002: Do not use Assert.NotNull() on value type 'DateTime'. Remove this assert. (https://xunit.net/xunit.analyzers/rules/xUnit2002) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Integration\Core\Managers\PlcCommunicationManagerIntegrationTests.cs(56,17): warning xUnit2020: Do not use Assert.True(false, message) to fail a test. Use Assert.Fail(message) instead. (https://xunit.net/xunit.analyzers/rules/xUnit2020) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Integration\Core\Managers\PlcCommunicationManagerIntegrationTests.cs(249,17): warning xUnit2020: Do not use Assert.True(false, message) to fail a test. Use Assert.Fail(message) instead. (https://xunit.net/xunit.analyzers/rules/xUnit2020) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Integration\Step3_6_IntegrationTests.cs(409,9): warning xUnit2002: Do not use Assert.NotNull() on value type 'DateTime'. Remove this assert. (https://xunit.net/xunit.analyzers/rules/xUnit2002) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Integration\Step3_6_IntegrationTests.cs(410,9): warning xUnit2002: Do not use Assert.NotNull() on value type 'DateTime'. Remove this assert. (https://xunit.net/xunit.analyzers/rules/xUnit2002) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Integration\Step3_6_IntegrationTests.cs(528,9): warning xUnit2002: Do not use Assert.NotNull() on value type 'DateTime'. Remove this assert. (https://xunit.net/xunit.analyzers/rules/xUnit2002) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Integration\Step3_6_IntegrationTests.cs(529,9): warning xUnit2002: Do not use Assert.NotNull() on value type 'DateTime'. Remove this assert. (https://xunit.net/xunit.analyzers/rules/xUnit2002) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests.cs(615,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests.cs(1044,9): warning xUnit2012: Do not use Assert.True() to check if a value exists in a collection. Use Assert.Contains instead. (https://xunit.net/xunit.analyzers/rules/xUnit2012) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests.cs(1045,9): warning xUnit2012: Do not use Assert.True() to check if a value exists in a collection. Use Assert.Contains instead. (https://xunit.net/xunit.analyzers/rules/xUnit2012) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests.cs(1046,9): warning xUnit2012: Do not use Assert.True() to check if a value exists in a collection. Use Assert.Contains instead. (https://xunit.net/xunit.analyzers/rules/xUnit2012) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests.cs(1047,9): warning xUnit2012: Do not use Assert.True() to check if a value exists in a collection. Use Assert.Contains instead. (https://xunit.net/xunit.analyzers/rules/xUnit2012) [C:\Users\1010821\Desktop\python\andon\andon\Tests\andon.Tests.csproj]
+  andon.Tests -> C:\Users\1010821\Desktop\python\andon\andon\Tests\bin\Debug\net9.0\andon.Tests.dll
+C:\Users\1010821\Desktop\python\andon\andon\Tests\bin\Debug\net9.0\andon.Tests.dll (.NETCoreApp,Version=v9.0) のテスト実行
+VSTest のバージョン 17.14.1 (x64)
+
+テスト実行を開始しています。お待ちください...
+合計 1 個のテスト ファイルが指定されたパターンと一致しました。
+C:\Users\1010821\Desktop\python\andon\andon\Tests\bin\Debug\net9.0\andon.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.8)
+[xUnit.net 00:00:00.12]   Discovering: andon.Tests
+[xUnit.net 00:00:00.20]   Discovered:  andon.Tests
+[xUnit.net 00:00:00.21]   Starting:    andon.Tests
+[xUnit.net 00:00:00.30]     Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_エラー終了コード処理 [FAIL]
+[xUnit.net 00:00:00.30]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.30]       Expected: 49241
+[xUnit.net 00:00:00.30]       Actual:   1024
+[xUnit.net 00:00:00.30]       Stack Trace:
+[xUnit.net 00:00:00.30]         C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests_AsciiParsing.cs(196,0): at Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_エラー終了コード処理()
+[xUnit.net 00:00:00.30]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:00.30]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.31]     Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_ヘッダーサイズ検証 [FAIL]
+[xUnit.net 00:00:00.31]       Assert.Equal() Failure: Strings differ
+[xUnit.net 00:00:00.31]                  ↓ (pos 0)
+[xUnit.net 00:00:00.31]       Expected: "C800"
+[xUnit.net 00:00:00.31]       Actual:   ""
+[xUnit.net 00:00:00.31]       Stack Trace:
+[xUnit.net 00:00:00.31]         C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests_AsciiParsing.cs(307,0): at Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_ヘッダーサイズ検証()
+[xUnit.net 00:00:00.31]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:00.31]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.31]     Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_ビットデータ解析成功 [FAIL]
+[xUnit.net 00:00:00.31]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.31]       Expected: 0
+[xUnit.net 00:00:00.31]       Actual:   1024
+[xUnit.net 00:00:00.31]       Stack Trace:
+[xUnit.net 00:00:00.31]         C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests_AsciiParsing.cs(73,0): at Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_ビットデータ解析成功()
+[xUnit.net 00:00:00.31]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:00.31]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.31]     Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_基本解析成功 [FAIL]
+[xUnit.net 00:00:00.31]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.31]       Expected: 0
+[xUnit.net 00:00:00.31]       Actual:   25088
+[xUnit.net 00:00:00.31]       Stack Trace:
+[xUnit.net 00:00:00.31]         C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests_AsciiParsing.cs(264,0): at Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_基本解析成功()
+[xUnit.net 00:00:00.31]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:00.31]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.31]     Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_ヘッダー解析成功 [FAIL]
+[xUnit.net 00:00:00.31]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.31]       Expected: 0
+[xUnit.net 00:00:00.31]       Actual:   1024
+[xUnit.net 00:00:00.31]       Stack Trace:
+[xUnit.net 00:00:00.31]         C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests_AsciiParsing.cs(116,0): at Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_ヘッダー解析成功()
+[xUnit.net 00:00:00.31]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:00.31]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.32]   Finished:    andon.Tests
+  失敗 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_エラー終了コード処理 [20 ms]
+  エラー メッセージ:
+   Assert.Equal() Failure: Values differ
+Expected: 49241
+Actual:   1024
+  スタック トレース:
+     at Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_エラー終了コード処理() in C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests_AsciiParsing.cs:line 196
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_不完全フレームエラー [2 ms]
+  失敗 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_ヘッダーサイズ検証 [2 ms]
+  エラー メッセージ:
+   Assert.Equal() Failure: Strings differ
+           ↓ (pos 0)
+Expected: "C800"
+Actual:   ""
+  スタック トレース:
+     at Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_ヘッダーサイズ検証() in C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests_AsciiParsing.cs:line 307
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_不完全フレームエラー [1 ms]
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_データ長整合性検証 [< 1 ms]
+  失敗 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_ビットデータ解析成功 [< 1 ms]
+  エラー メッセージ:
+   Assert.Equal() Failure: Values differ
+Expected: 0
+Actual:   1024
+  スタック トレース:
+     at Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_ビットデータ解析成功() in C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests_AsciiParsing.cs:line 73
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  失敗 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_基本解析成功 [< 1 ms]
+  エラー メッセージ:
+   Assert.Equal() Failure: Values differ
+Expected: 0
+Actual:   25088
+  スタック トレース:
+     at Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_基本解析成功() in C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests_AsciiParsing.cs:line 264
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  失敗 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_ヘッダー解析成功 [< 1 ms]
+  エラー メッセージ:
+   Assert.Equal() Failure: Values differ
+Expected: 0
+Actual:   1024
+  スタック トレース:
+     at Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_ヘッダー解析成功() in C:\Users\1010821\Desktop\python\andon\andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests_AsciiParsing.cs:line 116
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+テストの実行に失敗しました。
+テストの合計数: 8
+     成功: 3
+     失敗: 5
+合計時間: 1.2098 秒

@@ -5,7 +5,7 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "andon", "andon\andon.csproj", "{0094A80E-2DEF-0840-99F0-88E6CB0C7F1B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "andon.Tests", "andon.Tests\andon.Tests.csproj", "{5D870834-0BF0-42FA-9309-AEBC10092280}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "andon.Tests", "andon\Tests\andon.Tests.csproj", "{5D870834-0BF0-42FA-9309-AEBC10092280}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

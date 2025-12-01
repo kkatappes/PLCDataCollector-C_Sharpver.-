@@ -1,0 +1,668 @@
+各ステップi/o
+
+- Step1 設定ファイル読み込み
+    - 実装メソッド: ConfigToFrameManager.LoadConfigAsync
+    - in:
+        - configFileName（string型、デフォルト："appsettings.xlsx"）
+        - 設定ソース
+            - 入力源: C:\Users\1010821\Desktop\python\andon\dist\appsettings.xlsx
+            - 形式: Excel(xlsx)
+            - 文字コード: UTF-8
+            - パス解決順序: ./config/[fileName] → ./[fileName] → 環境変数ANDON_CONFIG_PATH
+        - ルートキーと構造
+            - ルートキー: PlcCommunication
+            - フィールド
+                - Connection:
+                    - IpAddress: string, 必須, 既定 "" (PLC-接続先IPアドレス)
+                    - Port: integer, 必須, 既定 "" (PLC-接続先Port)
+                    - UseTcp: boolean, 必須, 既定 false
+                    - ConnectionType: string, 必須, 既定 "TCP" (PLC-接続先通信方式)
+                    - IsBinary: boolean, 必須, 既定 true
+                    - FrameVersion: string, 必須, 既定 "4E"
+
+                - Timeouts:
+                    - ReceiveTimeoutMs: integer, 任意, 既定 500
+                    - ConnectTimeoutMs: integer, 任意, 既定 3000
+                    - SendTimeoutMs: integer, 任意, 既定 3000
+
+                - TargetDevices:
+                    - MDeviceRange:
+                        - Start: integer, 必須, 既定 0
+                        - End: integer, 必須, 既定 999
+                        - DeviceCode: string, 必須, 既定 "M"
+                        - DataType: string, 必須, 既定 "Word"
+                    - DDeviceRange:
+                        - Start: integer, 必須, 既定 0
+                        - End: integer, 必須, 既定 999
+                        - DeviceCode: string, 必須, 既定 "D"
+                        - DataType: string, 必須, 既定 "DWord"
+
+                - MonitoringIntervalMs: integer, 必須, 既定 1000 (データ収集周期-ミリ秒単位)
+
+            - ルートキー: SystemResources
+            - フィールド
+                - MemoryLimitKB: integer, 任意, 既定 450
+                - MaxBufferSize: integer, 必須, 既定 2048
+                - MemoryThresholdKB: integer, 任意, 既定 512
+                - LowMemoryMode: boolean, 任意, 既定 false (省メモリ稼働)
+
+            - ルートキー: DataProcessing
+            - フィールド
+                - TargetName: string, 必須, 既定 "" (ターゲット名)
+                - ContinuousDataMode: boolean, 必須, 既定 true (連続値データ)
+                - DataRetentionDays: integer, 任意, 既定 30 (データ削除周期-日数)
+
+            - ルートキー: Logging:
+            - フィールド
+                - ConsoleOutput:
+                    - FilePath: string, 必須, 既定 "logs/terminal_output.txt"
+                    - MaxFileSizeMB: integer, 任意, 既定 10
+                    - MaxFileCount: integer, 任意, 既定 5
+                    - FlushIntervalMs: integer, 任意, 既定 1000
+                - DetailedLog:
+                    - FilePath: string, 必須, 既定 "logs/rawdata_analysis.json"
+                    - MaxFileSizeMB: integer, 任意, 既定 50
+                    - RetentionDays: integer, 任意, 既定 14
+                - LogLevel: string, 必須, 既定 "Debug" (ログ出力レベル: 初期運用時は全出力)
+
+            - ルートキー: DataTransfer
+            - フィールド
+                - EnableTransfer: boolean, 必須, 既定 false (データ転送)
+                - DestinationIpAddress: string, 任意, 既定 "" (データ送信先IPアドレス)
+                - DestinationPort: integer, 任意, 既定 0 (データ送信先Port)
+
+    - out:
+        - 読み込んだ以下の各種設定値
+            - ConnectionConfig（IpAddress, Port, UseTcp, ConnectionType, IsBinary, FrameVersion）
+            - TimeoutConfig（ReceiveTimeoutMs, ConnectTimeoutMs, SendTimeoutMs）
+            - TargetDeviceConfig（MDeviceRange, DDeviceRange, DataType）
+            - MonitoringIntervalMs
+            - SystemResourcesConfig（MemoryLimitKB, MaxBufferSize, MemoryThresholdKB, LowMemoryMode）
+            - DataProcessingConfig（TargetName, ContinuousDataMode, DataRetentionDays）
+            - LoggingConfig（ConsoleOutput, DetailedLog, LogLevel）
+            - DataTransferConfig（EnableTransfer, DestinationIpAddress, DestinationPort）
+            - ActualConfigPath（string型、実際に読み込んだファイルパス）
+
+    - 補足メソッド:
+        - GetConfig（設定内容取得）
+            - in: 設定タイプ指定（ジェネリック型パラメータT）、configFileName（オプション）
+            - out: 指定設定オブジェクト（LoadConfigAsyncまたは共有データから取得）
+            - データ取得元: ConfigToFrameManager.LoadConfigAsync()（単一）/ SharedConfigData（複数）
+
+- Step2-1 DWord分割処理
+    - 実装メソッド: ConfigToFrameManager.SplitDwordToWord
+    - in:
+        - 必須: TargetDeviceConfig（MDeviceRange, DDeviceRange, DataType）
+        - データ取得元: ConfigToFrameManager.LoadConfigAsync()（デバイス設定）
+    - out:
+        - ProcessedDeviceRequestInfo（前処理済みデバイス要求情報オブジェクト）
+            - SplitRanges（分割済みデバイス範囲情報）
+            - DataTypeInfo（データタイプ情報）
+            - OptimizedRanges（最適化済み範囲情報）
+        - 処理内容: DWordは16bit×2に分割済み、最適化済み範囲情報
+
+- Step2-2 通信フレーム構築
+    - 実装メソッド: ConfigToFrameManager.BuildFrames
+    - in:
+        - 必須: ConnectionConfig（IpAddress, Port, UseTcp, ConnectionType, IsBinary, FrameVersion）
+        - 必須: ProcessedDeviceRequestInfo（前処理済みデバイス要求情報）
+        - データ取得元:
+            - ConfigToFrameManager.LoadConfigAsync()（接続設定）
+            - ConfigToFrameManager.PrepareDeviceRequestInfo()（Random READ用デバイス指定リスト）
+    - out:
+        - SLMPフレーム（16進数文字列、複数フレーム対応）
+        - 構築コマンド: READコマンド(0401) + Random READコマンド(0403)（2回送信方式）
+        - 対象機器: ビット(M機器)、ワード/ダブルワード(D機器)をそれぞれ独立したフレームで取得
+        - **実データ例（4E形式・バイナリ形式）**:
+            - **フレーム1: M機器ビット読み出し（想定）**:
+              - バイナリ形式（参考）: `54 00 12 34 00 00 00 00  01 04 01 00  90 00 00 00 00  E8 03 00`
+              - 構成: サブヘッダ(4E) + READコマンド(0401) + ビット単位(0100) + M機器(9000) + M000開始(00000000) + 1000点(E80300)
+            - **フレーム2: D機器マルチリード（実際の送信データ、213バイト）**:
+              - バイナリ形式（16進数表現）:
+                ```
+                54 00 00 00 00 00 00 FF FF 03 00 C8 00 20 00 03 04 00 00 30 00 48 EE 00 A8 4B EE 00 A8 52 EE 00
+                A8 5C EE 00 A8 AA 18 01 A8 DC 18 01 A8 A4 19 01 A8 B8 19 01 A8 CC 19 01 A8 E0 19 01 A8 20 00 00
+                90 B2 DE 00 90 7A DF 00 90 DE DF 00 90 50 E0 00 90 61 E0 00 90 A6 E0 00 90 BB E0 00 90 CE E0 00
+                90 E0 06 00 9C F0 06 00 9C 04 07 00 9C 20 07 00 9C 40 07 00 9C 50 07 00 9C 67 07 00 9C 77 07 00
+                9C 89 07 00 9C 9A 07 00 9C AE 07 00 9C BE 07 00 9C DE 07 00 9C 22 08 00 9C 32 08 00 9C 45 08 00
+                9C 55 08 00 9C 68 08 00 9C 08 17 00 9C 20 17 00 9C 30 17 00 9C 48 17 00 9C 60 17 00 9C 70 17 00
+                9C 82 17 00 9C A0 17 00 9C 00 09 00 9D 20 09 00 9D 40 09 00 9D
+                ```
+              - 構成:
+                - サブヘッダ: `5400` (4E形式)
+                - シーケンス番号: `0000`
+                - 予約: `0000`
+                - ネットワーク情報: `00FFFF0300` (ネットワーク番号:00, PC番号:FF, I/O番号:03FF, 局番:00)
+                - データ長: `C800` (200バイト、リトルエンディアン)
+                - 監視タイマ: `2000` (32秒、リトルエンディアン)
+                - コマンド: `0304` (マルチリードコマンド)
+                - サブコマンド: `0000` (ワード単位)
+                - データポイント数: `3000` (48点、リトルエンディアン)
+                - デバイス指定: 48個の[デバイスコード(1byte)+開始番号(3bytes、リトルエンディアン)]
+                  - 例: `A8 48 EE 00` → D機器(A8) + 開始番号0xEE48(60968)
+                  - 例: `90 B2 DE 00` → M機器(90) + 開始番号0xDEB2(57010)
+
+- Step3 PLC接続処理
+    - 実装メソッド: PlcCommunicationManager.ConnectAsync
+    - in:
+        - 必須: ConnectionConfig（IpAddress, Port, UseTcp, ConnectionType）
+        - 必須: TimeoutConfig（ConnectTimeoutMs）
+        - データ取得元: ConfigToFrameManager.LoadConfigAsync()
+    - out:
+        - ConnectionResponse（接続処理結果オブジェクト）
+            - Status（ConnectionStatus型、必須）: Connected/Failed/Timeout
+            - Socket（System.Net.Sockets.Socket型、null許容）: 実際の通信用ソケット（成功時のみ）
+            - RemoteEndPoint（System.Net.EndPoint型、null許容）: 接続先情報（成功時のみ）
+            - ConnectedAt（DateTime型、null許容）: 接続完了時刻（成功時のみ）
+            - ConnectionTime（TimeSpan型、null許容）: 接続処理にかかった時間（成功時のみ）
+            - ErrorMessage（string型、null許容）: エラーメッセージ（失敗時のみ）
+
+- Step4 PLCへのリクエスト送信/PLCからのデータ受信
+    - 実装メソッド: PlcCommunicationManager.SendFrameAsync, PlcCommunicationManager.ReceiveResponseAsync
+    - SendFrameAsync（リクエスト送信）:
+        - in:
+            - 必須: SLMPフレーム（16進数文字列）
+            - データ取得元: ConfigToFrameManager.BuildFrames()
+            - 使用コマンド: READコマンド(0401) + Random READコマンド(0403)（2回送信）
+            - 取得対象: ビット(M機器)、ワード/ダブルワード(D機器)をそれぞれ独立して取得
+            - 参考資料: C:\Users\1010821\Desktop\python\andon\pdf2img（SLMP仕様書）
+            - **実際の送信例（4E形式マルチリード、213バイト）**:
+              ```
+              54 00 00 00 00 00 00 FF FF 03 00 C8 00 20 00 03 04 00 00 30 00 48 EE 00 A8 4B EE 00 A8 52 EE 00
+              A8 5C EE 00 A8 AA 18 01 A8 DC 18 01 A8 A4 19 01 A8 B8 19 01 A8 CC 19 01 A8 E0 19 01 A8 20 00 00
+              90 B2 DE 00 90 7A DF 00 90 DE DF 00 90 50 E0 00 90 61 E0 00 90 A6 E0 00 90 BB E0 00 90 CE E0 00
+              90 E0 06 00 9C F0 06 00 9C 04 07 00 9C 20 07 00 9C 40 07 00 9C 50 07 00 9C 67 07 00 9C 77 07 00
+              9C 89 07 00 9C 9A 07 00 9C AE 07 00 9C BE 07 00 9C DE 07 00 9C 22 08 00 9C 32 08 00 9C 45 08 00
+              9C 55 08 00 9C 68 08 00 9C 08 17 00 9C 20 17 00 9C 30 17 00 9C 48 17 00 9C 60 17 00 9C 70 17 00
+              9C 82 17 00 9C A0 17 00 9C 00 09 00 9D 20 09 00 9D 40 09 00 9D
+              ```
+              - 送信バイト数: 213バイト
+              - コマンド: `0304` (マルチリードコマンド)
+              - デバイス数: 48点（M機器・D機器混在）
+        - out: 送信完了状態
+    - ReceiveResponseAsync（データ受信）:
+        - in:
+            - 必須: TimeoutConfig（ReceiveTimeoutMs = 500ms）
+            - データ取得元: ConfigToFrameManager.LoadConfigAsync()
+        - out:
+            - 各種PLCの状態/生データ(16進数)
+            - READコマンド(0401) + Random READコマンド(0403)レスポンス: ビット・ワード・ダブルワードデータの一括受信
+            - **実際の受信例（4E形式レスポンス、111バイト）**:
+              ```
+              D4 00 00 00 00 00 00 FF FF 03 00 62 00 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+              FF FF FF FF FF FF FF FF FF FF 07 19 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 10
+              00 08 00 01 00 10 00 10 00 08 20 00 10 00 08 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+              00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+              ```
+              - 受信バイト数: 111バイト
+              - サブヘッダ: `D400` (4E形式レスポンス)
+              - 終了コード: `0000` (正常終了)
+              - データ長: `6200` (98バイト)
+              - デバイスデータ: 96バイト（48ワード × 2バイト）
+            - 受信データ形式: SLMPレスポンスフレーム（ヘッダー + データ部）
+
+- Step5 PLC切断処理
+    - 実装メソッド: PlcCommunicationManager.DisconnectAsync, PlcCommunicationManager.Disconnect, PlcCommunicationManager.Dispose
+    - DisconnectAsync（非同期切断）:
+        - in:
+            - 必須: 切断/リソース管理情報
+            - データ取得元: PlcCommunicationManager.ConnectAsync()からの接続状態、通信統計情報
+        - out:
+            - ConnectionStats（通信統計情報オブジェクト）
+                - 基本統計: 接続時間、送受信フレーム数・バイト数、切断時刻
+                - 応答時間統計: 履歴・平均・最大・最小応答時間
+                - エラー・品質統計: エラー回数、リトライ回数、通信成功率
+
+    - Disconnect（同期切断）:
+        - in: なし（内部状態を基に処理実行）
+        - out: void（戻り値なし）
+        - 処理内容: ソケット適切切断、リソース解放、接続状態リセット
+        - 用途: IDisposableパターン実装の補助メソッド、緊急時同期切断
+
+    - Dispose（IDisposable実装）:
+        - in: なし（IDisposableインターフェース準拠）
+        - out: void（戻り値なし）
+        - 処理内容: 標準.NETリソース管理パターン実装
+        - 動作: Disconnect()呼び出し、GC.SuppressFinalize()実行、重複実行防止
+        - 用途: using文対応、自動リソース管理
+
+- Step6-1 受信データ基本後処理
+    - 実装メソッド: PlcCommunicationManager.PostprocessReceivedData（基本後処理部分）
+    - 補助ユーティリティ: SlmpDataParser（データ変換ユーティリティクラス）
+        - 実装場所: Andon.Utilities.SlmpDataParser（静的クラス）
+        - 主要メソッド:
+            - DecodeBcd(byte[])（4bit BCD配列のデコード）: [0x12, 0x34] → [1, 2, 3, 4]
+            - UnpackBits(byte[])（ビット配列の展開、LSBから順）: [0x85] → [true, false, true, false, false, false, false, true]
+            - HexStringToBytes(string)（16進数文字列からバイト列への変換）: "1A2B" → [0x1A, 0x2B]
+            - BytesToHexString(byte[])（バイト配列から16進数文字列への変換）: [0x1A, 0x2B] → "1A2B"
+            - ExtractWordDwordData(byte[], int)（Word/Dwordデータの分離抽出）
+            - ParseAsciiHex(string, int, int)（ASCII形式の応答データから数値を抽出）
+            - ParseAsciiBitData(string)（ASCIIビットデータのパース）: "0110" → [false, true, true, false]
+            - ParseAsciiWordData(string)（ASCIIワードデータのパース）: "12AB34CD" → [0x12AB, 0x34CD]
+            - ParseBinaryBitData(byte[], int)（Binaryビットデータのパース）
+            - ParseBinaryWordData(byte[])（Binaryワードデータのパース）
+        - データ取得元: Python PySLMPClientのutil.py相当機能
+        - 設計目的: PlcCommunicationManagerの肥大化防止、単一責務原則の遵守、他クラスでの再利用可能性確保
+    - in:
+        - 必須: Step4で受信した生データ(16進数)
+        - 必須: ProcessedDeviceRequestInfo（送信時の前処理情報）
+        - データ取得元:
+            - PlcCommunicationManager.ReceiveResponseAsync()（受信生データ）
+            - ConfigToFrameManager.SplitDwordToWord()（送信時前処理情報）
+    - out:
+        - BasicProcessedResponseData（基本後処理結果オブジェクト）
+            - 基本結果: 元生データ、基本処理済みデータ（デバイス名キー構造）、処理時刻
+            - エラー情報: エラーフラグ、エラー・警告メッセージリスト
+            - 統計情報: 処理デバイス数
+        - 処理内容: 生データ16進数パース、デバイス別データ抽出、基本型変換（ビット/ワード）、エラー検証・記録
+        - パース処理対応形式: ASCII/Binary形式、3E/4Eフレーム、ビット/ワード/ダブルワード
+        - 実装参考: C:\Users\1010821\Desktop\python\andon\documents\design\フレーム構築関係\受信データパース処理仕様.md
+
+- Step6-2 DWord結合処理
+    - 実装メソッド: PlcCommunicationManager.PostprocessReceivedData（DWord結合部分）
+    - in:
+        - 必須: BasicProcessedResponseData（基本後処理結果）
+        - 必須: ProcessedDeviceRequestInfo（DWord分割情報）
+        - データ取得元: Step6-1の出力、ConfigToFrameManager.SplitDwordToWord()
+    - out:
+        - ProcessedResponseData（最終処理結果オブジェクト）
+            - 基本結果: 元生データ、処理済みデータ（DWord結合済み）、DWord結合フラグ、処理時刻
+            - エラー情報: エラーフラグ、エラー・警告メッセージリスト
+            - 統計情報: 処理デバイス数、DWord結合数（自動計算）
+        - 処理内容: DWord分割要否判定、Low/Highワード結合処理、結合結果検証、DWord結合統計計算
+        - 処理対象: READコマンド(0401) + Random READコマンド(0403)レスポンスデータ（ビット・ワード・ダブルワード混在データ）
+
+- Step6-3 構造化データ変換
+    - 実装メソッド: PlcCommunicationManager.ParseRawToStructuredData
+    - in:
+        - 必須: ProcessedResponseData（DWord結合済み処理データ）
+        - データ取得元: PlcCommunicationManager.PostprocessReceivedData()（後処理済み受信データ）
+    - out:
+        - StructuredData（SLMP構造化解析結果オブジェクト）
+            - 基本構造化データ: SLMPヘッダー（全標準情報）、終了コード、デバイスデータ、受信時刻、エラーフラグ
+            - 解析詳細情報: 解析手順記録、解釈情報、処理時間、デバイス解釈、ステータス判定
+            - エラー詳細情報: 詳細エラーコード、エラー説明、影響デバイス（エラー時のみ）
+
+- Step7 データ出力
+    - 実装メソッド: DataOutputManager.OutputDataAsync
+    - in:
+        - 必須: StructuredData（構造化データ）
+        - 必須: 出力設定（FilePath, Format）
+        - データ取得元: PlcCommunicationManager.ParseRawToStructuredData()（構造化解析結果）
+    - out:
+        - 任意の場所/形式への出力/保存（CSV, JSON, XML等、リアルタイム出力対応）
+        - データが指定場所/形式で出力/保存される
+    - 動作フロー成功条件: 解析したデータを任意の場所/形式に出力/保存できる
+
+- Step1-複数設定ファイル対応 設定ファイル一括読み込み
+    - 実装メソッド: MultiConfigManager.LoadAllFromDirectoryAsync
+    - in:
+        - configDirectory（string型、デフォルト："./config/"）
+        - filePattern（string型、デフォルト："*_settings.xlsx"）
+        - allowPartialSuccess（bool型、デフォルト：true）
+        - 設定ソース: 複数の設定ファイル（*_settings.xlsx, UTF-8形式）
+        - データ取得元: 指定ディレクトリ内の複数設定ファイル
+    - out:
+        - Dictionary<string, ConfigToFrameManager>（ファイル名キーの軽量インスタンス辞書）
+        - LoadedConfigPaths（string[]型、実際に読み込んだファイルパス一覧）
+        - LoadResult（LoadedFiles, FailedFiles, TotalLoadTime）
+    - 処理方式: 設定データを静的共有領域に保存、各ファイル用の軽量インスタンス生成
+
+- Step1-軽量インスタンス生成 設定別Manager作成
+    - 実装メソッド: MultiConfigManager.CreateManagersAsync
+    - in:
+        - configFileNames（string[]型：対象設定ファイル名一覧）
+        - SharedConfigData（静的共有領域のデータ）
+        - データ取得元: SharedConfigData（静的共有領域）
+    - out:
+        - ConfigToFrameManager[]（軽量インスタンス配列）
+        - 各インスタンスは共有データを参照
+    - 動作: 共有データを参照する軽量インスタンスを効率的に生成
+    - メモリ効率: 設定データ実体の共有によりメモリ使用量最小化
+
+    - 補足メソッド:
+        - GetSharedConfigData（共有データアクセス）:
+            - in: configFileName（string型：対象設定ファイル名）
+            - out: ConfigDataSet（指定ファイルの設定データ）
+            - データ取得元: SharedConfigData（静的共有領域）
+        - ReleaseSharedData（共有データ解放）:
+            - in: configFileName（string型、オプション：特定ファイル or 全体）
+            - out: ReleasedMemoryKB（解放されたメモリ量）
+            - 動作: 明示的なメモリ解放（長時間稼働時の最適化）
+
+- ログ出力機能 全Step横断ログ記録
+    - 実装クラス: LoggingManager
+    - 主要メソッド:
+        - InitializeAsync（ログシステム初期化）:
+            - in: LoggingConfig（ConsoleOutput, DetailedLog設定）
+            - out: 初期化状態（ファイル作成等）
+        - SetCorrelationId（セッション関連付けID設定）:
+            - in: SessionId（処理セッション識別子）
+            - out: 関連付け設定完了状態
+        - SetLogLevel（ログレベル設定）:
+            - in: LogLevel（出力レベル指定）
+            - out: レベル設定完了状態
+        - IsLogLevelEnabled（ログレベル有効性確認）:
+            - in: LogLevel（確認対象レベル）
+            - out: 有効性判定結果（true/false）
+        - LogConfigAsync（設定情報詳細出力）:
+            - in: 全設定オブジェクト（ConnectionConfig, TimeoutConfig等）
+            - out: 設定情報ログ出力完了状態
+        - LogCommunicationAsync（通信/送受信データ情報出力）:
+            - in: SLMPフレーム（送信/受信）、フレーム解析結果、通信統計
+            - out: 通信ログ出力完了状態
+        - LogStateAsync（アプリケーション状態出力）:
+            - in: セッション情報、サイクル情報、処理状況
+            - out: 状態ログ出力完了状態
+        - LogMetricAsync（統計/パフォーマンス情報出力）:
+            - in: 実行統計、応答時間分析、システム稼働状況
+            - out: 統計ログ出力完了状態
+        - LogErrorAsync（エラー/例外情報詳細出力）:
+            - in: エラー分類、エラー詳細、回復処理結果
+            - out: エラーログ出力完了状態
+        - LogDeviceDataAsync（デバイス解釈情報出力）:
+            - in: 生データ、解釈結果、ステータス判定
+            - out: デバイスデータログ出力完了状態
+        - BeginTransaction（トランザクション開始）:
+            - in: TransactionId（トランザクション識別子）
+            - out: トランザクション開始状態
+        - EndTransaction（トランザクション終了）:
+            - in: TransactionId、TransactionResult
+            - out: トランザクション終了状態
+        - FlushAsync（バッファフラッシュ）:
+            - in: FlushTarget（ファイル指定）
+            - out: フラッシュ完了状態
+    - 入力データ:
+        - LoggingConfig（ConsoleOutput, DetailedLog設定）
+        - 各Stepの実行データ（SLMPフレーム、状態情報、統計データ等）
+    - 出力:
+        - ファイル出力:
+            - ConsoleOutput: "logs/terminal_output.txt" (最大10MB, 5世代)
+            - DetailedLog: "logs/rawdata_analysis.json" (最大50MB, 14日保持)
+        - コンソール出力: リアルタイム表示
+        - ログ内容:
+            - SLMPフレーム生バイナリデータ（16進数表現、アドレス付き）
+            - 詳細SLMPフレーム解析（ヘッダー、終了コード、データ部詳細）
+            - アプリケーション状態（セッション、サイクル、処理状況）
+            - 統計/パフォーマンス（実行統計、応答時間、エラー統計）
+            - 時系列情報（SessionId、CycleNumber、ミリ秒精度タイムスタンプ）
+        - 出力先: ファイル、コンソール
+
+- エラーハンドリング機能 エラー分類・処理・記録
+    - 実装クラス: ErrorHandler
+    - 主要メソッド:
+        - DetermineErrorCategory（エラー分類判定）:
+            - in: Exception（発生したエラー・例外オブジェクト）、StepNumber（Step1-7のステップ番号）
+            - out: ErrorCategory（ConfigurationError, CommunicationError, DataProcessingError, ResourceError, SystemError）、Severity（Info, Warning, Error, Fatal）
+        - RecordError（エラー記録）:
+            - in: ErrorCategory（エラー分類）、Severity（重要度）、ErrorMessage（エラーメッセージ）、Exception（例外オブジェクト）、StepNumber（ステップ番号）
+            - out: 記録完了状態
+        - ApplyErrorPolicy（エラー処理方針適用）:
+            - in: ErrorCategory（エラー分類）、StepNumber（ステップ番号）
+            - out: ErrorAction（継続/終了の判定結果）
+        - ApplyRetryPolicy（リトライ方針適用）:
+            - in: ErrorCategory（エラー分類）、StepNumber（ステップ番号）、CurrentRetryCount（現在のリトライ回数）
+            - out: ShouldRetry（リトライするかどうかの判定）、MaxRetryCount（最大リトライ回数）
+        - GetErrorStatistics（エラー統計取得）:
+            - in: 統計期間指定（TimeSpan型、オプション）、エラー分類フィルター（ErrorCategory型、オプション）
+            - out: ErrorStatistics（TotalErrorCount、ErrorsByCategory、ErrorsBySeverity、MostFrequentErrors、ErrorRate、RecoveryRate）
+            - データ取得元: ErrorHandler.RecordError()（エラー記録履歴）
+    - 入力データ:
+        - Exception（発生したエラー・例外オブジェクト）
+        - StepNumber（Step1-7のステップ番号）
+        - ErrorCategory（ConfigurationError, CommunicationError, DataProcessingError等）
+    - 出力:
+        - ErrorCategory（エラー分類）
+        - Severity（Info, Warning, Error, Fatal）
+        - ErrorAction（継続/終了の判定結果）
+        - RetryPolicy（リトライ実行判定、最大リトライ回数）
+        - ErrorStatistics（エラー統計情報）
+        - 統一エラーメッセージ（日本語優先、パラメータ化対応）
+
+- メモリ・リソース管理機能 使用量監視・最適化
+    - 実装クラス: ResourceManager
+    - 主要メソッド:
+        - GetMemoryUsage（メモリ使用量取得）:
+            - in: システム状態（現在のメモリ使用状況）
+            - out: 現在のメモリ使用量（KB単位）、各コンポーネント別使用量
+            - データ取得元: システムAPI（GC.GetTotalMemory(), Process.GetCurrentProcess().WorkingSet64等）、各クラスの内部状態
+        - EvaluateLevel（メモリレベル判定）:
+            - in: 現在メモリ使用量（ResourceManager.GetMemoryUsage()）、閾値設定（ConfigToFrameManager.LoadConfigAsync()）
+            - out: メモリレベル（Normal, Warning, Critical）、推奨アクション
+            - データ取得元: ResourceManager.GetMemoryUsage()（現在使用量）、ConfigToFrameManager.LoadConfigAsync()（閾値設定）
+        - ApplyDataAndLoggingPolicy（データ/ログポリシー適用）:
+            - in: メモリレベル（ResourceManager.EvaluateLevel()）、ポリシー設定（ConfigToFrameManager.LoadConfigAsync()）
+            - out: 適用されたポリシー内容、データ処理制限設定
+            - データ取得元: ResourceManager.EvaluateLevel()（レベル判定結果）、ConfigToFrameManager.LoadConfigAsync()（システムリソース設定）
+        - OptimizeMemory（メモリ最適化実行）:
+            - in: 最適化対象（各クラスインスタンス）、最適化レベル（ResourceManager.EvaluateLevel()）
+            - out: 最適化実行結果、削減されたメモリ量
+            - データ取得元: PlcCommunicationManager, ConfigToFrameManager, LoggingManager各メソッド（メモリ解放対象）
+        - WriteLogAsync（メモリ状況ログ出力）:
+            - in: メモリ使用状況（ResourceManager.GetMemoryUsage()）、メモリレベル（ResourceManager.EvaluateLevel()）、最適化結果（ResourceManager.OptimizeMemory()）
+            - out: ログ出力完了状態
+            - データ取得元: ResourceManager各メソッド（メモリ状況）、LoggingManager.LogStateAsync()（ログ出力機能）
+        - RunMonitoringLoopAsync（メモリ監視ループ実行）:
+            - in: 監視間隔設定（ConfigToFrameManager.LoadConfigAsync()）、継続監視フラグ
+            - out: 監視ループ実行状態
+            - データ取得元: ConfigToFrameManager.LoadConfigAsync()（監視設定）、ResourceManager各メソッド（監視対象メソッド）
+    - 入力データ:
+        - SystemResourcesConfig（MemoryLimitKB, MemoryThresholdKB, LowMemoryMode）
+        - 現在のメモリ使用状況（システムAPI取得）
+    - 出力:
+        - 現在メモリ使用量（KB単位、コンポーネント別）
+        - メモリレベル（Normal, Warning, Critical）
+        - 推奨アクション（データ処理制限、最適化実行）
+        - 最適化実行結果（削減されたメモリ量）
+        - メモリ状況ログ出力
+
+- 非同期・並行処理制御 複数PLC並行実行
+    - 実装クラス: AsyncExceptionHandler, CancellationCoordinator, ResourceSemaphoreManager, ProgressReporter, ParallelExecutionController, TimerService, GracefulShutdownHandler
+    - 主要メソッド:
+        - AsyncExceptionHandler.HandleCriticalOperationAsync<T>（重要処理用例外ハンドリング）:
+            - in: Func<Task<T>>（実行対象の重要処理）、string（処理名称）、CancellationToken
+            - out: AsyncOperationResult<T>（IsSuccess、Result、Exception、ExecutionTime、OperationName）
+            - データ取得元: 実行対象メソッド、LoggingManager.LogErrorAsync()、ErrorHandler
+        - AsyncExceptionHandler.HandleGeneralOperationsAsync（一般処理用一括例外ハンドリング）:
+            - in: IEnumerable<Func<Task>>（実行対象の一般処理群）、string（処理グループ名称）、CancellationToken
+            - out: GeneralOperationResult（SuccessCount、FailureCount、TotalExecutionTime、FailedOperations、Exceptions）
+        - CancellationCoordinator.CreateHierarchicalToken（階層キャンセレーショントークン作成）:
+            - in: CancellationToken（親トークン）、TimeSpan（タイムアウト時間）
+            - out: CancellationTokenSource（子トークンソース）
+            - データ取得元: 親CancellationToken、ConfigToFrameManager（タイムアウト設定）
+        - CancellationCoordinator.RegisterCancellationCallback（キャンセル時コールバック登録）:
+            - in: CancellationToken、Func<Task>（キャンセル時実行処理）、string（コールバック名称）
+            - out: CancellationTokenRegistration（登録ハンドル）
+        - ResourceSemaphoreManager.ExecuteWithSemaphoreAsync<T>（セマフォ制御付き実行）:
+            - in: SemaphoreSlim、Func<Task<T>>、CancellationToken、TimeSpan（タイムアウト）
+            - out: T（実行結果）
+        - ResourceSemaphoreManager.GetResourceSemaphore（リソース種別セマフォ取得）:
+            - in: ResourceType（リソース種別列挙型）
+            - out: SemaphoreSlim（対応するセマフォ）
+        - ProgressReporter.Report（進捗報告実行）:
+            - in: T（進捗情報：ProgressInfo型またはstring型）
+            - out: void（進捗情報の出力・通知）
+        - ProgressReporter.CreateStepProgress（ステップ別進捗レポーター作成）:
+            - in: string（ステップ名）、int（予想処理数）
+            - out: ProgressReporter<ProgressInfo>（ステップ専用進捗レポーター）
+        - ParallelExecutionController.ExecuteParallelPlcOperationsAsync（複数PLC並行実行）:
+            - in: IEnumerable<ConfigToFrameManager>、Func<ConfigToFrameManager, CancellationToken, Task<CycleExecutionResult>>、CancellationToken
+            - out: ParallelExecutionResult（TotalPlcCount、SuccessfulPlcCount、FailedPlcCount、PlcResults、OverallExecutionTime、ContinuingPlcIds）
+            - データ取得元: 各ConfigToFrameManager、ExecutionOrchestrator、Task.WhenAll()
+        - ParallelExecutionController.MonitorParallelExecution（並行実行監視）:
+            - in: IEnumerable<Task<CycleExecutionResult>>、IProgress<ParallelProgressInfo>、CancellationToken
+            - out: Task（監視タスク）
+        - TimerService.StartPeriodicExecution（周期実行開始）:
+            - in: Func<Task>（実行する非同期処理）、TimeSpan（実行間隔）、CancellationToken
+            - out: Task（周期実行タスク）
+            - データ取得元: PeriodicTimer（.NET標準）、実行対象メソッド
+        - GracefulShutdownHandler.RegisterShutdownHandlers（終了ハンドラ登録）:
+            - in: ApplicationController、CancellationTokenSource
+            - out: 登録完了状態
+        - GracefulShutdownHandler.ExecuteGracefulShutdown（適切な終了処理実行）:
+            - in: ApplicationController、TimeSpan（タイムアウト時間）
+            - out: ShutdownResult（終了処理結果）
+    - 入力データ:
+        - ConfigToFrameManager[]（PLC用設定管理インスタンス群）
+        - CancellationToken（実行制御・キャンセル管理）
+        - 共有リソース（ログファイル等）
+    - 出力:
+        - ParallelExecutionResult（並行実行結果）
+            - TotalPlcCount, SuccessfulPlcCount, FailedPlcCount
+            - PlcResults（PLC別実行結果）
+            - OverallExecutionTime（全体実行時間）
+            - ContinuingPlcIds（継続実行中PLC ID一覧）
+        - 進捗報告情報（リアルタイム進捗表示）
+        - 階層的例外処理結果
+
+- アプリケーション制御・継続実行 ライフサイクル管理
+    - 実装クラス: ApplicationController, ExecutionOrchestrator, AndonHostedService
+    - 主要メソッド:
+        - ApplicationController.StartAsync（アプリケーション開始処理）:
+            - in: CancellationToken（キャンセレーション制御）
+            - out: Task（非同期実行完了状態）
+            - 処理内容: Step1初期化フェーズ実行、Step2-7継続実行開始
+            - データ取得元: IServiceProvider（DIコンテナ）、IHostedService（.NETランタイム）
+        - ApplicationController.StopAsync（アプリケーション停止処理）:
+            - in: CancellationToken（停止制御）
+            - out: Task（非同期停止完了状態）
+            - 処理内容: 実行中サイクルの適切な停止、各Managerクラスのリソース解放、PLC接続の適切な切断
+            - データ取得元: ExecutionOrchestrator（実行状態）、各Managerクラス（リソース状態）
+        - ApplicationController.ExecuteStep1InitializationAsync（Step1初期化フェーズ実行）:
+            - in: 設定ディレクトリパス（string型、デフォルト："./config/"）
+            - out: InitializationResult（LoadedConfigCount、CreatedManagersCount、InitializationTime、IsSuccess、ErrorDetails）
+            - 処理内容: 複数設定ファイル読み込み、各種Managerクラスインスタンス作成、初期化検証
+            - データ取得元: MultiConfigManager、DIコンテナ
+        - ApplicationController.StartContinuousDataCycleAsync（Step2-7継続実行開始）:
+            - in: InitializationResult、CancellationToken
+            - out: Task（継続実行タスク）
+            - 処理内容: ExecutionOrchestratorインスタンス作成、複数PLC並行実行開始、エラー発生時の継続処理制御
+            - データ取得元: ExecutionOrchestrator、MultiConfigManager
+        - ExecutionOrchestrator.RunContinuousDataCycleAsync（継続データサイクル実行）:
+            - in: ConfigToFrameManager、PlcIdentifier（PLC識別子）、CancellationToken
+            - out: Task（継続実行タスク）
+            - 処理内容: TimerService使用によるMonitoringIntervalMs間隔制御、ExecuteSingleCycleAsync()の繰り返し実行
+            - データ取得元: TimerService、ConfigToFrameManager
+        - ExecutionOrchestrator.ExecuteSingleCycleAsync（単一サイクル実行）:
+            - in: ConfigToFrameManager、PlcCommunicationManager、DataOutputManager、LoggingManager
+            - out: CycleExecutionResult（IsSuccess、ExecutedSteps、ExecutionTime、DataCount、ErrorDetails）
+            - 処理内容: Step2→Step3→Step4→Step5→Step6→Step7の順次実行
+            - データ取得元: 各Managerクラス（Step2-7の各メソッド）
+        - ExecutionOrchestrator.GetMonitoringInterval（監視間隔取得）:
+            - in: ConfigToFrameManager
+            - out: TimeSpan（監視間隔）
+            - データ取得元: ConfigToFrameManager.GetConfig<DataProcessingConfig>()
+        - AndonHostedService.ExecuteAsync（バックグラウンド実行メイン処理）:
+            - in: CancellationToken（.NETランタイムから取得）
+            - out: Task（バックグラウンド実行タスク）
+            - 処理内容: ApplicationController.StartAsync()実行、CancellationToken監視
+            - データ取得元: ApplicationController（DIで注入）、.NETランタイム
+        - AndonHostedService.StartAsync（HostedService開始処理）:
+            - in: CancellationToken
+            - out: Task（開始処理完了状態）
+            - 処理内容: 起動ログ出力、ApplicationController初期化確認
+        - AndonHostedService.StopAsync（HostedService停止処理）:
+            - in: CancellationToken
+            - out: Task（停止処理完了状態）
+            - 処理内容: ApplicationController.StopAsync()実行、停止ログ出力
+    - 入力データ:
+        - CancellationToken（キャンセレーション制御）
+        - 初期化結果（LoadedConfigCount, CreatedManagersCount）
+        - MonitoringIntervalMs（データ収集周期）
+    - 出力:
+        - InitializationResult（初期化処理結果）
+            - LoadedConfigCount, CreatedManagersCount, InitializationTime
+            - IsSuccess, ErrorDetails, LoadedConfigPaths
+        - CycleExecutionResult（サイクル実行結果）
+            - IsSuccess, ExecutedSteps, ExecutionTime, DataCount
+            - PlcIdentifier, StepResults, WarningMessages
+        - ShutdownResult（終了処理結果）
+            - IsGraceful, ShutdownTime, CompletedTasks
+            - FinalResourceState, ShutdownTrigger
+
+- DI（依存性注入）コンテナ サービス登録・管理
+    - 実装クラス: DependencyInjectionConfigurator, OptionsConfigurator, MultiConfigDIIntegration
+    - 主要メソッド:
+        - DependencyInjectionConfigurator.ConfigureServices（サービス登録と構成）:
+            - in: IServiceCollection（.NETランタイムから取得）、IConfiguration（appsettings.json等の設定）
+            - out: IServiceCollection（登録完了したサービスコレクション）
+            - 処理内容: RegisterCoreServices()、RegisterInfrastructureServices()、RegisterAsyncServices()実行
+            - データ取得元: IConfiguration、各サービスクラス定義
+        - DependencyInjectionConfigurator.RegisterCoreServices（コアサービス登録）:
+            - in: IServiceCollection
+            - out: void（コアサービス登録完了）
+            - 処理内容: ApplicationController（Singleton）、ExecutionOrchestrator（Scoped）、ConfigToFrameManager（Scoped）、PlcCommunicationManager（Scoped）等登録
+        - DependencyInjectionConfigurator.RegisterInfrastructureServices（インフラストラクチャサービス登録）:
+            - in: IServiceCollection
+            - out: void（インフラサービス登録完了）
+            - 処理内容: LoggingManager（Singleton）、ErrorHandler（Singleton）、ResourceManager（Singleton）、DataOutputManager（Singleton）、TimerService（Singleton）等登録
+        - DependencyInjectionConfigurator.RegisterAsyncServices（非同期処理サービス登録）:
+            - in: IServiceCollection
+            - out: void（非同期サービス登録完了）
+            - 処理内容: AsyncExceptionHandler（Singleton）、CancellationCoordinator（Singleton）、ResourceSemaphoreManager（Singleton）、ParallelExecutionController（Singleton）、ProgressReporter（Transient）等登録
+        - OptionsConfigurator.ConfigureOptions（Options構成とインジェクション）:
+            - in: IServiceCollection、IConfiguration
+            - out: void（Options構成完了）
+            - 処理内容: ConnectionConfig、TimeoutConfig、TargetDeviceConfig等の設定バインド、IOptions<T>、IOptionsSnapshot<T>としてDI可能に設定
+        - OptionsConfigurator.ValidateOptions（設定値検証）:
+            - in: 各設定オブジェクト（ConnectionConfig, TimeoutConfig等）
+            - out: ValidationResult（IsValid、ValidationErrors）
+            - 処理内容: 必須項目存在チェック、値範囲チェック、論理整合性チェック、データアノテーション検証
+        - MultiConfigDIIntegration.RegisterMultiConfigServices（複数設定対応サービス登録）:
+            - in: IServiceCollection、string[]（設定ファイル名一覧）
+            - out: void（複数設定対応サービス登録完了）
+            - 処理内容: MultiConfigManager登録（Singleton）、設定ファイル別ConfigToFrameManager登録（Named Instance）、ファクトリーパターン実装
+        - MultiConfigDIIntegration.CreateConfigSpecificProvider（設定ファイル固有サービスプロバイダー作成）:
+            - in: IServiceProvider（ルートサービスプロバイダー）、string（設定ファイル名）
+            - out: IServiceProvider（設定ファイル固有サービスプロバイダー）
+            - 処理内容: スコープドサービスプロバイダー作成、設定ファイル固有ConfigToFrameManager解決
+    - 入力データ:
+        - IServiceCollection（DIコンテナ）
+        - IConfiguration（設定情報：appsettings.json、環境変数）
+        - 各クラスのインターフェース・実装
+    - 出力:
+        - 登録済みサービス:
+            - Core Services: IApplicationController, IExecutionOrchestrator等
+            - Infrastructure: ILoggingManager, IErrorHandler, IResourceManager等
+            - Async Services: ICancellationCoordinator, IParallelExecutionController等
+        - ライフタイム設定:
+            - Singleton: 共有リソース、統計管理、システム監視クラス
+            - Scoped: PLC別、設定ファイル別クラス
+            - Transient: 進捗報告クラス
+        - Options注入: IOptions<ConnectionConfig>, IOptions<TimeoutConfig>等
+
+- Program.cs エントリーポイント制御
+    - 主要メソッド:
+        - Main（アプリケーションエントリーポイント）:
+            - in: string[] args（コマンドライン引数）
+            - out: int（終了コード：0=正常終了、1=異常終了）
+            - 処理内容: CreateHostBuilder()実行、ホストビルド・実行、グローバル例外ハンドリング
+            - データ取得元: .NETランタイム、コマンドライン引数
+        - CreateHostBuilder（ホスト構築）:
+            - in: string[] args
+            - out: IHostBuilder（構築されたホストビルダー）
+            - 処理内容: Host.CreateDefaultBuilder()実行、ConfigureServices()設定、ログ設定構成
+            - データ取得元: .NETランタイム、appsettings.json
+        - ConfigureServices（サービス構成）:
+            - in: HostBuilderContext、IServiceCollection
+            - out: void（サービス構成完了）
+            - 処理内容: DependencyInjectionConfigurator.ConfigureServices()実行、OptionsConfigurator.ConfigureOptions()実行、AndonHostedService登録、GracefulShutdownHandler初期化
+            - データ取得元: HostBuilderContext、DependencyInjectionConfigurator、OptionsConfigurator
+    - 入力データ:
+        - string[] args（コマンドライン引数）
+        - 設定ファイル（appsettings.json、環境変数）
+    - 出力:
+        - 終了コード:
+            - 0: 正常終了
+            - 1: 一般エラー
+            - 2: 設定エラー
+            - 3: 権限エラー
+            - 4: ネットワークエラー
+            - 5: ファイルシステムエラー
+        - コマンドライン引数サポート:
+            - --config-dir: 設定ファイルディレクトリパス
+            - --log-level: ログレベル
+            - --console: コンソール出力有効性
+            - --version: バージョン表示
+            - --help: ヘルプ表示
+            - --dry-run: ドライ実行（設定検証のみ）

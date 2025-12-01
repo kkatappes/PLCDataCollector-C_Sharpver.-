@@ -1,0 +1,195 @@
+Starting andon.exe...
+
+info: Andon.Core.Managers.LoggingManager[0]
+      AndonHostedService starting
+info: Andon.Core.Managers.LoggingManager[0]
+      Starting Step1 initialization
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\Users\PPESAdmin\Desktop\x
+info: Andon.Core.Managers.MultiPlcConfigManager[0]
+      設定を追加: test（デバイス数: 1）
+info: Andon.Core.Managers.LoggingManager[0]
+      Loaded configuration files from C:\Users\PPESAdmin\Desktop\x\
+[INFO] BitExpansion設定読み込み完了: Enabled=False
+info: Andon.Core.Managers.LoggingManager[0]
+      Step1 initialization completed
+info: Andon.Core.Managers.LoggingManager[0]
+      Started monitoring configuration directory: ./config/
+[DEBUG] StartContinuousDataCycleAsync called - initResult.Success=True, _plcManagers=1, _plcConfigs=1
+info: Andon.Core.Managers.LoggingManager[0]
+      Starting continuous data cycle
+[DEBUG] RunContinuousDataCycleAsync called - plcConfigs=1, plcManagers=1
+info[INFO] Starting timer with interval: 2000ms
+: Andon.Core.Managers.LoggingManager[0]
+      [INFO] Starting timer with interval: 2000ms
+[DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[INFO] Starting PLC cycle for 1 PLC(s)
+info: Andon.Core.Managers.LoggingManager[0]
+      [INFO] Starting PLC cycle for 1 PLC(s)
+[INFO] 完全サイクル開始: サーバー=172.30.40.15:8192
+[ConnectAsync] === PLC Connection Start ===
+[ConnectAsync] Target: 172.30.40.15:8192
+[ConnectAsync] Protocol: UDP
+[INFO] UDP connection established (verification skipped) - 172.30.40.15:8192
+[ConnectAsync] Connected successfully in 8.42ms
+[ConnectAsync] === PLC Connection Complete ===
+
+[INFO] Step3完了: 接続成功、所要時間=19ms
+[DEBUG] Sending Binary frame, 25 bytes
+[DEBUG] First 20 bytes: 0x54 0x00 0x00 0x00 0x00 0x00 0x00 0xFF 0xFF 0x03 0x00 0x0C 0x00 0x04 0x00 0x03 0x04 0x00 0x00 0x01
+================================================================================
+[送信] フレーム送信開始 → 172.30.40.15:8192
+================================================================================
+[送信] データサイズ: 25バイト
+
+[送信] 生データ (HEX 1行):
+  54 00 00 00 00 00 00 FF FF 03 00 0C 00 04 00 03 04 00 00 01 00 00 00 00 90
+
+[送信] HEXダンプ:
+  0000: 54 00 00 00 00 00 00 FF FF 03 00 0C 00 04 00 03  T...............
+  0010: 04 00 00 01 00 00 00 00 90                       .........
+================================================================================
+[SendFrameAsync] Sent 25 bytes in 65.11ms
+[SendFrameAsync] === Frame Transmission Complete ===
+
+[INFO] Step4-送信完了: 25バイト、所要時間=89ms
+[ReceiveResponseAsync] === Frame Reception Start ===
+[ReceiveResponseAsync] Source: 172.30.40.15:8192
+[ReceiveResponseAsync] Timeout: 1000ms
+================================================================================
+[受信] フレーム受信完了 (1.34ms)
+================================================================================
+[受信] データサイズ: 17バイト
+
+[受信] 生データ (HEX 1行):
+  D4 00 00 00 00 00 00 FF FF 03 00 04 00 00 00 21 05
+
+[受信] HEXダンプ:
+  0000: D4 00 00 00 00 00 00 FF FF 03 00 04 00 00 00 21  ...............!
+  0010: 05                                               .
+================================================================================
+[DEBUG] Binary frame detected
+[ReceiveResponseAsync] Frame type detected: Frame4E_Binary
+================================================================================
+[解析] 受信データ詳細解析開始
+================================================================================
+[解析] フレームタイプ: 4Eフレーム (Binary)
+
+[解析] 終了コード: 0x0000 (正常終了)
+
+[解析] デバイスデータ長: 2バイト
+
+[解析] デバイスデータ（HEX）:
+  0000: 21 05                                            !.
+
+[解析] デバイス値抽出（ワード型、リトルエンディアン）:
+  D  0: 0x0521 ( 1313) [Byte: 0x21 0x05]
+
+================================================================================
+[解析] 受信データ詳細解析完了
+================================================================================
+[INFO] Step4-受信完了: 17バイト、所要時間=23ms
+[INFO] ProcessReceivedRawData開始: データ長=17バイト, デバイス=0, 開始時刻=15:38:06.434
+[DEBUG] Binary frame detected
+[INFO] フレームタイプ自動判定成功: Frame4E_Binary
+[WARNING] 要求フレームタイプ(Frame3E_Binary)と検出フレームタイプ(Frame4E_Binary)が不一致。検出値を優先します。
+[DEBUG] SLMPフレーム解析開始: フレーム形式=Frame4E_Binary
+[DEBUG] 4Eフレーム解析: シーケンス番号=0x0000, データ長=4, 終了コード=0x0000, デバイスデータ長=2バイト
+[DEBUG] Device count validation: DeviceType=, FromHeader=1, FromActualData=1, FromRequest=0
+[ERROR] ProcessReceivedRawData 未サポート機能エラー: サポートされていないデータ型です: , 所要時間=3ms
+[DEBUG] スタックトレース:    at Andon.Core.Managers.PlcCommunicationManager.ExtractDeviceValues(Byte[] deviceData, ProcessedDeviceRequestInfo requestInfo, DateTime processedAt)
+   at Andon.Core.Managers.PlcCommunicationManager.ProcessReceivedRawData(Byte[] rawData, ProcessedDeviceRequestInfo processedRequestInfo, CancellationToken cancellationToken)
+fail: Andon.Core.Managers.LoggingManager[0]
+      [ERROR] Step3-6: Full cycle failed for PLC #1 - Step6-1基本処理失敗: 未サポート機能エラー: サポートされていないデ ータ型です:
+[DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[INFO] Starting PLC cycle for 1 PLC(s)
+info: Andon.Core.Managers.LoggingManager[0]
+      [INFO] Starting PLC cycle for 1 PLC(s)
+[INFO] 完全サイクル開始: サーバー=172.30.40.15:8192
+[ConnectAsync] === PLC Connection Start ===
+[ConnectAsync] Target: 172.30.40.15:8192
+[ConnectAsync] Protocol: UDP
+[INFO] UDP connection established (verification skipped) - 172.30.40.15:8192
+[ConnectAsync] Connected successfully in 1.50ms
+[ConnectAsync] === PLC Connection Complete ===
+
+[INFO] Step3完了: 接続成功、所要時間=2ms
+[DEBUG] Sending Binary frame, 25 bytes
+[DEBUG] First 20 bytes: 0x54 0x00 0x01 0x00 0x00 0x00 0x00 0xFF 0xFF 0x03 0x00 0x0C 0x00 0x04 0x00 0x03 0x04 0x00 0x00 0x01
+================================================================================
+[送信] フレーム送信開始 → 172.30.40.15:8192
+================================================================================
+[送信] データサイズ: 25バイト
+
+[送信] 生データ (HEX 1行):
+  54 00 01 00 00 00 00 FF FF 03 00 0C 00 04 00 03 04 00 00 01 00 00 00 00 90
+
+[送信] HEXダンプ:
+  0000: 54 00 01 00 00 00 00 FF FF 03 00 0C 00 04 00 03  T...............
+  0010: 04 00 00 01 00 00 00 00 90                       .........
+================================================================================
+[SendFrameAsync] Sent 25 bytes in 4.58ms
+[SendFrameAsync] === Frame Transmission Complete ===
+
+[INFO] Step4-送信完了: 25バイト、所要時間=5ms
+[ReceiveResponseAsync] === Frame Reception Start ===
+[ReceiveResponseAsync] Source: 172.30.40.15:8192
+[ReceiveResponseAsync] Timeout: 1000ms
+================================================================================
+[受信] フレーム受信完了 (14.70ms)
+================================================================================
+[受信] データサイズ: 17バイト
+
+[受信] 生データ (HEX 1行):
+  D4 00 01 00 00 00 00 FF FF 03 00 04 00 00 00 21 05
+
+[受信] HEXダンプ:
+  0000: D4 00 01 00 00 00 00 FF FF 03 00 04 00 00 00 21  ...............!
+  0010: 05                                               .
+================================================================================
+[DEBUG] Binary frame detected
+[ReceiveResponseAsync] Frame type detected: Frame4E_Binary
+================================================================================
+[解析] 受信データ詳細解析開始
+================================================================================
+[解析] フレームタイプ: 4Eフレーム (Binary)
+
+[解析] 終了コード: 0x0000 (正常終了)
+
+[解析] デバイスデータ長: 2バイト
+
+[解析] デバイスデータ（HEX）:
+  0000: 21 05                                            !.
+
+[解析] デバイス値抽出（ワード型、リトルエンディアン）:
+  D  0: 0x0521 ( 1313) [Byte: 0x21 0x05]
+
+================================================================================
+[解析] 受信データ詳細解析完了
+================================================================================
+[INFO] Step4-受信完了: 17バイト、所要時間=28ms
+[INFO] ProcessReceivedRawData開始: データ長=17バイト, デバイス=0, 開始時刻=15:38:08.340
+[DEBUG] Binary frame detected
+[INFO] フレームタイプ自動判定成功: Frame4E_Binary
+[WARNING] 要求フレームタイプ(Frame3E_Binary)と検出フレームタイプ(Frame4E_Binary)が不一致。検出値を優先します。
+[DEBUG] SLMPフレーム解析開始: フレーム形式=Frame4E_Binary
+[DEBUG] 4Eフレーム解析: シーケンス番号=0x0001, データ長=4, 終了コード=0x0000, デバイスデータ長=2バイト
+[DEBUG] Device count validation: DeviceType=, FromHeader=1, FromActualData=1, FromRequest=0
+[ERROR] ProcessReceivedRawData 未サポート機能エラー: サポートされていないデータ型です: , 所要時間=2ms
+[DEBUG] スタックトレース:    at Andon.Core.Managers.PlcCommunicationManager.ExtractDeviceValues(Byte[] deviceData, ProcessedDeviceRequestInfo requestInfo, DateTime processedAt)
+   at Andon.Core.Managers.PlcCommunicationManager.ProcessReceivedRawData(Byte[] rawData, ProcessedDeviceRequestInfo processedRequestInfo, CancellationToken cancellationToken)
+fail: Andon.Core.Managers.LoggingManager[0]
+      [ERROR] Step3-6: Full cycle failed for PLC #1 - Step6-1基本処理失敗: 未サポート機能エラー: サポートされていないデ ータ型です:
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Andon.Core.Managers.LoggingManager[0]
+      AndonHostedService stopping
+info: Andon.Core.Managers.LoggingManager[0]
+      Stopping application
+info: Andon.Core.Managers.LoggingManager[0]
+      Stopped configuration monitoring
+バッチ ジョブを終了しますか (Y/N)?

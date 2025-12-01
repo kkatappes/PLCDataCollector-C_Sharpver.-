@@ -1,0 +1,402 @@
+# Step7 Phase2 実装・テスト結果
+
+**作成日**: 2025-11-27
+**最終更新**: 2025-11-27
+
+## 概要
+
+Step7データ出力機能のPhase2（JSON生成機能改善）で実装したJSON出力機能の改善テスト結果。TDD手法（Red-Green-Refactor）を厳守し、device.number 3桁ゼロ埋め、ディレクトリ自動作成、ログ出力機能を実装。既存機能への影響なく全テスト合格を確認。
+
+---
+
+## 1. 実装内容
+
+### 1.1 実装対象メソッド
+
+| クラス名 | メソッド名 | ファイルパス |
+|---------|----------|------------|
+| `DataOutputManager` | `OutputToJson()` | `andon/Core/Managers/DataOutputManager.cs` |
+
+### 1.2 実装機能
+
+| 機能 | 実装箇所 | 説明 |
+|------|---------|------|
+| device.number 3桁ゼロ埋め | Line 60 | `ToString("D3")` 形式でフォーマット |
+| ディレクトリ自動作成 | Line 47-50 | `Directory.CreateDirectory()` による自動作成 |
+| ログ出力（開始） | Line 29 | `[INFO] JSON出力開始` ログ出力 |
+| ログ出力（完了） | Line 77 | `[INFO] JSON出力完了` ログ出力 |
+
+### 1.3 重要な実装判断
+
+**device.number 3桁ゼロ埋めの実装方法**:
+- 採用: `ToString("D3")`
+- 検討した他の方法: `PadLeft(3, '0')`, `string.Format("{0:D3}", ...)`
+- 理由: 最も簡潔で可読性が高く、.NET標準フォーマット仕様に準拠
+
+**ディレクトリ自動作成の実装位置**:
+- 採用: ファイル書き込み前（JSON生成後）
+- 検討した他の方法: メソッド開始時、try-catchでエラー発生時
+- 理由: JSON生成失敗時に無駄なディレクトリ作成を回避、処理の流れが明確
+
+**ログ出力の実装方法**:
+- 採用: `Console.WriteLine()` による簡易実装（Phase2暫定）
+- 将来実装: `ILoggingManager` 経由のログ出力（Phase4以降）
+- 理由: Phase2では簡易実装を優先、テストでの出力キャプチャが容易
+
+---
+
+## 2. テスト結果
+
+### 2.1 全体サマリー
+
+```
+実行日時: 2025-11-27
+VSTest: 17.14.1 (x64)
+.NET: 9.0.8
+
+【Phase2新規テスト】
+結果: 成功 - 失敗: 0、合格: 5、スキップ: 0、合計: 5
+実行時間: 1.13秒
+
+【全DataOutputManagerテスト】
+結果: 成功 - 失敗: 0、合格: 11、スキップ: 0、合計: 11
+実行時間: 1秒未満
+```
+
+### 2.2 テストケース内訳
+
+| テストクラス | テスト数 | 成功 | 失敗 | カテゴリ |
+|-------------|----------|------|------|---------|
+| TC_P2_001～TC_P2_005（新規） | 5 | 5 | 0 | Phase2機能テスト |
+| 既存テスト | 6 | 6 | 0 | 既存機能回帰テスト |
+| **合計** | **11** | **11** | **0** | - |
+
+---
+
+## 3. TDD実装プロセス
+
+### 3.1 Red Phase（テスト先行実装）
+
+**目的**: 失敗するテストを先に実装し、期待する動作を明確化
+
+| テストケース | 期待値 | Red Phase結果 | 失敗理由 |
+|-------------|--------|--------------|---------|
+| TC_P2_001 | device.number="000" | ❌ 失敗 | Actual: "0" |
+| TC_P2_002 | device.number="010" | ❌ 失敗 | Actual: "10" |
+| TC_P2_003 | device.number="100" | ✅ 成功 | "100"は既に3桁 |
+| TC_P2_004 | ディレクトリ自動作成 | ❌ 失敗 | DirectoryNotFoundException |
+| TC_P2_005 | ログ出力確認 | ❌ 失敗 | 出力が空文字列 |
+
+**Red Phase結果**: 4/5テストが失敗（期待通り）
+
+### 3.2 Green Phase（機能実装）
+
+**目的**: テストをパスさせる最小限の機能を実装
+
+| 実装項目 | 変更箇所 | 変更内容 | Green Phase結果 |
+|---------|---------|---------|----------------|
+| 3桁ゼロ埋め | Line 60 | `.ToString()` → `.ToString("D3")` | ✅ 3テスト成功 |
+| ディレクトリ作成 | Line 47-50 | `Directory.CreateDirectory()` 追加 | ✅ 1テスト成功 |
+| ログ出力 | Line 29, 77 | `Console.WriteLine()` 追加 | ✅ 1テスト成功 |
+
+**Green Phase結果**: 全5テスト成功、既存テスト11/11成功
+
+### 3.3 Refactor Phase
+
+**判断**: リファクタリングは不要と判断
+- コードは明確かつ読みやすい
+- 各変更はPhase2コメントで明示
+- パフォーマンス問題なし
+
+**Refactor Phase結果**: リファクタリング実施せず（現状のコード品質で十分）
+
+---
+
+## 4. テストケース詳細
+
+### 4.1 Phase2新規テスト（5テスト）
+
+| テストID | テスト名 | 検証内容 | 実行結果 |
+|---------|---------|---------|----------|
+| TC_P2_001 | DeviceNumber_SingleDigit_FormattedAsThreeDigits | Address=0 → "000" | ✅ 成功 [49ms] |
+| TC_P2_002 | DeviceNumber_TwoDigits_FormattedAsThreeDigits | Address=10 → "010" | ✅ 成功 [456ms] |
+| TC_P2_003 | DeviceNumber_ThreeDigits_FormattedAsThreeDigits | Address=100 → "100" | ✅ 成功 [38ms] |
+| TC_P2_004 | NonExistentDirectory_CreatesAutomatically | ディレクトリ自動作成 | ✅ 成功 [49ms] |
+| TC_P2_005 | LogOutput_OutputsStartAndCompletionLogs | ログ出力確認 | ✅ 成功 [40ms] |
+
+**検証ポイント**:
+- device.number 1桁: "0" → "000" (3桁ゼロ埋め)
+- device.number 2桁: "10" → "010" (3桁ゼロ埋め)
+- device.number 3桁: "100" → "100" (そのまま)
+- 存在しないディレクトリ: 自動作成 → ファイル出力成功
+- ログ出力: "[INFO] JSON出力開始" と "[INFO] JSON出力完了" を確認
+
+**実行結果例**:
+
+```
+✅ 成功 TC_P2_001_DeviceNumber_SingleDigit_FormattedAsThreeDigits [49 ms]
+   期待値: "000"
+   実際: "000"
+
+✅ 成功 TC_P2_002_DeviceNumber_TwoDigits_FormattedAsThreeDigits [456 ms]
+   期待値: "010"
+   実際: "010"
+
+✅ 成功 TC_P2_003_DeviceNumber_ThreeDigits_FormattedAsThreeDigits [38 ms]
+   期待値: "100"
+   実際: "100"
+
+✅ 成功 TC_P2_004_NonExistentDirectory_CreatesAutomatically [49 ms]
+   事前条件: Directory.Exists() = false
+   実行後: Directory.Exists() = true, File.Exists() = true
+
+✅ 成功 TC_P2_005_LogOutput_OutputsStartAndCompletionLogs [40 ms]
+   ログ出力:
+   [INFO] JSON出力開始: IP=192.168.1.10, Port=5007
+   [INFO] JSON出力完了: ファイル=20251127_100121222_192-168-1-10_5007.json, デバイス数=2
+```
+
+### 4.2 既存テスト（6テスト）
+
+| テスト名 | 検証内容 | 実行結果 |
+|---------|---------|----------|
+| OutputToJson_ReadRandomData_OutputsCorrectJson | JSON構造検証 | ✅ 成功 |
+| OutputToJson_MultipleWrites_CreatesMultipleFiles | 複数ファイル出力 | ✅ 成功 |
+| OutputToJson_WithBitDevice_OutputsBitUnit | ビットデバイス unit="bit" | ✅ 成功 |
+| OutputToJson_WithDWordDevice_OutputsDwordUnit | DWordデバイス unit="dword" | ✅ 成功 |
+| OutputToJson_FileNameFormat_IsCorrect | ファイル名フォーマット | ✅ 成功 |
+| OutputToJson_WithoutDeviceConfig_UsesDeviceNameAsIs | 設定なし時のフォールバック | ✅ 成功 |
+
+**既存テストの回帰テスト結果**: Phase2実装により既存機能への影響なし（6/6成功）
+
+---
+
+## 5. テストデータ例
+
+### 5.1 TC_P2_001: device.number 1桁（Address=0）
+
+**入力データ**:
+```csharp
+var deviceData = new Dictionary<string, DeviceData>
+{
+    { "M0", DeviceData.FromDeviceSpecification(
+        new DeviceSpecification(DeviceCode.M, 0, false), 1) }
+};
+```
+
+**期待される出力JSON**:
+```json
+{
+  "items": [
+    {
+      "device": {
+        "code": "M",
+        "number": "000"  // ← 3桁ゼロ埋め
+      }
+    }
+  ]
+}
+```
+
+**実行結果**: ✅ 成功 (49ms)
+
+---
+
+### 5.2 TC_P2_004: ディレクトリ自動作成
+
+**入力データ**:
+```csharp
+var nonExistentDir = Path.Combine(Path.GetTempPath(), $"andon_test_{Guid.NewGuid()}");
+// 事前条件: Directory.Exists(nonExistentDir) == false
+```
+
+**実行フロー**:
+1. 存在しないディレクトリパスを指定
+2. OutputToJson()を実行
+3. ディレクトリが自動作成される
+4. JSONファイルが出力される
+
+**検証結果**:
+```csharp
+Assert.False(Directory.Exists(nonExistentDir));  // 事前条件確認
+_manager.OutputToJson(...);                       // 実行
+Assert.True(Directory.Exists(nonExistentDir));   // ✅ ディレクトリ作成確認
+Assert.Single(Directory.GetFiles(nonExistentDir, "*.json"));  // ✅ ファイル出力確認
+```
+
+**実行結果**: ✅ 成功 (49ms)
+
+---
+
+### 5.3 TC_P2_005: ログ出力確認
+
+**コンソール出力キャプチャ**:
+```csharp
+var originalOut = Console.Out;
+using var stringWriter = new StringWriter();
+Console.SetOut(stringWriter);
+
+try
+{
+    _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, deviceConfig);
+    var output = stringWriter.ToString();
+
+    Assert.Contains("[INFO] JSON出力開始: IP=192.168.1.10, Port=5007", output);
+    Assert.Contains("[INFO] JSON出力完了:", output);
+    Assert.Contains("デバイス数=2", output);
+}
+finally
+{
+    Console.SetOut(originalOut);
+}
+```
+
+**キャプチャされたログ**:
+```
+[INFO] JSON出力開始: IP=192.168.1.10, Port=5007
+[INFO] JSON出力完了: ファイル=20251127_100121222_192-168-1-10_5007.json, デバイス数=2
+```
+
+**実行結果**: ✅ 成功 (40ms)
+
+---
+
+## 6. Phase2実装の品質検証
+
+### 6.1 TDD手法の遵守
+
+✅ **Red Phase**: 4/5テストが失敗することを確認（期待通り）
+✅ **Green Phase**: 全5テストが成功（既存テスト影響なし）
+✅ **Refactor Phase**: リファクタリング不要と判断（コード品質十分）
+
+### 6.2 完了条件チェック
+
+| 完了条件 | 状態 | 検証結果 |
+|---------|------|---------|
+| 単体テスト実装（TC_P2_001～005） | ✅ | 5テスト実装完了 |
+| すべてのテストがパス | ✅ | 5/5成功 |
+| device.number 3桁ゼロ埋め | ✅ | `.ToString("D3")` 実装 |
+| ディレクトリ自動作成 | ✅ | `Directory.CreateDirectory()` 実装 |
+| ログ出力（開始/完了） | ✅ | `Console.WriteLine()` 実装 |
+| `dotnet build` 成功 | ✅ | ビルド成功（警告のみ） |
+| 既存テストもパス | ✅ | 11/11テスト成功 |
+
+**Phase2完了条件**: すべて満たしました ✅
+
+---
+
+## 7. 実行環境
+
+- **.NET SDK**: 9.0.304
+- **xUnit.net**: v2.8.2+699d445a1a
+- **VSTest**: 17.14.1 (x64)
+- **プラットフォーム**: .NET 9.0.8 (64-bit)
+- **OS**: Windows
+- **ビルド構成**: Debug
+- **テスト実行モード**: オフライン動作確認（実機PLC接続なし、モック/スタブ使用）
+
+---
+
+## 8. 発生した問題と解決方法
+
+### 8.1 問題1: コンソール出力のキャプチャ方法
+
+**問題内容**:
+TC_P2_005でConsole.WriteLineの出力をテストで検証する必要があった
+
+**解決方法**:
+- `Console.SetOut(new StringWriter())` でコンソール出力をキャプチャ
+- `finally` ブロックで必ず `Console.SetOut(originalOut)` で元に戻す
+- `StringWriter.ToString()` で出力内容を文字列として取得
+
+**学習事項**:
+- Console.SetOut()を使用することでテスト内で出力をキャプチャ可能
+- finallyブロックで必ず元に戻すことが重要（他のテストへの影響回避）
+- StringWriterを使用することで文字列として取得可能
+
+### 8.2 問題2: TC_P2_003がRed Phaseで成功した理由
+
+**問題内容**:
+Red Phaseで4/5テストが失敗する予定だったが、TC_P2_003だけ成功
+
+**原因分析**:
+- Address=100の場合、`ToString()` でも既に "100" が返される
+- 3桁の数値は既に3桁表示されるため、ゼロ埋めの有無が影響しない
+
+**対応**:
+- この動作は正常と判断（境界値テストとして有効）
+- Red Phase全体としては期待通り（機能未実装による失敗確認が目的）
+- テストケース自体は3桁の境界値テストとして継続使用
+
+---
+
+## 9. Phase2完了事項
+
+### 9.1 機能要件
+
+✅ **device.number 3桁ゼロ埋め**: `ToString("D3")` 形式で実装完了
+✅ **ディレクトリ自動作成**: `Directory.CreateDirectory()` で実装完了
+✅ **ログ出力機能**: `Console.WriteLine()` で開始/完了ログ実装完了
+✅ **単体テスト実装**: TC_P2_001～TC_P2_005（5テスト）実装完了
+✅ **既存機能維持**: 既存テスト11/11成功、機能への影響なし
+
+### 9.2 テストカバレッジ
+
+- **Phase2新規機能**: 100%（5/5テスト合格）
+- **既存機能回帰テスト**: 100%（6/6テスト合格）
+- **全体成功率**: 100% (11/11テスト合格)
+- **TDD手法遵守**: Red-Green-Refactorサイクル完全実施
+
+---
+
+## 10. Phase3への引き継ぎ事項
+
+### 10.1 Phase2で未解決の問題
+
+⏳ **ビットデバイス16ビット分割処理未実装**
+- 現在: ビットデバイスは分割されずに1エントリとして出力
+- Phase3実装: ビットデバイスを16ビット（ビット0～15）に分割して出力
+- 重要度: ★★★★☆（最重要・最難関）
+
+⏳ **plcModel値が固定値**
+- 現在: `plcModel = "Unknown"` 固定
+- 将来実装: PlcConfigurationから動的取得（Phase3以降）
+- Step1 Phase5完了により利用可能: `config.PlcModel` プロパティ
+
+⏳ **エラーハンドリング未実装**
+- 現在: try-catchブロックなし
+- Phase4実装: データ検証、ファイルI/Oエラーハンドリング
+
+### 10.2 Phase3で実装する内容
+
+**Phase3: ビットデバイス16ビット分割処理実装**
+- **難易度**: ★★★★☆（最重要・最難関）
+- **推奨期間**: 3～5日
+- **実装内容**:
+  - ビットデバイス（M, X, Y, B等）を16ビット分に展開
+  - items配列生成ロジックの全面改修
+  - deviceConfig辞書の拡張（呼び出し側で対応）
+
+**参照文書**:
+- `documents/design/Step7_取得データ出力設計/実装計画/Phase3_ビットデバイス分割処理実装.md`
+- `documents/design/Step7_取得データ出力設計/実装ガイド.md`
+
+---
+
+## 総括
+
+**実装完了率**: 100%（Phase2範囲）
+**テスト合格率**: 100% (11/11)
+**実装方式**: TDD (Test-Driven Development)
+
+**Phase2達成事項**:
+- TDD手法に基づくJSON生成機能改善完了
+- device.number 3桁ゼロ埋めフォーマット実装完了
+- ディレクトリ自動作成機能実装完了
+- ログ出力機能（開始/完了）実装完了
+- 全11テストケース合格、既存機能への影響なし
+
+**Phase3への準備完了**:
+- JSON出力の基本機能が安定稼働
+- ビットデバイス16ビット分割処理実装の準備完了
+- TDD手法の実装フローが確立

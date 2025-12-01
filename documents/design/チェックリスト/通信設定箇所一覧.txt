@@ -1,0 +1,273 @@
+# PLC通信設定箇所一覧
+
+## 実装日: 2025-11-07
+
+## 概要
+アプリケーション内でPLC通信に関する設定値が記載されている箇所を一覧化
+
+---
+
+## 1. 本番設定（最重要）
+
+### appsettings.json
+**ファイルパス**: `C:\Users\1010821\Desktop\python\andon\appsettings.json`
+
+**設定内容**:
+```json
+{
+  "PlcCommunication": {
+    "Connection": {
+      "IpAddress": "172.30.40.15",
+      "Port": 8192,
+      "UseTcp": false,              // UDP使用
+      "IsBinary": false,            // ASCII形式
+      "FrameVersion": "4E"          // 4Eフレーム
+    },
+    "Timeouts": {
+      "ConnectTimeoutMs": 3000,
+      "SendTimeoutMs": 500,
+      "ReceiveTimeoutMs": 500
+    },
+    "TargetDevices": {
+      "MDeviceRange": {
+        "Start": 0,
+        "End": 999,
+        "DeviceCode": "M"
+      },
+      "DDeviceRange": {
+        "Start": 0,
+        "End": 999,
+        "DeviceCode": "D"
+      }
+    },
+    "MonitoringIntervalMs": 1000
+  }
+}
+```
+
+**現在の設定**:
+- フレーム形式: 4E / ASCII
+- プロトコル: UDP
+- IPアドレス: 172.30.40.15
+- ポート: 8192
+
+**診断結果に基づく更新が必要な項目**:
+- `IsBinary`: false/true (診断結果でバイナリが成功した場合はtrue)
+- `FrameVersion`: "3E"/"4E" (診断結果で3Eが成功した場合は"3E")
+
+---
+
+## 2. 設定モデルクラス
+
+### ConnectionConfig.cs
+**ファイルパス**: `andon\Core\Models\ConfigModels\ConnectionConfig.cs`
+
+**プロパティ**:
+```csharp
+public class ConnectionConfig
+{
+    public required string IpAddress { get; init; }
+    public required int Port { get; init; }
+    public bool UseTcp { get; init; }              // false = UDP
+    public string ConnectionType => UseTcp ? "TCP" : "UDP";
+    public bool IsBinary { get; init; }            // false = ASCII
+    public FrameVersion FrameVersion { get; init; } = FrameVersion.Frame4E;
+}
+```
+
+**用途**: appsettings.jsonの設定値を保持するモデル
+
+**appsettings.jsonとのマッピング**:
+- IpAddress ← PlcCommunication.Connection.IpAddress
+- Port ← PlcCommunication.Connection.Port
+- UseTcp ← PlcCommunication.Connection.UseTcp
+- IsBinary ← PlcCommunication.Connection.IsBinary
+- FrameVersion ← PlcCommunication.Connection.FrameVersion
+
+---
+
+## 3. 設定を使用するクラス
+
+### PlcCommunicationManager.cs
+**ファイルパス**: `andon\Core\Managers\PlcCommunicationManager.cs`
+
+**使用箇所**:
+1. ソケット作成時の分岐（行112, 131）
+   ```csharp
+   if (_connectionConfig.UseTcp)
+   {
+       socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+   }
+   else
+   {
+       socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+   }
+   ```
+
+2. ログ出力時のプロトコル表示（行306, 354）
+   ```csharp
+   ["Protocol"] = _connectionConfig.UseTcp ? "TCP" : "UDP"
+   ```
+
+**重要**: このクラスは ConnectionConfig を参照して通信方式を決定
+
+---
+
+## 4. フレーム構築クラス（TODO実装待ち）
+
+### SlmpFrameBuilder.cs
+**ファイルパス**: `andon\Utilities\SlmpFrameBuilder.cs`
+
+**現状**: TODO: Implementation
+
+**予想される使用方法**:
+- ConnectionConfig.IsBinary に基づいてバイナリ/ASCII形式を選択
+- ConnectionConfig.FrameVersion に基づいて3E/4Eフレームを構築
+
+---
+
+## 5. テストプログラムの設定
+
+### PlcRealDeviceTest\Program.cs
+**ファイルパス**: `PlcRealDeviceTest\Program.cs`
+
+**ハードコード設定**:
+```csharp
+private const string PLC_IP = "172.30.40.15";
+private const int PLC_PORT = 8192;
+private const int CONNECT_TIMEOUT_MS = 3000;
+private const int SEND_TIMEOUT_MS = 500;
+private const int RECEIVE_TIMEOUT_MS = 500;
+private const string TEST_FRAME_ASCII = "540000FF03000D001004010001M*0000000003E8";
+```
+
+**設定内容**: 4E / ASCII 専用テスト
+
+---
+
+### PlcRealDeviceTest\DiagnosticProgram.cs
+**ファイルパス**: `PlcRealDeviceTest\DiagnosticProgram.cs`
+
+**ハードコード設定**:
+```csharp
+private const string PLC_IP = "172.30.40.15";
+private const int PLC_PORT = 8192;
+private const int CONNECT_TIMEOUT_MS = 3000;
+private const int SEND_TIMEOUT_MS = 500;
+private const int RECEIVE_TIMEOUT_MS = 500;
+```
+
+**設定内容**: 4パターン（3E/4E × バイナリ/ASCII）を全て診断
+
+---
+
+## 6. テストコード内の設定
+
+### Step3_6_IntegrationTests.cs
+**ファイルパス**: `andon\Tests\Integration\Step3_6_IntegrationTests.cs`
+
+**ハードコード設定**（複数箇所）:
+```csharp
+var connectionConfig = new ConnectionConfig
+{
+    IpAddress = "127.0.0.1",
+    Port = 5000,
+    UseTcp = false,             // UDP
+    IsBinary = false,           // ASCII
+    FrameVersion = FrameVersion.Frame4E
+};
+```
+
+**用途**: 統合テスト用のモックPLCサーバー設定
+
+---
+
+## 7. 設定値の優先順位
+
+1. **appsettings.json** (最優先)
+   - 本番実行時に使用される設定
+   - 診断結果に基づいてこのファイルを更新すべき
+
+2. **テストプログラムのハードコード**
+   - 独立実行用
+   - appsettings.jsonとは独立
+
+3. **テストコード内のハードコード**
+   - 自動テスト用
+   - モックサーバー設定
+
+---
+
+## 診断後の更新手順
+
+### ステップ1: 診断実行
+PlcRealDeviceTest\DiagnosticProgram.cs を実行して成功パターンを特定
+
+### ステップ2: appsettings.json更新
+成功したパターンに基づいて以下を更新:
+
+**例: 3E/バイナリが成功した場合**
+```json
+{
+  "PlcCommunication": {
+    "Connection": {
+      "IpAddress": "172.30.40.15",
+      "Port": 8192,
+      "UseTcp": false,
+      "IsBinary": true,          // false → true に変更
+      "FrameVersion": "3E"       // "4E" → "3E" に変更
+    }
+  }
+}
+```
+
+**例: 4E/ASCIIのまま（変更なし）の場合**
+```json
+{
+  "PlcCommunication": {
+    "Connection": {
+      "IpAddress": "172.30.40.15",
+      "Port": 8192,
+      "UseTcp": false,
+      "IsBinary": false,         // 変更なし
+      "FrameVersion": "4E"       // 変更なし
+    }
+  }
+}
+```
+
+### ステップ3: 実装コードの確認
+SlmpFrameBuilder.cs が IsBinary と FrameVersion を正しく参照しているか確認
+
+### ステップ4: 統合テスト
+本番環境で実際にPLC通信が成功するか確認
+
+---
+
+## 注意事項
+
+### ハードコード箇所は更新不要
+- PlcRealDeviceTest\Program.cs
+- PlcRealDeviceTest\DiagnosticProgram.cs
+- テストコード内の設定
+
+これらは独立したテストプログラムのため、appsettings.jsonとは別管理
+
+### appsettings.jsonのみ更新
+本番実行時の設定は appsettings.json のみを更新すれば反映される
+
+---
+
+## まとめ
+
+**通信設定の中心**: `appsettings.json`
+
+**設定項目**:
+- IpAddress: "172.30.40.15"
+- Port: 8192
+- UseTcp: false (UDP)
+- IsBinary: false (ASCII) ← 診断結果で更新可能性あり
+- FrameVersion: "4E" ← 診断結果で更新可能性あり
+
+**診断後の対応**:
+診断プログラムで成功したパターンに基づいて、appsettings.json の IsBinary と FrameVersion を更新する

@@ -1,0 +1,172 @@
+{
+  "source": {
+    "plcModel": "Unknown",
+    "ipAddress": "172.30.40.15",
+    "port": 8192
+  },
+  "timestamp": {
+    "local": "2025-12-01T08:08:53.360+00:00"
+  },
+  "items": [
+    {
+      "name": "M0",
+      "device": {
+        "code": "M",
+        "number": "000"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 0
+    },
+    {
+      "name": "M1",
+      "device": {
+        "code": "M",
+        "number": "001"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 0
+    },
+    {
+      "name": "M2",
+      "device": {
+        "code": "M",
+        "number": "002"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 0
+    },
+    {
+      "name": "M3",
+      "device": {
+        "code": "M",
+        "number": "003"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 0
+    },
+    {
+      "name": "M4",
+      "device": {
+        "code": "M",
+        "number": "004"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 0
+    },
+    {
+      "name": "M5",
+      "device": {
+        "code": "M",
+        "number": "005"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 1
+    },
+    {
+      "name": "M6",
+      "device": {
+        "code": "M",
+        "number": "006"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 0
+    },
+    {
+      "name": "M7",
+      "device": {
+        "code": "M",
+        "number": "007"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 1
+    },
+    {
+      "name": "M8",
+      "device": {
+        "code": "M",
+        "number": "008"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 0
+    },
+    {
+      "name": "M9",
+      "device": {
+        "code": "M",
+        "number": "009"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 0
+    },
+    {
+      "name": "M10",
+      "device": {
+        "code": "M",
+        "number": "010"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 1
+    },
+    {
+      "name": "M11",
+      "device": {
+        "code": "M",
+        "number": "011"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 1
+    },
+    {
+      "name": "M12",
+      "device": {
+        "code": "M",
+        "number": "012"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 0
+    },
+    {
+      "name": "M13",
+      "device": {
+        "code": "M",
+        "number": "013"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 0
+    },
+    {
+      "name": "M14",
+      "device": {
+        "code": "M",
+        "number": "014"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 0
+    },
+    {
+      "name": "M15",
+      "device": {
+        "code": "M",
+        "number": "015"
+      },
+      "digits": 1,
+      "unit": "bit",
+      "value": 1
+    }
+  ]
+}

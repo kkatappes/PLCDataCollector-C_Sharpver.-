@@ -1,0 +1,285 @@
+# テスト内容 - 全体概要とインデックス
+
+## プロジェクト概要
+PLCデータ取得アプリケーションの包括的なテスト設計ドキュメント群
+
+---
+
+## テスト方針
+- **TDD手法**を使用してテスト駆動開発を実施
+- **単一ブロック毎**の機能をテスト→パス確認後に複合時の動作テスト
+- **入力/出力の値が既知**のものを含める
+- **Step3-6のブロック（PlcCommunicationManager）を優先**して実装・テスト
+- メソッドレベルの粒度でテストを実施
+
+---
+
+## 実装優先順位
+1. **PlcCommunicationManager** (Step3-6) - 最優先
+2. **LoggingManager** (ログ機能)
+3. **ErrorHandler** (エラーハンドリング)
+4. **ResourceManager** (メモリ・リソース管理)
+5. **ConfigToFrameManager** (Step1-2) - SplitDwordToWord分割処理含む
+6. **DataOutputManager** (Step7) - 任意の場所/形式への出力対応
+
+---
+
+## ファイル構成
+
+### 1. ConfigToFrameManager テスト (Step1-2関連)
+**ファイル**: `01_ConfigToFrameManager_tests.md`
+
+**対応する動作フロー**:
+- **Step1**: 設定ファイル条件の読み込み
+- **Step2**: 通信フレームの構築(DWordの場合は事前に分割処理ステップを入れる)
+
+**テストケース範囲**: TC001～TC016
+- 設定ファイル読み込み (LoadConfigAsync, GetConfig)
+- DWord分割処理 (SplitDwordToWord)
+- SLMPフレーム構築 (BuildFrames)
+- 複数設定ファイル対応 (MultiConfigManager)
+
+**重要ポイント**:
+- 三菱電機公式SLMP仕様書準拠のフレーム構築
+- M000-M999/D000-D999対応
+- 3E/4Eフレーム両対応
+- DWord分割処理の正確性
+
+---
+
+### 2. PlcCommunicationManager テスト Part1 (Step3-5関連)
+**ファイル**: `02_PlcCommunicationManager_tests_part1.md`
+
+**対応する動作フロー**:
+- **Step3**: PLCへの接続処理
+- **Step4**: PLCにリクエストを送信/リクエスト情報に従ってレスポンスを受信
+- **Step5**: 接続切断処理
+
+**テストケース範囲**: TC017～TC028
+- PLC接続 (ConnectAsync)
+- リクエスト送信 (SendFrameAsync)
+- データ受信 (ReceiveResponseAsync)
+- 接続切断 (DisconnectAsync)
+
+**重要ポイント**:
+- TCP/UDP両対応
+- ソケットタイムアウト設定の正確性
+- 接続統計情報の記録
+- 全機器データ取得(M001-M999, D001-D999)
+
+---
+
+### 3. PlcCommunicationManager テスト Part2 (Step6関連)
+**ファイル**: `02_PlcCommunicationManager_tests_part2.md`
+
+**対応する動作フロー**:
+- **Step6**: 受信データ解析(DWordの場合は事前に結合処理ステップを入れる)
+
+**テストケース範囲**: TC029～TC041, TC143_10～TC143_11
+- 受信データ基本後処理 (ProcessReceivedRawData)
+- DWord結合処理 (CombineDwordData)
+- 構造化データ変換 (ParseRawToStructuredData)
+- M100～M107ビット読み出し統合テスト (オフライン)
+- 4Eフレーム実機データ解析テスト
+
+**重要ポイント**:
+- DWord結合処理の正確性 (16bit×2→32bit)
+- 3E/4Eフレーム解析
+- データ破損時の継続実行対応
+- 実機データ検証
+
+---
+
+### 4. DataOutputManager テスト (Step7関連)
+**ファイル**: `03_DataOutputManager_tests.md`
+
+**対応する動作フロー**:
+- **Step7**: 解析後データの出力
+
+**テストケース範囲**: TC095～TC099
+- ファイル出力 (OutputDataAsync)
+- 複数形式出力 (CSV, JSON, XML等)
+- リアルタイム出力
+
+**重要ポイント**:
+- 任意の場所/形式への出力対応
+- ディスク容量不足等の異常系対応
+
+---
+
+### 5. サポート機能 テスト
+**ファイル**: `04_Support_Managers_tests.md`
+
+**対応する機能**:
+- LoggingManager (ログ機能)
+- ErrorHandler (エラーハンドリング)
+- ResourceManager (メモリ・リソース管理)
+
+**テストケース範囲**: TC042～TC076
+- ログシステム初期化・出力
+- エラー分類・リトライ制御
+- バランス型例外設計 (MultiConfigLoadException)
+- 統一エラーメッセージ管理 (ErrorMessages)
+- メモリ使用量監視・最適化
+
+**重要ポイント**:
+- 階層的ログ出力
+- カスタム例外と標準例外の使い分け
+- メモリリーク検証
+
+---
+
+### 6. アーキテクチャ テスト Part1
+**ファイル**: `05_Architecture_tests_part1.md`
+
+**対応する機能**:
+- ApplicationController (アプリケーション制御)
+- ExecutionOrchestrator (実行制御)
+- TimerService (タイマー制御)
+- GracefulShutdownHandler (適切な終了処理)
+- AsyncExceptionHandler (非同期例外処理)
+- CancellationCoordinator (キャンセル制御)
+- ResourceSemaphoreManager (リソース排他制御)
+- ParallelExecutionController (並行実行制御)
+
+**テストケース範囲**: TC077～TC103
+- Step1初期化フェーズ実行
+- Step2-7継続実行制御
+- MonitoringIntervalMs間隔制御
+- 複数PLC並行実行
+- 階層的キャンセル制御
+
+**重要ポイント**:
+- 継続実行モード対応
+- 非同期・並行処理アーキテクチャ
+- グレースフル停止制御
+
+---
+
+### 7. Models・統合・パフォーマンス テスト
+**ファイル**: `06_Models_and_Integration_tests.md`
+
+**対応する機能**:
+- Modelsクラス単体テスト
+- 統合テスト (Step1-2, Step3-6)
+- パフォーマンステスト
+- インターフェース設計テスタビリティテスト
+
+**テストケース範囲**: TC104～TC125
+- ConfigModels, データ転送オブジェクト
+- Step1-2統合テスト
+- Step3-6統合テスト (基本連続実行、データ継承、DWord処理、パフォーマンス)
+- エラーハンドリング統合テスト
+- メモリ使用量・応答時間テスト
+- インターフェース分離テスト
+- TDD手法サポートテスト
+
+**重要ポイント**:
+- データ転送オブジェクトの型安全性
+- Step3-6ブロックの完全動作検証
+- メモリリーク検証
+- インターフェースベースのTDDサイクル
+
+---
+
+## 総テストケース数
+**125個以上のテストケース**
+
+### フェーズ別分類
+
+#### Phase 1-2: Step1-6核心部 (最優先)
+- ConfigToFrameManager: TC001～TC016 (16ケース)
+- PlcCommunicationManager: TC017～TC041 (25ケース)
+- **小計**: 41ケース
+
+#### Phase 3-6: サポート機能 (高優先度)
+- LoggingManager: TC042～TC055 (14ケース)
+- ErrorHandler: TC056～TC069 (14ケース)
+- ResourceManager: TC070～TC076 (7ケース)
+- DataOutputManager: TC095～TC099 (5ケース)
+- **小計**: 40ケース
+
+#### Phase 7-8: アーキテクチャ (中優先度)
+- ApplicationController・ExecutionOrchestrator: TC077～TC092 (16ケース)
+- 非同期・並行処理: TC093～TC103 (11ケース)
+- **小計**: 27ケース
+
+#### Phase 9-12: Models・統合・パフォーマンス (最終段階)
+- Modelsクラス: TC104～TC116 (13ケース)
+- 統合テスト: TC117～TC119 (3ケース + 詳細サブケース)
+- パフォーマンステスト: TC120～TC121 (2ケース)
+- インターフェース設計: TC122～TC125 (4ケース)
+- **小計**: 22ケース以上
+
+---
+
+## テスト実行戦略
+
+### 基本方針
+1. **単一ブロック毎の機能テスト** → パス確認
+2. **複合時の動作テスト** → 統合検証
+
+### 実行優先度
+
+#### 最重要 (Phase 1-2)
+- ConfigToFrameManager (Step1-2)
+- PlcCommunicationManager (Step3-6)
+- Step1-2統合テスト
+- Step3-6統合テスト
+
+**理由**: PLC通信核心部の確実な動作確認、DWord分割・結合処理の動作確認
+
+#### 高優先度 (Phase 3-6)
+- LoggingManager
+- ErrorHandler
+- ResourceManager
+- DataOutputManager
+
+**理由**: システム支援機能の品質確保
+
+#### 中優先度 (Phase 7-8)
+- ApplicationController・ExecutionOrchestrator
+- 非同期・並行処理アーキテクチャ
+
+**理由**: アプリケーション制御ロジックの確実な動作、並行実行・例外処理の信頼性確保
+
+#### 低優先度 (Phase 9-12)
+- Modelsクラス
+- パフォーマンステスト
+- インターフェース設計テスタビリティテスト
+
+**理由**: データ転送オブジェクトの型安全性確保、システム全体の性能検証
+
+---
+
+## 特記事項
+
+### 動作フロー連携
+各テストは `documents/design/動作フロー/アプリケーション動作フロー.md` のステップ定義と連携しています。
+
+### 継続実行モード対応
+- **Step1**: アプリケーション起動時に1回のみ実行
+- **Step2-7**: MonitoringIntervalMs間隔で繰り返し実行
+- エラー発生時も継続実行が維持される設計
+
+### TDD手法
+- Red-Green-Refactorサイクル実行
+- インターフェースベースのモック・スタブ活用
+- 既知の入力/出力による検証
+
+### 公式リファレンス活用
+三菱電機公式SLMP仕様書 (`pdf2img/sh080931q.pdf`) の実用例を活用し、実際のPLC通信で使用される標準パターンによる検証を実施。
+
+---
+
+## 使用方法
+
+1. **実装フェーズ判断**: 現在の実装段階に応じて該当するファイルを参照
+2. **テストケース実装**: 各ファイルのテストケース定義に基づいてテストコード作成
+3. **進捗管理**: Phaseごとにテスト完了状況を記録
+4. **品質確保**: 各Phase完了後、次のPhaseに進む前に全テストが合格することを確認
+
+---
+
+## 更新履歴
+- 2025-01-13: 初版作成 - テスト内容.mdを適切な単位で分割

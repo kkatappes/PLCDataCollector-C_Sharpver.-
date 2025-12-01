@@ -1,0 +1,2 @@
+C:\Users\1010821\Desktop\python\andon\conmoni_test\bin\Release\net6.0\win-x64\publish\PlcSingleTest.pdb
+C:\Users\1010821\Desktop\python\andon\conmoni_test\bin\Release\net6.0\win-x64\publish\PlcSingleTest.exe

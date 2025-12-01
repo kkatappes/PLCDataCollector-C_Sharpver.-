@@ -1,0 +1,256 @@
+# 通信設定ハードコード箇所一覧
+
+## 作成日: 2025-11-07
+
+## 概要
+アプリケーション内で通信フレーム形式がハードコードされている全箇所をリスト化
+
+---
+
+## ⚠️ 重要な発見
+
+**PlcCommunicationManager.csにハードコードされた疎通確認フレームがあります**
+
+これは**本番実行時のUDP接続疎通確認で使用される**ため、診断結果に基づいて変更が必要になる可能性があります。
+
+---
+
+## 1. 【本番実行コード】PlcCommunicationManager.cs（最重要）
+
+### ファイルパス
+`andon\Core\Managers\PlcCommunicationManager.cs`
+
+### 行番号: 196
+```csharp
+// UDP疎通確認: 模擬フレーム送受信
+const string verificationFrame = "54001234000000010401006400000090E8030000"; // M000-M999読み込み
+byte[] frameBytes = ConvertHexStringToBytes(verificationFrame);
+```
+
+### フレーム形式解析
+```
+5400       - サブヘッダ（4Eフレーム）
+1234       - ネットワーク番号/PC番号等
+0000       - 要求先ユニット
+0001       - データ長
+0401       - READコマンド
+0064       - 監視タイマ
+000000     - デバイス先頭番号
+90         - デバイスコード（M）
+E803       - 点数（1000点）
+0000       - 終了
+```
+
+**フレーム形式**: 4E + HEX文字列（実際はバイナリに変換して送信）
+
+**問題点**:
+- ConnectionConfigの設定（IsBinary, FrameVersion）を無視している
+- 常に 4Eフレーム固定
+- 診断で3Eフレームが成功した場合、この箇所も変更が必要
+
+**影響範囲**:
+- 本番実行時のUDP接続の疎通確認で使用される
+- 疎通確認が失敗すると接続自体が失敗する
+
+---
+
+## 2. 【定数定義】SlmpConstants.cs
+
+### ファイルパス
+`andon\Core\Constants\SlmpConstants.cs`
+
+### デフォルト値の定義
+```csharp
+/// <summary>
+/// デフォルトフレーム形式（3E）
+/// </summary>
+public const string DefaultFrameType = Frame3E;
+
+/// <summary>
+/// デフォルトデータ形式（Binary）
+/// </summary>
+public const string DefaultDataFormat = DataFormatBinary;
+```
+
+**注意**:
+- appsettings.json は 4E/ASCII
+- SlmpConstantsは 3E/Binary
+- 設定が不一致
+
+**影響**:
+- 現在は使用されていない（TODO実装待ち）が、将来的に使用される可能性
+
+---
+
+## 3. 【テストデータ】SampleSLMPResponses.cs
+
+### ファイルパス
+`andon\Tests\TestUtilities\DataSources\SampleSLMPResponses.cs`
+
+### ハードコード箇所（行40-41, 80-81）
+```csharp
+// サブヘッダ (2バイト) - 4E応答
+response.AddRange(new byte[] { 0xD0, 0x00 });
+```
+
+**注意**:
+- コメントには「4E応答」と記載
+- しかし 0xD0, 0x00 は **3Eフレームのサブヘッダ**
+- 4Eフレームは 0xD4, 0x00
+
+**バグの可能性**: コメントと実装が不一致
+
+---
+
+## 4. 【テストモック】MockPlcServer.cs
+
+### ファイルパス
+`andon\Tests\TestUtilities\Mocks\MockPlcServer.cs`
+
+### ハードコード箇所
+
+#### 行14: デフォルトフレームヘッダー
+```csharp
+private string _frameHeader = "D4001234"; // デフォルト4Eフレームヘッダー
+```
+
+#### 行76: 3Eフレーム応答
+```csharp
+var responseHex = "44303030" +    // サブヘッダ (3Eフレーム応答識別)
+```
+
+#### 行115: フレームヘッダー選択
+```csharp
+_frameHeader = frameType == FrameType.Frame4E ? "D4001234" : "D0001000";
+```
+
+**用途**: テスト用モックサーバー
+**影響**: テストコードのみ（本番には影響なし）
+
+---
+
+## 5. 【テストコード】複数のテストファイル
+
+### PlcCommunicationManagerTests.cs
+**ファイルパス**: `andon\Tests\Unit\Core\Managers\PlcCommunicationManagerTests.cs`
+
+**ハードコード箇所（複数）**:
+```csharp
+// 行53, 103, 157, 158
+const string frameString = "54001234000000010401006400000090E8030000";
+const string frameString = "54001234000000010400A800000090E8030000";
+"54001234000000010401006400000090E8030000", // M001-M999
+"54001234000000010400A800000090E8030000"  // D001-D999
+```
+
+### Step3_6_IntegrationTests.cs
+**ファイルパス**: `andon\Tests\Integration\Step3_6_IntegrationTests.cs`
+
+**ハードコード箇所（複数）**:
+```csharp
+// 行60, 61, 263, 829, 988, 1121, 1212, 1306, 1406
+"54001234000000010401006400000090E8030000",  // M機器用フレーム
+"54001234000000010400A800000090E8030000"   // D機器用フレーム
+string frameString = "54001234000000010401006400000090E8030000";
+var sendFrame = Convert.FromHexString("54001234000000010400A800000090E8030000");
+```
+
+**すべて 4Eフレーム固定**
+
+**用途**: 自動テスト
+**影響**: テストコードのみ（本番には影響なし）
+
+---
+
+## 診断結果に基づく変更が必要な箇所
+
+### 最優先（本番実行に影響）
+
+#### 1. PlcCommunicationManager.cs 行196
+```csharp
+// 変更前（4Eフレーム固定）
+const string verificationFrame = "54001234000000010401006400000090E8030000";
+
+// 変更案1: ConnectionConfigを参照するように修正
+string verificationFrame = BuildVerificationFrame(_connectionConfig);
+
+// 変更案2: 診断結果が3E/バイナリの場合のハードコード例
+const string verificationFrame = "D000..."; // 3Eバイナリフレーム
+```
+
+**重要**: この箇所は本番実行時のUDP疎通確認で使用されるため、診断結果に合わせた変更が必須
+
+---
+
+### 中優先（将来的に影響の可能性）
+
+#### 2. SlmpConstants.cs
+```csharp
+// 現在の定義
+public const string DefaultFrameType = Frame3E;  // 3E
+public const string DefaultDataFormat = DataFormatBinary;  // Binary
+
+// appsettings.jsonと統一する場合
+public const string DefaultFrameType = Frame4E;  // 4E
+public const string DefaultDataFormat = DataFormatAscii;  // ASCII
+```
+
+---
+
+### 低優先（テストコードのみ）
+
+#### 3. SampleSLMPResponses.cs
+コメントと実装の不一致を修正:
+```csharp
+// 修正前
+// サブヘッダ (2バイト) - 4E応答  ← コメントが間違っている
+response.AddRange(new byte[] { 0xD0, 0x00 });  // ← 実際は3E
+
+// 修正後
+// サブヘッダ (2バイト) - 3E応答  ← 正しいコメント
+response.AddRange(new byte[] { 0xD0, 0x00 });
+```
+
+#### 4. テストコード
+診断結果に基づいて、必要に応じてテストデータを更新
+
+---
+
+## まとめ
+
+### ハードコード箇所の分類
+
+| 分類 | ファイル | 優先度 | 本番影響 |
+|------|---------|--------|---------|
+| **本番実行** | PlcCommunicationManager.cs | 最高 | ✓ あり |
+| **定数定義** | SlmpConstants.cs | 中 | 将来的にあり |
+| **テストデータ** | SampleSLMPResponses.cs | 低 | なし |
+| **テストモック** | MockPlcServer.cs | 低 | なし |
+| **テストコード** | 各種Tests.cs | 低 | なし |
+
+### 診断実行後の対応手順
+
+1. **診断実行**: DiagnosticProgram.exe で4パターンテスト
+
+2. **成功パターン特定**: どのパターン（3E/4E × バイナリ/ASCII）が成功したか確認
+
+3. **PlcCommunicationManager.cs 修正** (最重要)
+   - 行196の verificationFrame を成功パターンに変更
+   - または、ConnectionConfigを参照するように実装変更
+
+4. **appsettings.json 更新**
+   - IsBinary と FrameVersion を成功パターンに変更
+
+5. **SlmpConstants.cs 更新** (任意)
+   - DefaultFrameType と DefaultDataFormat を統一
+
+6. **テストコード更新** (任意)
+   - 必要に応じてテストデータを更新
+
+---
+
+## 参照ドキュメント
+
+- 通信診断手順: `documents\design\チェックリスト\通信診断手順.md`
+- 通信設定箇所一覧: `documents\design\チェックリスト\通信設定箇所一覧.txt`
+- 実機テスト条件: `documents\design\チェックリスト\実機テスト条件.md`

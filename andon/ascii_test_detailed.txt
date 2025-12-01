@@ -1,0 +1,67 @@
+  復元対象のプロジェクトを決定しています...
+  復元対象のすべてのプロジェクトは最新です。
+  andon -> C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\win-x64\andon.dll
+  andon.Tests -> C:\Users\1010821\Desktop\python\andon\andon\Tests\bin\Debug\net9.0\andon.Tests.dll
+C:\Users\1010821\Desktop\python\andon\andon\Tests\bin\Debug\net9.0\andon.Tests.dll (.NETCoreApp,Version=v9.0) のテスト実行
+VSTest のバージョン 17.14.1 (x64)
+
+テスト実行を開始しています。お待ちください...
+合計 1 個のテスト ファイルが指定されたパターンと一致しました。
+C:\Users\1010821\Desktop\python\andon\andon\Tests\bin\Debug\net9.0\andon.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.8)
+[xUnit.net 00:00:00.10]   Discovering: andon.Tests
+[xUnit.net 00:00:00.17]   Discovered:  andon.Tests
+[xUnit.net 00:00:00.18]   Starting:    andon.Tests
+[INFO] BitExpansion�ݒ�ǂݍ��݊���: Enabled=False
+[INFO] BitExpansion�ݒ�ǂݍ��݊���: Enabled=False
+[INFO] ParseRawToStructuredData�J�n: �����ς݃f�o�C�X��=1, �\����`��=1
+[DEBUG] �\���̏����J�n: Test4EASCII - �t�B�[���h��=1
+[INFO] BitExpansion�ݒ�ǂݍ��݊���: Enabled=False
+[INFO] BitExpansion�ݒ�ǂݍ��݊���: Enabled=False
+[INFO] BitExpansion�ݒ�ǂݍ��݊���: Enabled=False
+[INFO] BitExpansion�ݒ�ǂݍ��݊���: Enabled=False
+[INFO] BitExpansion�ݒ�ǂݍ��݊���: Enabled=False
+[DEBUG] �t�B�[���h�}�b�s���O: Test4EASCII.Word_D8:UInt16 = 6407
+[DEBUG] �\���̏�������: Test4EASCII - �t�B�[���h��=1
+[INFO] BitExpansion�ݒ�ǂݍ��݊���: Enabled=False
+[INFO] BitExpansion�ݒ�ǂݍ��݊���: Enabled=False
+[INFO] ParseRawToStructuredData����: �\�����f�o�C�X��=1, ��̓X�e�b�v��=3, ���v����=4ms
+[INFO] BitExpansion�ݒ�ǂݍ��݊���: Enabled=False
+[INFO] ParseRawToStructuredData�J�n: �����ς݃f�o�C�X��=1, �\����`��=1
+[DEBUG] �\���̏����J�n: TestASCIIData - �t�B�[���h��=1
+[DEBUG] �t�B�[���h�}�b�s���O: TestASCIIData.Bit_M100:Boolean = False
+[DEBUG] �\���̏�������: TestASCIIData - �t�B�[���h��=1
+[INFO] ParseRawToStructuredData����: �\�����f�o�C�X��=1, ��̓X�e�b�v��=3, ���v����=1ms
+  成功 Andon.Tests.Unit.Core.Managers.ConfigToFrameManagerTests.TC_Step12_ASCII_004_BuildReadRandomFrameFromConfigAscii_異常系_ConfigNull [6 ms]
+  成功 Andon.Tests.Unit.Core.Managers.ConfigToFrameManagerTests.TC_Step12_ASCII_001_BuildReadRandomFrameFromConfigAscii_正常系_4Eフレーム_48デバイス [9 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_4EFrame_CorrectHeaderStructure [18 ms]
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_エラー終了コード処理 [18 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_1Device_MatchesBinaryConversion [< 1 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_EmptyDevices_ThrowsArgumentException [< 1 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_3EFrame_CorrectHeaderStructure [< 1 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_48Devices_MatchesBinaryConversion [< 1 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_NullDevices_ThrowsArgumentException [< 1 ms]
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_不完全フレームエラー [1 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_WordCount_IsCorrect [< 1 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_DeviceD100_CorrectSpecification [< 1 ms]
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_ヘッダーサイズ検証 [< 1 ms]
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_不完全フレームエラー [< 1 ms]
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_データ長整合性検証 [< 1 ms]
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_ビットデータ解析成功 [< 1 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_DataLength_IsCorrectlyEncoded [1 ms]
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC038_4E_ASCII_基本解析成功 [< 1 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_CommandCode_IsCorrect [< 1 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_DeviceD61000_CorrectSpecification [< 1 ms]
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_AsciiParsing.TC037_3E_ASCII_ヘッダー解析成功 [< 1 ms]
+  成功 Andon.Tests.Unit.Utilities.SlmpFrameBuilderTests.BuildReadRandomRequestAscii_ConmoniTest_ExactMatch [< 1 ms]
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_ParseRawToStructuredData.TC038_ParseRawToStructuredData_4E_ASCII_基本構造化成功 [21 ms]
+[xUnit.net 00:00:00.26]   Finished:    andon.Tests
+  成功 Andon.Tests.Unit.Core.Managers.PlcCommunicationManagerTests_ParseRawToStructuredData.TC037_ParseRawToStructuredData_3E_ASCII_基本構造化成功 [2 ms]
+  成功 Andon.Tests.Unit.Core.Managers.ConfigToFrameManagerTests.TC_Step12_ASCII_003_BuildReadRandomFrameFromConfigAscii_異常系_デバイスリスト空 [8 ms]
+  成功 Andon.Tests.Unit.Core.Managers.ConfigToFrameManagerTests.TC_Step12_ASCII_002_BuildReadRandomFrameFromConfigAscii_正常系_3Eフレーム [< 1 ms]
+  成功 Andon.Tests.Unit.Core.Managers.ConfigToFrameManagerTests.TC_Step12_ASCII_005_BuildReadRandomFrameFromConfigAscii_異常系_未対応フレームタイプ [< 1 ms]
+
+テストの実行に成功しました。
+テストの合計数: 27
+     成功: 27
+合計時間: 0.9531 秒

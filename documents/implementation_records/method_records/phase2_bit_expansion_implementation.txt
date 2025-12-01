@@ -1,0 +1,223 @@
+# Phase2 ビット展開機能 実装記録
+
+作成日: 2025-01-18
+実装者: Claude Code
+参照文書: Phase2_ビット展開機能.md
+
+## 実装概要
+
+ConMoni互換のビット展開機能を実装しました。ワードデバイス値を16ビット配列に展開し、変換係数の適用、選択的ビット展開をサポートします。
+
+## 実装方針決定の根拠
+
+### 1. TDD手法の採用
+- Red-Green-Refactorサイクルを厳密に実施
+- テストファースト開発により品質を担保
+- 全22個のテストケースが成功
+
+### 2. ConMoni互換性の重視
+- LSB first順序でのビット展開（PLCのビットデバイス仕様に準拠）
+- digitControl互換の変換係数機能
+- accessBitDataLoc互換の選択的ビット展開
+
+### 3. 技術選択のトレードオフ
+
+#### ビット展開アルゴリズム
+**選択**: ビットマスク演算によるLSB first展開
+```csharp
+bits[i] = (wordValue & (1 << i)) != 0;
+```
+
+**検討した代替案**:
+- 文字列反転方式（ConMoniのPython実装）
+  - 長所: Python実装との完全一致
+  - 短所: 文字列変換のオーバーヘッド、型変換の複雑さ
+  - 却下理由: パフォーマンスと型安全性
+
+**選択理由**:
+- ビット演算は高速で型安全
+- C#のネイティブ演算を活用
+- 結果はConMoniと完全互換
+
+#### 戻り値の型設計
+**選択**: `List<object>`で混合型（bool/double）を返却
+```csharp
+public static List<object> ExpandWithSelectionMask(...)
+```
+
+**検討した代替案**:
+- 専用クラス`ExpandedDeviceValue`（仕様書の型安全版）
+  - 長所: 型安全性、明確な意図
+  - 短所: 使用側の複雑化、変換処理の増加
+  - 却下理由: 実装の複雑性とオーバーエンジニアリング
+
+**選択理由**:
+- シンプルで直感的
+- ConMoniのPython実装に近い
+- 必要に応じて後で型安全版を追加可能
+
+## 実装内容
+
+### 1. BitExpansionUtility クラス
+**場所**: `andon/Utilities/BitExpansionUtility.cs`
+
+**実装メソッド**:
+1. `ExpandWordToBits(ushort)` - 基本ビット展開
+2. `ExpandWordToBits(int)` - int版オーバーロード
+3. `ExpandMultipleWordsToBits(ushort[])` - 複数ワード一括展開
+4. `ExpandWithSelectionMask(...)` - 選択的ビット展開（変換係数対応）
+
+**重要な実装ポイント**:
+- LSB first順序の厳密な実装
+- 配列長チェックによるエラー防止
+- 変換係数適用のタイミング制御
+
+### 2. ProcessedDevice クラス拡張
+**場所**: `andon/Core/Models/ProcessedDevice.cs`
+
+**追加フィールド**:
+- `RawValue` (ushort): 元のワード値
+- `ConvertedValue` (double): 変換係数適用後の値
+- `ConversionFactor` (double): 変換係数
+- `IsBitExpanded` (bool): ビット展開フラグ
+- `ExpandedBits` (bool[]?): 展開されたビット配列
+
+**追加メソッド**:
+- `GetBit(int bitPosition)`: ビット値の名前付き取得
+- `ToString()` (override): ビット展開対応の文字列表現
+
+### 3. BitExpansionSettings クラス
+**場所**: `andon/Core/Models/ConfigModels/BitExpansionSettings.cs`
+
+**設定項目**:
+- `Enabled`: ビット展開機能の有効/無効
+- `SelectionMask`: デバイスごとのビット展開フラグ
+- `ConversionFactors`: 変換係数配列
+- `Validate()`: 設定の妥当性検証
+
+## テスト結果
+
+### テスト実行結果
+- **総テストケース数**: 22個
+- **成功**: 22個
+- **失敗**: 0個
+- **実行時間**: 46 ms
+
+### テストカバレッジ
+
+#### TC-BIT-001: ExpandWordToBits - 基本ビット展開 (6テスト)
+✅ 全ビット0
+✅ 全ビット1
+✅ bit0のみ1（LSB first確認）
+✅ bit15のみ1（MSB位置確認）
+✅ 複数ビット設定
+✅ 交互パターン（0xAA）
+
+#### TC-BIT-002: int版オーバーロード (2テスト)
+✅ 下位16ビット抽出
+✅ 負の値の正しい処理
+
+#### TC-BIT-003: 複数ワード一括展開 (3テスト)
+✅ 空配列
+✅ 単一ワード
+✅ 複数ワード連結
+
+#### TC-BIT-004: 選択的ビット展開 (10テスト)
+✅ 空配列
+✅ 全ワードモード
+✅ 全ビットモード
+✅ 混合モード
+✅ 変換係数適用
+✅ 変換係数→ビット展開の順序確認
+✅ 配列長不一致エラー（2テスト）
+✅ ConMoni互換性テスト
+
+#### ConMoni互換性確認テスト (1テスト)
+✅ Python実装との完全一致確認
+
+## 発生した問題と解決過程
+
+### 問題1: Linqの using文エラー
+**発生**: ProcessedDevice.ToString()でLinqメソッド使用時
+**原因**: using System.Linq;の欠落
+**解決**: using文追加
+
+**学び**:
+- 基本的なusing文チェックの重要性
+- コンパイルエラーの早期発見
+
+## パフォーマンス考慮事項
+
+### メモリ使用量
+- ビット配列: 16要素 × bool型 = 約16バイト/ワード
+- List<object>: 動的サイズ、GCの対象
+- 影響: 小規模（数百デバイス）では問題なし
+
+### 実行速度
+- ビット演算: O(16) = 定数時間
+- 複数ワード展開: O(n × 16)、n=ワード数
+- 影響: 十分高速（46ms/22テスト）
+
+### 最適化の余地
+- 大規模データ（1000+デバイス）での事前配列確保
+- 型安全版の追加による型変換オーバーヘッド削減
+- 現時点では不要（要件を満たしている）
+
+## 次のステップ
+
+### Phase2完了確認
+✅ ワード値を16ビット配列に展開（LSB first）
+✅ 選択的ビット展開（マスク指定）
+✅ 変換係数適用（ConMoni互換）
+✅ ProcessedDeviceクラスへの統合
+✅ 設定クラスの作成
+✅ 全単体テストがパス
+✅ ConMoni互換性確認
+
+### Phase3への準備
+- PlcCommunicationManagerへの統合準備
+- appsettings.json設定の追加
+- 実機データ再生テストの準備
+
+## 実装時の注意事項
+
+### LSB first順序の重要性
+```
+PLCのビットデバイス仕様:
+M0 → ExpandedBits[0]
+M1 → ExpandedBits[1]
+...
+M15 → ExpandedBits[15]
+```
+この順序を厳守することでPLCとの互換性を保証
+
+### 変換係数の適用タイミング
+正しい順序:
+1. ワード値取得
+2. 変換係数適用 ← 先
+3. ビット展開 ← 後
+
+誤った順序だとビット値に係数が適用できない
+
+### 設定配列長の検証
+- SelectionMaskとConversionFactorsの長さ一致を必須化
+- ArgumentExceptionで明示的なエラーメッセージ
+
+## 参考資料
+
+- ConMoni/modules/process/GetPlcData.py (Python実装)
+- Phase2_ビット展開機能.md (仕様書)
+- development-methodology.md (TDD手法)
+
+## コード品質指標
+
+- ビルドエラー: 0
+- ビルド警告: 0
+- テスト成功率: 100% (22/22)
+- ConMoni互換性: ✅
+
+---
+
+**実装完了日**: 2025-01-18
+**実装時間**: 約2.5時間
+**実装者コメント**: TDD手法により高品質な実装が達成できました。ConMoni互換性テストの成功により、既存システムとの互換性も保証されています。

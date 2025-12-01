@@ -1,0 +1,204 @@
+# Phase2: Excel読み込み基礎機能 - 実装記録
+
+## 実装日
+2025年11月27日
+
+## 実装方式
+TDD（Red-Green-Refactor）厳守
+
+---
+
+## 実装した機能
+
+### 1. PlcConfigurationクラス（TDD完了）
+**ファイル**: `andon/Core/Models/ConfigModels/PlcConfiguration.cs`
+
+**プロパティ**:
+- IpAddress: PLCのIPアドレス（Excel B8）
+- Port: PLCのポート（Excel B9）
+- DataReadingFrequency: データ取得周期(ms)（Excel B11）
+- PlcModel: デバイス名（Excel B12）
+- SavePath: データ保存先パス（Excel B13）
+- SourceExcelFile: 設定元Excelファイルパス
+- ConfigurationName: 設定名（計算プロパティ）
+- Devices: デバイスリスト
+
+**テスト結果**: 13テスト全成功
+
+---
+
+### 2. DeviceSpecification拡張
+**ファイル**: `andon/Core/Models/DeviceSpecification.cs`
+
+**追加プロパティ**（既存機能を壊さず拡張）:
+- ItemName: 項目名（Excel A列）
+- DeviceType: デバイスタイプ文字列（Excel B列）
+- Digits: 桁数（Excel D列）
+- Unit: 単位（Excel E列）
+
+**判断根拠**: 既存のCode, DeviceNumber, IsHexAddressはそのまま保持し、Excel用プロパティを追加。Phase3で正規化処理を実装予定。
+
+---
+
+### 3. TestExcelFileCreatorヘルパー
+**ファイル**: `andon/Tests/TestUtilities/TestData/SampleConfigurations/CreateTestExcelFile.cs`
+
+**機能**:
+- CreateValidConfigFile(): 正常な設定ファイル生成
+- CreateMissingSettingsSheetFile(): settingsシート欠落
+- CreateMissingDevicesSheetFile(): デバイスシート欠落
+- CreateEmptyCellsFile(): 空セルを含む
+- CreateNoDevicesFile(): デバイス0件
+
+**技術選択**: EPPlusライブラリでプログラマティックにExcelファイルを生成。手動作成によるヒューマンエラーを排除。
+
+---
+
+### 4. ConfigurationLoaderExcelクラス（TDD完了）
+**ファイル**: `andon/Infrastructure/Configuration/ConfigurationLoaderExcel.cs`
+
+**主要メソッド**:
+1. **LoadAllPlcConnectionConfigs()**: 複数Excelファイル一括読み込み
+2. **DiscoverExcelFiles()**: .xlsxファイル検索（一時ファイル除外）
+3. **LoadFromExcel()**: 単一Excelファイル読み込み
+4. **ReadCell<T>()**: セル読み込みヘルパー（型安全）
+5. **ReadDevices()**: デバイス情報読み込み（A列が空まで）
+6. **IsFileLocked()**: ファイルロック確認
+
+**エラーハンドリング**:
+- シート欠落: ArgumentException（シート名明示）
+- 空セル: ArgumentException（セル位置明示）
+- ファイルなし: ArgumentException（ディレクトリ明示）
+- デバイス0件: ArgumentException（ファイル名明示）
+
+**テスト結果**: 12テスト全成功（4.7秒）
+
+---
+
+## TDD実装フロー
+
+### Red（失敗するテスト）
+1. PlcConfigurationTests.cs作成（13テスト）→ コンパイルエラー確認
+2. ConfigurationLoaderExcelTests.cs作成（12テスト）→ コンパイルエラー確認
+
+### Green（最小実装でパス）
+1. PlcConfiguration.cs実装 → 13テスト成功
+2. DeviceSpecification拡張 → ビルド成功
+3. TestExcelFileCreator.cs実装 → テストデータ生成可能
+4. ConfigurationLoaderExcel.cs実装 → 12テスト成功
+
+### Refactor（リファクタリング）
+- PlcConfiguration: 不要（十分シンプル）
+- ConfigurationLoaderExcel: 不要（責任が明確）
+
+---
+
+## 技術選択の根拠
+
+### EPPlusライブラリ（v6.2.0）
+**選択理由**:
+- .NET標準のExcel操作ライブラリ
+- LicenseContext.NonCommercialで非商用利用可能
+- セル単位でのデータ型指定が可能
+
+**トレードオフ**:
+- 商用利用時はライセンス購入必要
+- メモリ使用量が大きい（大規模Excelでは注意）
+- 判断: 設定ファイルは小規模なため問題なし
+
+### ConfigurationLoaderとConfigurationLoaderExcelの分離
+**選択理由**:
+- 既存のConfigurationLoader（JSON用）を壊さない
+- 単一責任原則: JSON読み込みとExcel読み込みは別責任
+- テストの独立性: 互いに影響しない
+
+### Phase2でデバイス正規化を実装しない判断
+**理由**:
+- Phase2: Excel読み込みのみ（基礎機能）
+- Phase3: デバイス情報変換と正規化
+- 段階的実装でリスク分散
+
+**Phase2でのDeviceSpecification生成**:
+```csharp
+new DeviceSpecification(
+    DeviceCode.D,  // 仮のデバイスコード
+    deviceNumber)
+{
+    ItemName = itemName,
+    DeviceType = deviceType,  // 文字列のまま保持
+    Digits = digits,
+    Unit = unit
+};
+```
+→ Phase3でDeviceTypeからDeviceCodeへの変換を実装予定
+
+---
+
+## 発生した問題と解決
+
+### 問題1: DeviceSpecification既存機能との互換性
+**原因**: 既存コードでDeviceCode列挙型を使用
+**解決**: 新規プロパティ（ItemName, DeviceType, Digits, Unit）を追加し、既存プロパティは変更せず
+
+### 問題2: Excelファイルの動的生成方法
+**考慮した方法**:
+1. 手動でExcelファイル作成 → ヒューマンエラーリスク高
+2. EPPlusでプログラマティックに生成 → 再現性高、メンテナンス容易
+**選択**: 方法2（TestExcelFileCreator）
+
+### 問題3: テストファイルのクリーンアップ
+**対策**: IDisposableパターンでテスト後に一時ディレクトリを削除
+
+---
+
+## Phase2完了基準チェック
+
+### ✅ 機能面
+- [x] 実行フォルダ内の全.xlsxファイルを自動検出できる
+- [x] Excelの"settings"シートから5項目を正確に読み込める
+- [x] Excelの"データ収集デバイス"シートから全デバイス情報を読み込める
+- [x] 複数のExcelファイルを同時に管理できる
+- [x] 一時ファイル（~$*.xlsx）を除外できる
+- [x] ロックされているファイルを除外できる
+- [x] 不正な設定値を検出してエラーを返す
+
+### ✅ テスト面
+- [x] PlcConfiguration: 13テスト全パス
+- [x] ConfigurationLoaderExcel: 12テスト全パス
+- [x] 合計25テスト全パス
+- [x] エラーケースで適切な例外がスローされる
+
+### ✅ コード品質
+- [x] TDD方式で実装（Red→Green→Refactor）
+- [x] 既存機能を壊していない（DeviceSpecification拡張）
+- [x] 責任の分離（ConfigurationLoaderとConfigurationLoaderExcel）
+
+---
+
+## Phase3への引き継ぎ事項
+
+### 実装必要な機能
+1. **NormalizeDevice()**: DeviceType文字列→DeviceCode列挙型変換
+2. **ConvertDeviceNumberToBytes()**: デバイス番号3バイトLE変換
+3. **10進/16進デバイス判定**: DeviceCodeMapを使用
+4. **24種類デバイスコード対応**: Phase1で実装済みのDeviceCodeMap活用
+
+### Phase2で保留した理由
+- Excel読み込み機能の安定性確保を優先
+- デバイス正規化は複雑な処理のため、Phase3で集中実装
+- テストの独立性確保
+
+---
+
+## 実装記録
+
+**実装時間**: 約2時間
+**TDD サイクル数**: 2回（PlcConfiguration, ConfigurationLoaderExcel）
+**テスト合計**: 25テスト（全成功）
+**コード行数**:
+- PlcConfiguration.cs: 52行
+- ConfigurationLoaderExcel.cs: 188行
+- TestExcelFileCreator.cs: 154行
+- DeviceSpecification拡張: +20行
+
+**次のステップ**: Phase3実装開始

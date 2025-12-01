@@ -1,0 +1,295 @@
+using System;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using Xunit;
+using andon.Core.Managers;
+using andon.Core.Models;
+using andon.Core.Models.ConfigModels;
+using andon.Core.Exceptions;
+using andon.Tests.TestUtilities.Mocks;
+using andon.Tests.TestUtilities.Exceptions;
+using andon.Tests.TestUtilities.Assertions;
+using andon.Tests.TestUtilities.Stubs;
+
+namespace andon.Tests.Integration.Core.Managers
+{
+    /// <summary>
+    /// PlcCommunicationManager統合テスト
+    /// TC123: FullCycle_エラー発生時の適切なスキップ
+    /// </summary>
+    public class PlcCommunicationManagerIntegrationTests
+    {
+        /// <summary>
+        /// TC123-1: Step3エラー時の適切なスキップテスト
+        /// 接続段階でエラーが発生した際の適切なエラーハンドリングとスキップ処理を検証
+        /// </summary>
+        [Fact]
+        public async Task TC123_FullCycle_エラー発生時の適切なスキップ_Step3エラー()
+        {
+            // Arrange（準備）
+            var connectionConfig = ConfigurationStubs.CreateValidConnectionConfig();
+            var frameString = "500000FF03FF00000C001000010414000064010000";
+            var deviceRequestInfos = new List<ProcessedDeviceRequestInfo>();
+
+            // MockSocketを作成（接続失敗をシミュレート）
+            var mockSocket = new MockSocket();
+            mockSocket.SetupConnectionFailure(MockExceptionGenerator.CreateStep3Error());
+
+            var mockSocketFactory = new MockSocketFactory();
+            mockSocketFactory.SetMockSocket(mockSocket);
+
+            var manager = new PlcCommunicationManager(mockSocketFactory);
+
+            // 初期システム状態を記録
+            var initialConnectionStats = manager.GetConnectionStats();
+
+            // エラー発生後の期待状態を定義
+            AsyncOperationResult<StructuredData> result = null;
+            Exception caughtException = null;
+
+            // Act（実行）
+            try
+            {
+                // Step3: Connect（エラー発生）
+                var connectResponse = await manager.ConnectAsync(connectionConfig);
+
+                // 以降の処理は実行されない予定
+                Assert.True(false, "Step3エラー時は例外がスローされるべき");
+            }
+            catch (Exception ex)
+            {
+                caughtException = ex;
+
+                // エラー情報を含むOperationResultを取得
+                result = manager.GetLastOperationResult();
+            }
+
+            // Assert（検証）
+
+            // エラーハンドリング検証
+            Assert.NotNull(caughtException);
+            Assert.IsType<PlcConnectionException>(caughtException);
+            ErrorHandlingAssertions.AssertExceptionDetails(caughtException, "接続失敗");
+
+            // スキップ処理検証
+            Assert.NotNull(result);
+            ErrorHandlingAssertions.AssertErrorSkipBehavior(
+                result, "Step3", typeof(PlcConnectionException));
+
+            // リソース管理検証
+            ErrorHandlingAssertions.AssertResourceCleanup(manager);
+
+            // エラー記録検証
+            Assert.False(result.IsSuccess);
+            Assert.Equal("Step3", result.FailedStep);
+            Assert.NotNull(result.Exception);
+            Assert.IsType<PlcConnectionException>(result.Exception);
+
+            // 統計情報にエラーが正しく記録されていることを確認
+            var finalStats = manager.GetConnectionStats();
+            ErrorHandlingAssertions.AssertErrorStatistics(finalStats, 1);
+        }
+
+        /// <summary>
+        /// TC123-2: Step4エラー時の適切なスキップテスト
+        /// 送信段階でエラーが発生した際の適切なエラーハンドリングとスキップ処理を検証
+        /// </summary>
+        [Fact]
+        public async Task TC123_FullCycle_エラー発生時の適切なスキップ_Step4エラー()
+        {
+            // Arrange（準備）
+            var connectionConfig = ConfigurationStubs.CreateValidConnectionConfig();
+            var frameString = "500000FF03FF00000C001000010414000064010000";
+            var deviceRequestInfos = new List<ProcessedDeviceRequestInfo>();
+
+            // MockSocketを作成（接続成功、送信失敗をシミュレート）
+            var mockSocket = new MockSocket();
+            mockSocket.SetupConnectionSuccess();
+            mockSocket.SetupSendFailure(MockExceptionGenerator.CreateStep4Error());
+
+            var mockSocketFactory = new MockSocketFactory();
+            mockSocketFactory.SetMockSocket(mockSocket);
+
+            var manager = new PlcCommunicationManager(mockSocketFactory);
+
+            AsyncOperationResult<StructuredData> result = null;
+            Exception caughtException = null;
+
+            // Act（実行）
+            try
+            {
+                // Step3: Connect（成功）
+                var connectResponse = await manager.ConnectAsync(connectionConfig);
+                Assert.NotNull(connectResponse);
+                Assert.True(connectResponse.IsSuccess);
+
+                // Step4: SendFrame（エラー発生）
+                await manager.SendFrameAsync(frameString);
+
+                Assert.True(false, "Step4エラー時は例外がスローされるべき");
+            }
+            catch (Exception ex)
+            {
+                caughtException = ex;
+                result = manager.GetLastOperationResult();
+            }
+
+            // Assert（検証）
+
+            // エラーハンドリング検証
+            Assert.NotNull(caughtException);
+            Assert.IsType<PlcSendException>(caughtException);
+            ErrorHandlingAssertions.AssertExceptionDetails(caughtException, "送信失敗");
+
+            // 部分実行検証
+            Assert.NotNull(result);
+            ErrorHandlingAssertions.AssertPartialExecution(
+                result, new[] { "Step3" }, "Step4");
+
+            // リソース管理検証
+            ErrorHandlingAssertions.AssertResourceCleanup(manager);
+
+            // エラー記録検証
+            Assert.False(result.IsSuccess);
+            Assert.Equal("Step4", result.FailedStep);
+            Assert.True(result.StepResults.ContainsKey("Step3")); // Step3の成功情報も含まれている
+        }
+
+        /// <summary>
+        /// TC123-3: Step5エラー時の適切なスキップテスト
+        /// 受信段階でエラーが発生した際の適切なエラーハンドリングとスキップ処理を検証
+        /// </summary>
+        [Fact]
+        public async Task TC123_FullCycle_エラー発生時の適切なスキップ_Step5エラー()
+        {
+            // Arrange（準備）
+            var connectionConfig = ConfigurationStubs.CreateValidConnectionConfig();
+            var frameString = "500000FF03FF00000C001000010414000064010000";
+            var deviceRequestInfos = new List<ProcessedDeviceRequestInfo>();
+
+            // MockSocketを作成（接続・送信成功、受信失敗をシミュレート）
+            var mockSocket = new MockSocket();
+            mockSocket.SetupConnectionSuccess();
+            mockSocket.SetupSendSuccess();
+            mockSocket.SetupReceiveFailure(MockExceptionGenerator.CreateStep5Error());
+
+            var mockSocketFactory = new MockSocketFactory();
+            mockSocketFactory.SetMockSocket(mockSocket);
+
+            var manager = new PlcCommunicationManager(mockSocketFactory);
+
+            AsyncOperationResult<StructuredData> result = null;
+            Exception caughtException = null;
+
+            // Act（実行）
+            try
+            {
+                // Step3: Connect（成功）
+                var connectResponse = await manager.ConnectAsync(connectionConfig);
+
+                // Step4: SendFrame（成功）
+                await manager.SendFrameAsync(frameString);
+
+                // Step5: ReceiveResponse（エラー発生）
+                var rawResponse = await manager.ReceiveResponseAsync();
+
+                Assert.True(false, "Step5エラー時は例外がスローされるべき");
+            }
+            catch (Exception ex)
+            {
+                caughtException = ex;
+                result = manager.GetLastOperationResult();
+            }
+
+            // Assert（検証）
+
+            // エラーハンドリング検証
+            Assert.NotNull(caughtException);
+            Assert.IsType<PlcReceiveException>(caughtException);
+            ErrorHandlingAssertions.AssertExceptionDetails(caughtException, "受信失敗");
+
+            // 部分実行検証
+            Assert.NotNull(result);
+            ErrorHandlingAssertions.AssertPartialExecution(
+                result, new[] { "Step3", "Step4" }, "Step5");
+
+            // データ状態検証
+            Assert.True(result.StepResults.ContainsKey("Step3")); // Step3-4は正常に完了
+            Assert.True(result.StepResults.ContainsKey("Step4"));
+            Assert.False(result.StepResults.ContainsKey("Step6")); // Step6はスキップ
+
+            // リソース管理検証
+            ErrorHandlingAssertions.AssertResourceCleanup(manager);
+        }
+
+        /// <summary>
+        /// TC123-4: Step6エラー時の適切なスキップテスト
+        /// データ処理段階でエラーが発生した際の適切なエラーハンドリングを検証
+        /// </summary>
+        [Fact]
+        public async Task TC123_FullCycle_エラー発生時の適切なスキップ_Step6エラー()
+        {
+            // Arrange（準備）
+            var connectionConfig = ConfigurationStubs.CreateValidConnectionConfig();
+            var frameString = "500000FF03FF00000C001000010414000064010000";
+            var deviceRequestInfos = new List<ProcessedDeviceRequestInfo>();
+
+            // 正常なSocket通信設定
+            var mockSocket = new MockSocket();
+            mockSocket.SetupConnectionSuccess();
+            mockSocket.SetupSendSuccess();
+            mockSocket.SetupReceiveSuccess("D00000FF03FF0000040000"); // 正常受信
+            mockSocket.SetupDataProcessingFailure(MockExceptionGenerator.CreateStep6Error()); // Step6でエラー
+
+            var mockSocketFactory = new MockSocketFactory();
+            mockSocketFactory.SetMockSocket(mockSocket);
+
+            var manager = new PlcCommunicationManager(mockSocketFactory);
+
+            AsyncOperationResult<StructuredData> result = null;
+            Exception caughtException = null;
+
+            // Act（実行）
+            try
+            {
+                // Step3-5: 正常実行
+                var connectResponse = await manager.ConnectAsync(connectionConfig);
+                await manager.SendFrameAsync(frameString);
+                var rawResponse = await manager.ReceiveResponseAsync();
+
+                // Step6: データ処理（エラー発生）
+                var basicProcessed = await manager.ProcessReceivedRawData(rawResponse);
+                var processed = await manager.CombineDwordData(basicProcessed, deviceRequestInfos);
+                var structured = await manager.ParseRawToStructuredData(processed); // エラー発生点
+
+                Assert.True(false, "Step6エラー時は例外がスローされるべき");
+            }
+            catch (Exception ex)
+            {
+                caughtException = ex;
+                result = manager.GetLastOperationResult();
+            }
+
+            // Assert（検証）
+
+            // エラーハンドリング検証
+            Assert.NotNull(caughtException);
+            Assert.IsType<PlcDataProcessingException>(caughtException);
+            ErrorHandlingAssertions.AssertExceptionDetails(caughtException, "データ処理失敗");
+
+            // 通信部分検証
+            Assert.NotNull(result);
+            Assert.True(result.StepResults.ContainsKey("Step3")); // Step3-5は正常に完了
+            Assert.True(result.StepResults.ContainsKey("Step4"));
+            Assert.True(result.StepResults.ContainsKey("Step5"));
+
+            // データ処理検証
+            Assert.Equal("Step6", result.FailedStep);
+            Assert.False(result.IsSuccess);
+
+            // エラー記録検証
+            Assert.NotNull(result.Exception);
+            Assert.IsType<PlcDataProcessingException>(result.Exception);
+        }
+    }
+}

@@ -1,0 +1,599 @@
+# エラー伝播パターンとMock設計の教訓
+
+## 学習日時
+2025-11-06（TC124実装から得られた知見）
+
+---
+
+## 1. エラー伝播パターンの設計
+
+### 1.1 AsyncOperationResult<T>パターン
+
+#### 基本構造
+```csharp
+public class AsyncOperationResult<T>
+{
+    public bool IsSuccess { get; set; }
+    public T? Data { get; set; }
+    public string? FailedStep { get; set; }
+    public Exception? Exception { get; set; }
+    public DateTime? EndTime { get; set; }
+    public ErrorDetails? ErrorDetails { get; set; }
+}
+
+public class ErrorDetails
+{
+    public string ErrorType { get; set; }
+    public string ErrorMessage { get; set; }
+    public DateTime OccurredAt { get; set; }
+    public string FailedOperation { get; set; }
+    public Dictionary<string, object> AdditionalInfo { get; set; }
+}
+```
+
+#### 利点
+1. **型安全性**: ジェネリクスによる強い型付け
+2. **統一性**: 全ての非同期操作で同じパターンを使用
+3. **拡張性**: ErrorDetailsによる詳細情報の追加が容易
+4. **統計記録**: 失敗情報を容易に集計可能
+
+#### 使用例
+```csharp
+// エラー発生時
+_lastOperationResult = new AsyncOperationResult<ConnectionResponse>
+{
+    IsSuccess = false,
+    Data = response,
+    FailedStep = "Step3_Connect",
+    Exception = ex,
+    EndTime = DateTime.UtcNow,
+    ErrorDetails = new ErrorDetails
+    {
+        ErrorType = "Timeout",
+        ErrorMessage = ex.Message,
+        OccurredAt = DateTime.UtcNow,
+        FailedOperation = "ConnectAsync",
+        AdditionalInfo = new Dictionary<string, object>
+        {
+            ["TimeoutMs"] = timeoutMs,
+            ["IpAddress"] = ipAddress
+        }
+    }
+};
+```
+
+#### 適用場面
+- ✅ 複数のステップからなる処理（Step3-6など）
+- ✅ 詳細なエラー分類が必要な場合
+- ✅ リトライやフォールバック処理が必要な場合
+- ❌ シンプルな単一操作（オーバーエンジニアリング）
+
+---
+
+## 2. エラータイプの分類設計
+
+### 2.1 適切な粒度の選択
+
+#### 粗すぎる分類（❌ Bad Example）
+```csharp
+enum ErrorType
+{
+    Success,
+    Error  // すべてのエラーを1つに
+}
+```
+**問題点**: リトライやアラートの判断ができない
+
+#### 細かすぎる分類（❌ Bad Example）
+```csharp
+enum ErrorType
+{
+    TimeoutAfter100ms,
+    TimeoutAfter200ms,
+    TimeoutAfter500ms,
+    // ... 100種類のエラータイプ
+}
+```
+**問題点**: 管理が困難、拡張性が低い
+
+#### 適切な分類（✅ Good Example）
+```csharp
+// 接続エラーの分類
+string errorType = ex.SocketErrorCode switch
+{
+    SocketError.ConnectionRefused => "Refused",
+    SocketError.TimedOut => "Timeout",
+    SocketError.HostNotFound => "Network",
+    SocketError.NetworkDown => "Network",
+    _ => "Network"
+};
+```
+
+**判断基準**:
+1. **対応方法が異なる**: Timeout（リトライ）vs Refused（設定確認）
+2. **統計的に意味がある**: タイムアウト発生率の追跡
+3. **アラート条件が異なる**: Refused頻発は緊急、Timeoutは警告
+
+### 2.2 階層的なエラー分類
+
+```
+ConnectionError (親カテゴリ)
+├── Timeout (リトライ推奨)
+├── Refused (設定確認推奨)
+└── Network (ネットワーク確認推奨)
+    ├── HostNotFound
+    ├── NetworkDown
+    └── NoRoute
+```
+
+**利点**:
+- 統計集計の柔軟性（親カテゴリで集計可能）
+- 詳細な診断情報の保持
+- 将来の拡張性
+
+---
+
+## 3. Mock設計の教訓
+
+### 3.1 状態のコピー漏れ問題
+
+#### 問題の発見
+TC124-2実装時、以下のコードでエラー設定がコピーされていないことを発見：
+
+```csharp
+// ❌ 問題のあるコード
+public Socket CreateSocket(bool useTcp)
+{
+    if (_preconfiguredSocket != null)
+    {
+        var newSocket = new MockSocket(useTcp);
+        newSocket.SetupConnected(_preconfiguredSocket.Connected);
+
+        // 応答データはコピー
+        var responseData = _preconfiguredSocket.GetReceiveQueueSnapshot();
+        foreach (var data in responseData)
+        {
+            newSocket.EnqueueReceiveData(data);
+        }
+
+        // ❌ エラー設定のコピーが漏れている！
+        return newSocket;
+    }
+    return new MockSocket(useTcp);
+}
+```
+
+#### 根本原因
+新しい状態プロパティ（エラー設定）を追加した際、コピーロジックの更新を忘れた
+
+#### 解決策
+```csharp
+// ✅ 改善されたコード
+public Socket CreateSocket(bool useTcp)
+{
+    if (_preconfiguredSocket != null)
+    {
+        var newSocket = new MockSocket(useTcp);
+
+        // 全ての状態をコピー
+        CopyAllState(_preconfiguredSocket, newSocket);
+
+        return newSocket;
+    }
+    return new MockSocket(useTcp);
+}
+
+private void CopyAllState(MockSocket source, MockSocket target)
+{
+    // 接続状態
+    target.SetupConnected(source.Connected);
+
+    // 応答データ
+    foreach (var data in source.GetReceiveQueueSnapshot())
+    {
+        target.EnqueueReceiveData(data);
+    }
+
+    // 受信遅延
+    target.ReceiveDelayMs = source.ReceiveDelayMs;
+
+    // エラー設定（TC124で追加）
+    CopyErrorSettings(source, target);
+}
+
+private void CopyErrorSettings(MockSocket source, MockSocket target)
+{
+    var connectionError = source.GetConnectionError();
+    if (connectionError != null)
+        target.SetupConnectionFailure(connectionError);
+
+    var sendError = source.GetSendError();
+    if (sendError != null)
+        target.SetupSendFailure(sendError);
+
+    var receiveError = source.GetReceiveError();
+    if (receiveError != null)
+        target.SetupReceiveFailure(receiveError);
+}
+```
+
+#### 教訓
+1. **状態のカプセル化**: コピーロジックを1箇所に集約
+2. **テストでの検証**: 新しい状態プロパティは必ずテストで確認
+3. **ドキュメント化**: どの状態がコピーされるか明記
+
+### 3.2 Mockの動作への過度な依存
+
+#### 問題の発見
+TC124-3実装時、不正IPでも接続成功してしまう問題を発見：
+
+```csharp
+// ❌ Mockの動作に依存したテスト
+var connectionConfig = new ConnectionConfig
+{
+    IpAddress = "999.999.999.999",  // 不正IP
+    // MockSocketFactoryは実際の検証を行わないため、
+    // この不正IPでも接続成功を返してしまう
+};
+```
+
+#### 解決策
+```csharp
+// ✅ 明示的にエラーを設定
+var mockSocket = new MockSocket(useTcp: true);
+var invalidIpException = new SocketException(
+    (int)SocketError.HostNotFound,
+    "不正なIPアドレス: 999.999.999.999"
+);
+mockSocket.SetupConnectionFailure(invalidIpException);
+```
+
+#### 教訓
+1. **明示的なテストセットアップ**: Mockの暗黙的な動作に依存しない
+2. **期待する動作を明確に**: 何をテストしたいか明確にする
+3. **実環境との乖離を認識**: Mockと実環境の違いを理解する
+
+### 3.3 Mock設計のベストプラクティス
+
+#### 1. 完全性の確保
+```csharp
+// すべての状態を明示的に設定可能に
+public interface IMockSocket
+{
+    void SetupConnected(bool connected);
+    void SetupConnectionFailure(Exception ex);
+    void SetupSendFailure(Exception ex);
+    void SetupReceiveFailure(Exception ex);
+    void EnqueueReceiveData(byte[] data);
+    int ReceiveDelayMs { get; set; }
+}
+```
+
+#### 2. 状態の取得可能性
+```csharp
+// テスト検証のために状態を取得可能に
+public Exception? GetConnectionError();
+public Exception? GetSendError();
+public Exception? GetReceiveError();
+public List<byte[]> GetSentData();
+```
+
+#### 3. デフォルト動作の明確化
+```csharp
+// デフォルト動作をドキュメント化
+/// <summary>
+/// デフォルト動作: 接続成功、エラーなし
+/// エラーをシミュレートする場合は SetupXxxFailure() を使用
+/// </summary>
+public MockSocket(bool useTcp)
+{
+    _connected = false;  // デフォルトは未接続
+    _connectionFailureException = null;  // デフォルトはエラーなし
+}
+```
+
+---
+
+## 4. テスト駆動開発（TDD）の実践
+
+### 4.1 Red-Green-Refactorサイクル
+
+#### Phase 1 (Red): テストコード実装
+```csharp
+[Fact]
+public async Task TC124_1_接続タイムアウト()
+{
+    // Arrange
+    var mockFactory = new MockSocketFactory(shouldSucceed: false, simulatedDelayMs: 2000);
+    var timeoutConfig = new TimeoutConfig { ConnectTimeoutMs = 1000 };
+
+    // Act
+    var result = await manager.ConnectAsync();
+
+    // Assert
+    Assert.Equal(ConnectionStatus.Timeout, result.Status);
+    Assert.Equal("Timeout", result.GetLastOperationResult().ErrorDetails.ErrorType);
+}
+```
+
+**この段階での効果**:
+- 要件の明確化（何を実現したいか）
+- インターフェースの設計（どのように使うか）
+- 期待値の明示（どうなるべきか）
+
+#### Phase 2 (Green): プロダクションコード実装
+```csharp
+catch (TimeoutException ex)
+{
+    // 統計更新
+    _stats.AddConnection(false);
+    _stats.AddConnectionError("Timeout");
+
+    // エラー情報記録
+    _lastOperationResult = new AsyncOperationResult<ConnectionResponse>
+    {
+        IsSuccess = false,
+        ErrorDetails = new ErrorDetails
+        {
+            ErrorType = "Timeout",
+            // ...
+        }
+    };
+
+    return response;
+}
+```
+
+**この段階での効果**:
+- テストをパスさせる最小限の実装
+- 過度な実装を避ける
+- フィードバックループの高速化
+
+#### Phase 3 (Refactor): リファクタリング
+TC124では主に以下をリファクタリング：
+1. MockSocketFactoryのエラーコピー機能追加
+2. コードの重複排除
+3. ドキュメントコメントの追加
+
+### 4.2 TDDで得られた利益
+
+1. **設計の改善**
+   - GetLastOperationResult()の必要性がテストから明確に
+   - ErrorDetailsの構造がテスト要件から決定
+
+2. **バグの早期発見**
+   - MockSocketFactoryのコピー漏れをテスト失敗で発見
+   - 不正IP処理の問題をテスト失敗で発見
+
+3. **リファクタリングの安全性**
+   - テストがあるため、安心してコード改善可能
+   - リグレッションの早期検出
+
+4. **ドキュメントとしてのテスト**
+   - テストコードが使用例になる
+   - 期待される動作が明確
+
+---
+
+## 5. 統計情報の設計
+
+### 5.1 カウンターの粒度
+
+#### 適切な粒度
+```csharp
+public class ConnectionStats
+{
+    // 総計
+    public int TotalConnections { get; private set; }
+    public int SuccessfulConnections { get; private set; }
+
+    // エラーカテゴリ別
+    public int ConnectionErrors { get; private set; }
+    public int TimeoutErrors { get; private set; }
+    public int RefusedErrors { get; private set; }
+    public int NetworkErrors { get; private set; }
+}
+```
+
+#### 更新メソッド
+```csharp
+public void AddConnectionError(string errorType)
+{
+    ConnectionErrors++;
+
+    switch (errorType)
+    {
+        case "Timeout":
+            TimeoutErrors++;
+            break;
+        case "Refused":
+            RefusedErrors++;
+            break;
+        case "Network":
+            NetworkErrors++;
+            break;
+    }
+}
+```
+
+### 5.2 統計情報の活用
+
+#### 1. 成功率の計算
+```csharp
+public double SuccessRate =>
+    TotalConnections > 0
+        ? (double)SuccessfulConnections / TotalConnections * 100.0
+        : 0.0;
+```
+
+#### 2. エラー分析
+```csharp
+public Dictionary<string, int> GetErrorDistribution()
+{
+    return new Dictionary<string, int>
+    {
+        ["Timeout"] = TimeoutErrors,
+        ["Refused"] = RefusedErrors,
+        ["Network"] = NetworkErrors
+    };
+}
+```
+
+#### 3. アラート判定
+```csharp
+public bool ShouldAlert()
+{
+    // タイムアウトエラーが総接続の50%を超える
+    if (TotalConnections > 10 &&
+        (double)TimeoutErrors / TotalConnections > 0.5)
+        return true;
+
+    // 接続拒否が5回連続
+    if (RefusedErrors >= 5)
+        return true;
+
+    return false;
+}
+```
+
+---
+
+## 6. エラーハンドリングのパターン
+
+### 6.1 例外の種類に応じた処理
+
+```csharp
+try
+{
+    await ConnectAsync();
+}
+catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
+{
+    // 接続拒否: 設定確認を促す
+    logger.LogError("PLC接続が拒否されました。IP/Port設定を確認してください。");
+    return HandleConnectionRefused(ex);
+}
+catch (SocketException ex)
+{
+    // その他のネットワークエラー
+    logger.LogError("ネットワークエラー: {Message}", ex.Message);
+    return HandleNetworkError(ex);
+}
+catch (TimeoutException ex)
+{
+    // タイムアウト: リトライ推奨
+    logger.LogWarning("接続タイムアウト。リトライを推奨します。");
+    return HandleTimeout(ex);
+}
+```
+
+### 6.2 エラーからの回復戦略
+
+```csharp
+public async Task<Result> ConnectWithRetry(int maxRetries = 3)
+{
+    for (int i = 0; i < maxRetries; i++)
+    {
+        try
+        {
+            var result = await ConnectAsync();
+            if (result.Status == ConnectionStatus.Connected)
+                return Result.Success(result);
+
+            // エラータイプに応じて判断
+            var errorType = GetLastOperationResult()?.ErrorDetails?.ErrorType;
+
+            if (errorType == "Refused")
+            {
+                // 接続拒否はリトライしても無駄
+                return Result.Failure("接続拒否（リトライ不可）");
+            }
+
+            if (errorType == "Timeout" && i < maxRetries - 1)
+            {
+                // タイムアウトはリトライ
+                await Task.Delay(1000 * (i + 1)); // Exponential backoff
+                continue;
+            }
+        }
+        catch (Exception ex)
+        {
+            if (i == maxRetries - 1)
+                throw;
+        }
+    }
+
+    return Result.Failure("最大リトライ回数に達しました");
+}
+```
+
+---
+
+## 7. まとめ：再利用可能な知見
+
+### 7.1 チェックリスト
+
+#### エラー伝播パターン実装時
+- [ ] AsyncOperationResult<T>の構造を定義
+- [ ] ErrorDetailsで詳細情報を記録
+- [ ] エラータイプを適切な粒度で分類
+- [ ] 統計情報への自動記録機構
+- [ ] GetLastOperationResult()で外部からアクセス可能に
+
+#### Mock設計時
+- [ ] すべての状態を設定可能に
+- [ ] すべての状態を取得可能に
+- [ ] 状態のコピーロジックを一箇所に集約
+- [ ] デフォルト動作を明確に
+- [ ] テストで状態のコピーを検証
+
+#### TDD実践時
+- [ ] Red: 失敗するテストを書く
+- [ ] Green: 最小限の実装でパスさせる
+- [ ] Refactor: コードを改善
+- [ ] テストが仕様書になっていることを確認
+- [ ] リグレッションテストとして機能することを確認
+
+### 7.2 今後の応用
+
+1. **Step4-6へのエラー伝播拡張**
+   - SendFrameAsync, ReceiveResponseAsyncでも同様のパターン適用
+   - Step6の3段階処理でのエラー伝播
+
+2. **リトライ機構の実装**
+   - エラータイプに基づく自動リトライ判定
+   - Exponential backoff戦略
+
+3. **アラート機構の実装**
+   - 統計情報に基づくアラート判定
+   - エラー頻度の監視
+
+4. **ログ出力の統一**
+   - ErrorDetailsの構造化ログ出力
+   - 診断情報の充実
+
+---
+
+## 参考文献・関連資料
+
+### 実装ファイル
+- `andon/Core/Managers/PlcCommunicationManager.cs`
+- `andon/Core/Models/AsyncOperationResult.cs`
+- `andon/Tests/TestUtilities/Mocks/MockSocketFactory.cs`
+
+### 関連文書
+- `documents/design/エラーハンドリング.md`
+- `documents/implementation_records/TC124_実装サマリー.txt`
+- `documents/implementation_records/method_records/TC124_ErrorPropagation_詳細実装記録.txt`
+
+### 関連パターン
+- Result Pattern
+- Railway Oriented Programming
+- Error Propagation Pattern
+- Mock Object Pattern
+
+---
+
+**作成日**: 2025-11-06
+**最終更新**: 2025-11-06
+**バージョン**: 1.0

@@ -1,0 +1,23 @@
+2025/11/27 10:21:11 にビルドを開始しました。
+     1>ノード 1 上のプロジェクト "C:\Users\1010821\Desktop\python\andon\andon\andon.csproj" (Restore ターゲット)。
+     1>_GetAllRestoreProjectPathItems:
+         復元対象のプロジェクトを決定しています...
+       Restore:
+         X.509 証明書チェーンの検証では、コード署名のために .NET によって選択された既定の信頼ストアが使用されます。
+         X.509 証明書チェーンの検証では、タイムスタンプに .NET によって選択された既定の信頼ストアが使用されます。
+         アセット ファイルは変更されていません。アセット ファイルの書き込みを省略します。パス: C:\Users\1010821\Desktop\python\andon\andon\obj\project.assets.json
+         C:\Users\1010821\Desktop\python\andon\andon\andon.csproj を復元しました (284 ミリ秒)。
+         
+         使用されている NuGet Config ファイル:
+             C:\Users\1010821\AppData\Roaming\NuGet\NuGet.Config
+         
+         使用されているフィード:
+             https://api.nuget.org/v3/index.json
+         復元対象のすべてのプロジェクトは最新です。
+     1>プロジェクト "C:\Users\1010821\Desktop\python\andon\andon\andon.csproj" (Restore ターゲット) のビルドが完了しました。
+
+ビルドに成功しました。
+    0 個の警告
+    0 エラー
+
+経過時間 00:00:06.54

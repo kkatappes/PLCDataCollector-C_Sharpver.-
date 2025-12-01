@@ -1,0 +1,1 @@
+フレーム構造に関しては,C:\Users\1010821\Desktop\python\andon\documents\design\フレーム構築関係\フレーム構築方法.md,C:\Users\1010821\Desktop\python\andon\memo.md これらを正としてください 

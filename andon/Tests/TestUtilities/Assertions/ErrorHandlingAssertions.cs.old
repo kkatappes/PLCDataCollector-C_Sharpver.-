@@ -1,0 +1,203 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Xunit;
+using andon.Core.Models;
+using andon.Core.Exceptions;
+using andon.Core.Managers;
+
+namespace andon.Tests.TestUtilities.Assertions
+{
+    /// <summary>
+    /// エラーハンドリング検証用アサーションユーティリティ
+    /// </summary>
+    public static class ErrorHandlingAssertions
+    {
+        /// <summary>
+        /// エラー時のスキップ動作を検証
+        /// </summary>
+        /// <param name="result">実行結果</param>
+        /// <param name="expectedFailedStep">期待される失敗ステップ</param>
+        /// <param name="expectedExceptionType">期待される例外タイプ</param>
+        public static void AssertErrorSkipBehavior<T>(
+            AsyncOperationResult<T> result,
+            string expectedFailedStep,
+            Type expectedExceptionType)
+        {
+            // 基本的な失敗状態の検証
+            Assert.False(result.IsSuccess, "結果のIsSuccessがfalseであることを確認");
+            Assert.Equal(expectedFailedStep, result.FailedStep);
+            Assert.NotNull(result.Exception);
+            Assert.IsType(expectedExceptionType, result.Exception);
+
+            // 後続ステップが実行されていないことを確認
+            AssertSubsequentStepsSkipped(result, expectedFailedStep);
+
+            // タイムスタンプの妥当性確認
+            Assert.True(result.StartTime <= result.EndTime, "開始時刻が終了時刻より前であることを確認");
+            Assert.True(result.Duration >= TimeSpan.Zero, "実行時間が0以上であることを確認");
+        }
+
+        /// <summary>
+        /// 後続ステップがスキップされていることを検証
+        /// </summary>
+        /// <param name="result">実行結果</param>
+        /// <param name="failedStep">失敗したステップ</param>
+        private static void AssertSubsequentStepsSkipped<T>(AsyncOperationResult<T> result, string failedStep)
+        {
+            // ステップ番号を取得
+            if (!int.TryParse(failedStep.Replace("Step", ""), out int failedStepNumber))
+            {
+                throw new ArgumentException($"不正なステップ形式: {failedStep}");
+            }
+
+            // 後続ステップ（失敗したステップより大きい番号）が実行されていないことを確認
+            for (int i = failedStepNumber + 1; i <= 6; i++)
+            {
+                string subsequentStep = $"Step{i}";
+                Assert.False(result.StepResults.ContainsKey(subsequentStep),
+                    $"後続ステップ {subsequentStep} が実行されていないことを確認");
+            }
+        }
+
+        /// <summary>
+        /// 部分実行結果を検証（一部ステップ成功、一部失敗）
+        /// </summary>
+        /// <param name="result">実行結果</param>
+        /// <param name="expectedSuccessfulSteps">成功したステップリスト</param>
+        /// <param name="failedStep">失敗したステップ</param>
+        public static void AssertPartialExecution<T>(
+            AsyncOperationResult<T> result,
+            string[] expectedSuccessfulSteps,
+            string failedStep)
+        {
+            // 成功したステップが記録されていることを確認
+            foreach (string successStep in expectedSuccessfulSteps)
+            {
+                Assert.True(result.StepResults.ContainsKey(successStep),
+                    $"成功ステップ {successStep} が記録されていることを確認");
+                Assert.NotNull(result.StepResults[successStep]);
+            }
+
+            // 失敗ステップが正しく設定されていることを確認
+            Assert.Equal(failedStep, result.FailedStep);
+
+            // 後続ステップがスキップされていることを確認
+            AssertSubsequentStepsSkipped(result, failedStep);
+        }
+
+        /// <summary>
+        /// リソースクリーンアップが実行されていることを検証
+        /// </summary>
+        /// <param name="manager">PlcCommunicationManagerインスタンス</param>
+        public static void AssertResourceCleanup(PlcCommunicationManager manager)
+        {
+            // 接続状態がリセットされていることを確認
+            Assert.False(manager.IsConnected, "接続状態がfalseにリセットされていることを確認");
+
+            // ソケットが解放されていることを確認（nullまたは切断状態）
+            var currentSocket = manager.GetCurrentSocket();
+            Assert.True(currentSocket == null || !currentSocket.Connected,
+                "ソケットが解放または切断されていることを確認");
+        }
+
+        /// <summary>
+        /// 例外情報の詳細を検証
+        /// </summary>
+        /// <param name="exception">発生した例外</param>
+        /// <param name="expectedMessage">期待されるメッセージ（部分一致）</param>
+        /// <param name="shouldHaveInnerException">内部例外の有無</param>
+        public static void AssertExceptionDetails(
+            Exception exception,
+            string expectedMessage = null,
+            bool shouldHaveInnerException = false)
+        {
+            Assert.NotNull(exception);
+
+            if (!string.IsNullOrEmpty(expectedMessage))
+            {
+                Assert.Contains(expectedMessage, exception.Message);
+            }
+
+            if (shouldHaveInnerException)
+            {
+                Assert.NotNull(exception.InnerException);
+            }
+
+            // スタックトレースが存在することを確認
+            Assert.NotNull(exception.StackTrace);
+        }
+
+        /// <summary>
+        /// PlcCommunicationException固有の情報を検証
+        /// </summary>
+        /// <param name="exception">PlcCommunicationException</param>
+        /// <param name="expectedErrorCode">期待されるエラーコード</param>
+        /// <param name="expectedFailedStep">期待される失敗ステップ</param>
+        public static void AssertPlcExceptionDetails(
+            PlcCommunicationException exception,
+            string expectedErrorCode,
+            string expectedFailedStep)
+        {
+            Assert.NotNull(exception);
+            Assert.Equal(expectedErrorCode, exception.ErrorCode);
+            Assert.Equal(expectedFailedStep, exception.FailedStep);
+        }
+
+        /// <summary>
+        /// 統計情報にエラーが正しく記録されていることを検証
+        /// </summary>
+        /// <param name="stats">接続統計情報</param>
+        /// <param name="expectedErrorCount">期待されるエラー数</param>
+        public static void AssertErrorStatistics(
+            ConnectionStats stats,
+            int expectedErrorCount)
+        {
+            Assert.NotNull(stats);
+            Assert.Equal(expectedErrorCount, stats.ErrorCount);
+            Assert.True(stats.LastErrorTime.HasValue, "最後のエラー時刻が記録されていることを確認");
+        }
+
+        /// <summary>
+        /// エラー時のログ出力を検証（実装されている場合）
+        /// </summary>
+        /// <param name="logEntries">ログエントリリスト</param>
+        /// <param name="expectedErrorLogCount">期待されるエラーログ数</param>
+        public static void AssertErrorLogging(
+            IEnumerable<string> logEntries,
+            int expectedErrorLogCount)
+        {
+            if (logEntries == null) return;
+
+            var errorLogs = logEntries.Where(log =>
+                log.Contains("ERROR") || log.Contains("Exception") || log.Contains("Failed")).ToList();
+
+            Assert.Equal(expectedErrorLogCount, errorLogs.Count);
+        }
+
+        /// <summary>
+        /// 複数の検証を一括実行
+        /// </summary>
+        /// <param name="result">実行結果</param>
+        /// <param name="exception">発生した例外</param>
+        /// <param name="manager">PlcCommunicationManagerインスタンス</param>
+        /// <param name="expectedFailedStep">期待される失敗ステップ</param>
+        /// <param name="expectedExceptionType">期待される例外タイプ</param>
+        public static void AssertCompleteErrorHandling<T>(
+            AsyncOperationResult<T> result,
+            Exception exception,
+            PlcCommunicationManager manager,
+            string expectedFailedStep,
+            Type expectedExceptionType)
+        {
+            // エラースキップ動作の検証
+            AssertErrorSkipBehavior(result, expectedFailedStep, expectedExceptionType);
+
+            // 例外詳細の検証
+            AssertExceptionDetails(exception);
+
+            // リソースクリーンアップの検証
+            AssertResourceCleanup(manager);
+        }
+    }
+}

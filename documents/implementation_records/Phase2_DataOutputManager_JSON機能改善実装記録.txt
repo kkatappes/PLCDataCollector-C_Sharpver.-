@@ -1,0 +1,261 @@
+# Phase2: DataOutputManager JSON生成機能改善 実装記録
+
+## 実装日時
+- **実施日**: 2025-11-27
+- **Phase**: Phase2（JSON生成機能実装）
+- **対象メソッド**: DataOutputManager.OutputToJson()
+
+---
+
+## 実装概要
+
+Phase2実装計画に基づき、TDD手法を用いてDataOutputManager.OutputToJson()メソッドを改善しました。
+
+### 実装項目
+1. device.numberの3桁ゼロ埋めフォーマット対応
+2. ディレクトリ自動作成処理の追加
+3. ログ出力機能の追加（開始/完了ログ）
+4. 単体テスト実装（TC_P2_001～TC_P2_005）
+
+---
+
+## TDD実装プロセス
+
+### Red Phase（テスト実装）
+**目的**: 失敗するテストを先に実装し、期待する動作を明確化
+
+実装したテストケース:
+1. TC_P2_001: device.number 1桁（Address=0）→ "000" 期待
+2. TC_P2_002: device.number 2桁（Address=10）→ "010" 期待
+3. TC_P2_003: device.number 3桁（Address=100）→ "100" 期待
+4. TC_P2_004: 存在しないディレクトリに出力 → 自動作成期待
+5. TC_P2_005: ログ出力 → "[INFO] JSON出力開始" と "[INFO] JSON出力完了" 期待
+
+**Red Phase結果**:
+- 4/5テストが失敗（期待通り）
+- TC_P2_003のみ成功（"100"は既に3桁のため）
+
+### Green Phase（機能実装）
+**目的**: テストをパスさせる最小限の機能を実装
+
+実装した変更:
+1. **device.number 3桁ゼロ埋め** (andon/Core/Managers/DataOutputManager.cs:60)
+   ```csharp
+   // 修正前
+   number = kvp.Value.Address.ToString()
+
+   // 修正後
+   number = kvp.Value.Address.ToString("D3")  // Phase2: 3桁ゼロ埋め
+   ```
+
+2. **ディレクトリ自動作成** (andon/Core/Managers/DataOutputManager.cs:47-50)
+   ```csharp
+   // Phase2: ディレクトリ存在確認・自動作成
+   if (!Directory.Exists(outputDirectory))
+   {
+       Directory.CreateDirectory(outputDirectory);
+   }
+   ```
+
+3. **ログ出力追加** (andon/Core/Managers/DataOutputManager.cs:29, 77)
+   ```csharp
+   // Phase2: ログ出力開始
+   Console.WriteLine($"[INFO] JSON出力開始: IP={ipAddress}, Port={port}");
+
+   // Phase2: ログ出力完了
+   Console.WriteLine($"[INFO] JSON出力完了: ファイル={fileName}, デバイス数={data.ProcessedData.Count}");
+   ```
+
+**Green Phase結果**:
+- 全5テスト成功（5/5）
+- 既存テストも継続してパス（11/11）
+
+### Refactor Phase
+**判断**: リファクタリングは不要と判断
+- コードは明確かつ読みやすい
+- 各変更はPhase2コメントで明示
+- パフォーマンス問題なし
+
+---
+
+## 技術判断の根拠
+
+### 1. device.number 3桁ゼロ埋め実装方法
+
+#### 検討した方法
+- **方法A**: `ToString("D3")` を使用（採用）
+- **方法B**: `PadLeft(3, '0')` を使用
+- **方法C**: `string.Format("{0:D3}", ...)` を使用
+
+#### 採用理由
+**方法A（ToString("D3")）を採用**:
+- 最も簡潔で可読性が高い
+- .NETの標準フォーマット仕様に準拠
+- パフォーマンス面で問題なし
+- 数値型に対する標準的なアプローチ
+
+#### トレードオフ
+- メリット: 簡潔、標準的、パフォーマンス良好
+- デメリット: なし（この用途では最適）
+
+### 2. ディレクトリ自動作成の実装位置
+
+#### 検討した方法
+- **方法A**: ファイル書き込み前に確認・作成（採用）
+- **方法B**: メソッド開始時に確認・作成
+- **方法C**: try-catchでエラー発生時に作成
+
+#### 採用理由
+**方法A（ファイル書き込み前）を採用**:
+- JSON生成処理が完了してから初めてディレクトリが必要になる
+- JSON生成でエラーが発生した場合、無駄なディレクトリ作成を回避
+- ファイル操作の直前で確認することで、処理の流れが明確
+
+#### トレードオフ
+- メリット: JSON生成失敗時に無駄な処理を回避、処理順序が明確
+- デメリット: メソッド開始時のチェックではないため、後半でエラー発生の可能性
+
+### 3. ログ出力の実装方法
+
+#### 検討した方法
+- **方法A**: Console.WriteLineを使用（採用）
+- **方法B**: ILoggingManagerインターフェース経由
+- **方法C**: System.Diagnostics.Debug.WriteLine
+
+#### 採用理由
+**方法A（Console.WriteLine）を暫定採用**:
+- Phase2では簡易的な実装を優先
+- ILoggingManagerは将来的な拡張として実装予定（Phase4以降）
+- テストでの出力キャプチャが容易
+
+#### 将来の改善予定
+Phase4以降でILoggingManagerに移行予定:
+```csharp
+_logger.LogInfo($"JSON出力開始: IP={ipAddress}, Port={port}");
+_logger.LogInfo($"JSON出力完了: ファイル={fileName}, デバイス数={data.ProcessedData.Count}");
+```
+
+#### トレードオフ
+- メリット: シンプル、テスト容易、Phase2の目的を満たす
+- デメリット: 本格的なログ管理には不向き（Phase4で改善予定）
+
+---
+
+## 発生した問題と解決過程
+
+### 問題1: テストでのコンソール出力キャプチャ
+
+**問題内容**:
+TC_P2_005でConsole.WriteLineの出力をキャプチャする必要があった
+
+**解決方法**:
+```csharp
+// コンソール出力をキャプチャ
+var originalOut = Console.Out;
+using var stringWriter = new StringWriter();
+Console.SetOut(stringWriter);
+
+try
+{
+    _manager.OutputToJson(...);
+    var output = stringWriter.ToString();
+    Assert.Contains("[INFO] JSON出力開始", output);
+}
+finally
+{
+    Console.SetOut(originalOut);  // 元に戻す
+}
+```
+
+**学習事項**:
+- Console.SetOut()を使用することでテスト内で出力をキャプチャ可能
+- finallyブロックで必ず元に戻すことが重要
+- StringWriterを使用することで文字列として取得可能
+
+### 問題2: TC_P2_003が最初から成功する理由の説明
+
+**問題内容**:
+Red Phaseで4/5テストが失敗する予定だったが、TC_P2_003だけ成功した
+
+**原因分析**:
+- Address=100の場合、ToString()でも"100"が返される
+- 3桁の数値は既に3桁表示されるため、ゼロ埋めの有無が影響しない
+
+**対応**:
+- この動作は正常と判断
+- テストケース自体は3桁の境界値テストとして有効
+- Red Phase全体としては期待通り（機能未実装による失敗確認が目的）
+
+---
+
+## テスト結果サマリー
+
+### Phase2テスト（TC_P2_001～TC_P2_005）
+```
+テストの合計数: 5
+     成功: 5
+     失敗: 0
+```
+
+### 全DataOutputManagerテスト
+```
+テストの合計数: 11
+     成功: 11
+     失敗: 0
+```
+
+**結論**: Phase2実装により既存機能への影響なし。すべてのテストがパス。
+
+---
+
+## Phase2完了条件チェック
+
+### 必須項目
+- ✅ 単体テスト（TC_P2_001～TC_P2_005）が実装されている
+- ✅ すべてのテストがパスする（5/5成功）
+- ✅ device.numberが3桁ゼロ埋めフォーマットで出力される
+- ✅ 存在しないディレクトリが自動作成される
+- ✅ JSON出力開始・完了のログが出力される
+- ✅ `dotnet build`が成功する
+- ✅ 既存テストもすべてパス（11/11成功）
+
+**Phase2完了**: すべての完了条件を満たしました。
+
+---
+
+## 次のPhaseへの準備
+
+### Phase3で実装する内容
+Phase3では**ビットデバイス16ビット分割処理**を実装します。これはStep7データ出力機能の核心部分であり、最も重要なPhaseです。
+
+### Phase3の準備事項
+1. `Phase3_ビットデバイス分割処理実装.md` を読み込み
+2. DeviceCode.IsBitDevice()の動作確認
+3. ビット抽出処理（`(bitValue >> i) & 1`）の理解
+4. deviceConfig辞書の拡張方法の検討
+
+### Phase3実装で注意すべき点
+- **重要**: Phase3は最も複雑な実装（難易度: ★★★★☆）
+- TDD手法を厳守（テスト先行実装）
+- ビットデバイス分割処理のロジックを慎重に実装
+- 十分な時間を確保（推奨: 3～5日）
+
+---
+
+## 参照文書
+
+### Phase2関連文書
+- `Phase2_JSON生成機能実装.md`: Phase2実装計画
+- `実装ガイド.md`: 全体的な実装仕様（セクション2, 4, 6）
+- `実装時対応関係.md`: device.number問題、ログ出力設計
+
+### 次Phase文書
+- `Phase3_ビットデバイス分割処理実装.md`: Phase3実装計画
+
+---
+
+## 作成情報
+- **作成日**: 2025-11-27
+- **作成者**: Claude Code (TDD実装支援)
+- **Phase**: Phase2完了
+- **次Phase**: Phase3（ビットデバイス分割処理実装）

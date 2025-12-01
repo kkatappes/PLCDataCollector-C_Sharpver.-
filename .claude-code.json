@@ -1,0 +1,9 @@
+{
+  "model": "sonnet",
+  "hooks": {
+    "Notification": {
+      "command": "powershell -Command \"[System.Media.SystemSounds]::Exclamation.Play()\"",
+      "description": "ユーザーに確認を求める際にビープ音を鳴らす"
+    }
+  }
+}
