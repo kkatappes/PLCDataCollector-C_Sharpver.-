@@ -70,7 +70,7 @@ public class DataOutputManagerTests : IDisposable
         Assert.Single(files);
 
         var fileName = Path.GetFileName(files[0]);
-        Assert.Matches(@"^\d{8}_\d{9}_192-168-1-100_5000\.json$", fileName);
+        Assert.Matches(@"^192-168-1-100_5000\.json$", fileName);
 
         // Assert - JSON内容検証
         var jsonString = File.ReadAllText(files[0]);
@@ -134,9 +134,9 @@ public class DataOutputManagerTests : IDisposable
             { "D100", new DeviceEntryInfo { Name = "テストデバイス", Digits = 1 } }
         };
 
-        // Act
+        // Act - 異なるIPアドレスで2回出力（日時なしファイル名では同じIP:ポートだと上書きされる）
         _manager.OutputToJson(data1, _testDirectory, "192.168.1.100", 5000, deviceConfig);
-        _manager.OutputToJson(data2, _testDirectory, "192.168.1.100", 5000, deviceConfig);
+        _manager.OutputToJson(data2, _testDirectory, "192.168.1.101", 5000, deviceConfig);
 
         // Assert - 2ファイル作成されることを確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -250,8 +250,8 @@ public class DataOutputManagerTests : IDisposable
         var files = Directory.GetFiles(_testDirectory, "*.json");
         var fileName = Path.GetFileName(files[0]);
 
-        // yyyymmdd_hhmmssSSS_xxx-xxx-x-xx_zzzz.json
-        Assert.Matches(@"^20251125_103045\d{3}_172-30-40-15_8192\.json$", fileName);
+        // xxx-xxx-x-xx_zzzz.json（日時なし）
+        Assert.Matches(@"^172-30-40-15_8192\.json$", fileName);
     }
 
     [Fact]

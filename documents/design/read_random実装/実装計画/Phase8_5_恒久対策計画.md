@@ -1,29 +1,42 @@
 # Phase8.5: ProcessedDeviceRequestInfo未初期化エラー恒久対策
 
-## 暫定対策実施状況（2025-12-01完了）
+## 暫定対策実施状況（2025-12-02完了）
 
 ### 実施内容
 Phase3.5で削除された`DeviceSpecifications`プロパティを`ProcessedDeviceRequestInfo`に**一時的に再導入**し、ReadRandom(0x0403)コマンドで実機データ取得を可能にした。
 
 ### 実施結果
-- ✅ **全テストパス**: 新規3テスト + 既存テスト全て合格
-- ✅ **ビルド成功**: Main 0 errors, Test 0 errors（84ビルドエラー修正）
-- ✅ **実機対応**: `DeviceSpecifications`設定により実機エラー解消
+- ✅ **全テストパス**: Phase8.5関連19テスト + DataOutputManager 22テスト全て合格
+- ✅ **ビルド成功**: Main 0 errors, Test 0 errors
+- ✅ **実機対応**: `DeviceSpecifications`設定により実機エラー解消（想定）
 - ✅ **後方互換性**: Read(0x0401)の既存動作を完全維持
 - ✅ **TDD厳守**: Red-Green-Refactorサイクル完遂
+- ✅ **リグレッション**: ゼロ（既存テストへの影響なし）
 
-### テスト実行結果
+### TDD実装ステップ
 ```
-成功!   -失敗:     0、合格:     3、スキップ:     0、合計:     3、期間: 337 ms
+Step1: ProcessedDeviceRequestInfoTests - 2件パス
+Step2: ExecutionOrchestratorTests      - 1件パス
+Step3: PlcCommunicationManagerTests    - 2件パス
+Step4: Step3_6_IntegrationTests        - 14件パス
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+合計                                   - 19件パス（失敗0件）
 ```
+
+### 追加修正（Phase8.5外）
+- ✅ **DataOutputManager timestamp変数欠落修正**: Phase7実装漏れの修正完了
+- ✅ **DataOutputManagerテストコード修正**: ファイル名形式を正仕様（日時なし）に統一
 
 ### 修正ファイル
 1. `andon/Core/Models/ProcessedDeviceRequestInfo.cs` - `DeviceSpecifications`プロパティ追加
 2. `andon/Core/Controllers/ExecutionOrchestrator.cs` - `DeviceSpecifications`初期化
 3. `andon/Core/Managers/PlcCommunicationManager.cs` - `ExtractDeviceValuesFromReadRandom()`追加
+4. `andon/Core/Managers/DataOutputManager.cs` - timestamp変数追加（Phase8.5外）
+5. `andon/Tests/Unit/Core/Managers/DataOutputManagerTests.cs` - ファイル名形式修正（Phase8.5外）
+6. `andon/Tests/Integration/DataOutputManager_IntegrationTests.cs` - ファイル名形式修正（Phase8.5外）
 
 ### 詳細レポート
-📄 `documents/design/read_random実装/実装結果/Phase8_5_暫定対策_TestResults.md`
+📄 `documents/design/read_random実装/実装結果/Phase8.5_実機エラー暫定対策_TestResults.md`
 
 ### 次のステップ
 本暫定対策により実機データ取得が可能になったため、Phase12で下記の恒久対策を実施予定。

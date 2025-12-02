@@ -22,7 +22,7 @@ public class PlcConfigurationTests
         Assert.NotNull(config.IpAddress);
         Assert.Equal(string.Empty, config.IpAddress);
         Assert.Equal(0, config.Port);
-        Assert.Equal(0, config.MonitoringIntervalMs);
+        Assert.Equal(DefaultValues.MonitoringIntervalMs, config.MonitoringIntervalMs); // 既定値1000msを期待
         Assert.NotNull(config.PlcModel);
         Assert.Equal(string.Empty, config.PlcModel);
         Assert.NotNull(config.SavePath);

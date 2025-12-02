@@ -30,9 +30,6 @@ public class OptionsConfigurator
         // TimeoutConfig設定
         services.Configure<TimeoutConfig>(configuration.GetSection("TimeoutConfig"));
 
-        // SystemResourcesConfig設定
-        services.Configure<SystemResourcesConfig>(configuration.GetSection("SystemResourcesConfig"));
-
         // LoggingConfig設定
         services.Configure<LoggingConfig>(configuration.GetSection("LoggingConfig"));
 
@@ -73,19 +70,6 @@ public class OptionsConfigurator
                     return false;
                 return true;
             }, "TimeoutConfig validation failed: All timeout values must be positive");
-
-        // SystemResourcesConfigのバリデーション
-        services.AddOptions<SystemResourcesConfig>()
-            .Validate(config =>
-            {
-                if (config.MaxConcurrentConnections <= 0)
-                    return false;
-                if (config.MaxMemoryUsageMb <= 0)
-                    return false;
-                if (config.MaxLogFileSizeMb <= 0)
-                    return false;
-                return true;
-            }, "SystemResourcesConfig validation failed: All resource limits must be positive");
 
         // LoggingConfigのバリデーション
         services.AddOptions<LoggingConfig>()

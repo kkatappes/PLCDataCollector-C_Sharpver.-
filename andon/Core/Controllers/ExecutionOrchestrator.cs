@@ -51,6 +51,20 @@ public class ExecutionOrchestrator : Interfaces.IExecutionOrchestrator
     }
 
     /// <summary>
+    /// コンストラクタ（Phase12テスト用、TimerService不要）
+    /// </summary>
+    public ExecutionOrchestrator(
+        Interfaces.IConfigToFrameManager configToFrameManager,
+        Interfaces.IDataOutputManager dataOutputManager,
+        Interfaces.ILoggingManager loggingManager)
+    {
+        _dataProcessingConfig = Options.Create(new DataProcessingConfig());
+        _configToFrameManager = configToFrameManager;
+        _dataOutputManager = dataOutputManager;
+        _loggingManager = loggingManager;
+    }
+
+    /// <summary>
     /// コンストラクタ（Phase 継続実行モード対応、完全依存性注入）
     /// </summary>
     public ExecutionOrchestrator(
@@ -196,20 +210,28 @@ public class ExecutionOrchestrator : Interfaces.IExecutionOrchestrator
                     ReceiveTimeoutMs = config.Timeout
                 };
 
-                // Phase8.5暫定対策: PlcConfigurationからDeviceSpecificationsを設定
-                var deviceRequestInfo = new ProcessedDeviceRequestInfo
+                // Phase12恒久対策: ReadRandomRequestInfo生成（ReadRandom(0x0403)専用）
+                var readRandomRequestInfo = new ReadRandomRequestInfo
                 {
-                    DeviceSpecifications = config.Devices?.ToList(), // ReadRandom用デバイス指定
+                    DeviceSpecifications = config.Devices?.ToList() ?? new List<DeviceSpecification>(),
                     FrameType = config.FrameVersion == "4E" ? FrameType.Frame4E : FrameType.Frame3E,
                     RequestedAt = DateTime.UtcNow
                 };
+
+                // デバッグログ追加（Phase12実機確認用）
+                Console.WriteLine($"[DEBUG] ReadRandomRequestInfo created:");
+                Console.WriteLine($"[DEBUG]   DeviceSpecifications.Count: {readRandomRequestInfo.DeviceSpecifications.Count}");
+                if (readRandomRequestInfo.DeviceSpecifications.Count > 0)
+                {
+                    Console.WriteLine($"[DEBUG]   First device: {readRandomRequestInfo.DeviceSpecifications[0].DeviceType}{readRandomRequestInfo.DeviceSpecifications[0].DeviceNumber}");
+                }
 
                 await (_loggingManager?.LogDebug($"[DEBUG] Step3-6: Starting full cycle for PLC #{i+1}") ?? Task.CompletedTask);
                 var result = await manager.ExecuteFullCycleAsync(
                     connectionConfig,
                     timeoutConfig,
                     frame,
-                    deviceRequestInfo,
+                    readRandomRequestInfo,
                     cancellationToken);
 
                 if (result.IsSuccess)

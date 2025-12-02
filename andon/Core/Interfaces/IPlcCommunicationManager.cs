@@ -84,11 +84,29 @@ public interface IPlcCommunicationManager
 
     /// <summary>
     /// Step3-6完全サイクル実行（接続→送受信→データ処理→切断）
+    /// Phase12恒久対策: ReadRandom(0x0403)専用のReadRandomRequestInfoを使用
     /// </summary>
     /// <param name="connectionConfig">接続設定</param>
     /// <param name="timeoutConfig">タイムアウト設定</param>
     /// <param name="sendFrame">送信フレーム</param>
-    /// <param name="processedRequestInfo">前処理済み要求情報</param>
+    /// <param name="readRandomRequestInfo">ReadRandom(0x0403)リクエスト情報</param>
+    /// <param name="cancellationToken">キャンセルトークン</param>
+    /// <returns>完全サイクル実行結果</returns>
+    Task<FullCycleExecutionResult> ExecuteFullCycleAsync(
+        ConnectionConfig connectionConfig,
+        TimeoutConfig timeoutConfig,
+        byte[] sendFrame,
+        ReadRandomRequestInfo readRandomRequestInfo,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Step3-6完全サイクル実行（接続→送受信→データ処理→切断）
+    /// 後方互換性維持: テスト用途専用（TC029/TC037等）
+    /// </summary>
+    /// <param name="connectionConfig">接続設定</param>
+    /// <param name="timeoutConfig">タイムアウト設定</param>
+    /// <param name="sendFrame">送信フレーム</param>
+    /// <param name="processedRequestInfo">処理済みリクエスト情報（テスト用途専用）</param>
     /// <param name="cancellationToken">キャンセルトークン</param>
     /// <returns>完全サイクル実行結果</returns>
     Task<FullCycleExecutionResult> ExecuteFullCycleAsync(

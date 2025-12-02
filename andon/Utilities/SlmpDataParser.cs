@@ -48,7 +48,9 @@ namespace Andon.Utilities
             ValidateResponseFrame(responseFrame, is4EFrame);
 
             // デバイスデータ部の開始位置
-            int dataStartIndex = is4EFrame ? 17 : 11;
+            // 4Eフレーム: エンドコード(13-14) + 2 = 15バイト目から
+            // 3Eフレーム: エンドコード(9-10) + 2 = 11バイト目から
+            int dataStartIndex = is4EFrame ? 15 : 11;
 
             // デバイスデータ部の期待サイズ（ワード数 × 2バイト/ワード）
             int expectedDataSize = devices.Count * 2;
@@ -81,8 +83,10 @@ namespace Andon.Utilities
         /// </summary>
         private static void ValidateResponseFrame(byte[] responseFrame, bool is4EFrame)
         {
-            // 最小フレーム長検証
-            int minLength = is4EFrame ? 17 : 11;
+            // 最小フレーム長検証（エンドコードまで含む）
+            // 4Eフレーム: サブヘッダ(2) + シーケンス(2) + 予約(2) + ヘッダ(5) + データ長(2) + エンドコード(2) = 15バイト
+            // 3Eフレーム: サブヘッダ(2) + ヘッダ(5) + データ長(2) + エンドコード(2) = 11バイト
+            int minLength = is4EFrame ? 15 : 11;
             if (responseFrame.Length < minLength)
             {
                 throw new InvalidOperationException(
@@ -91,7 +95,9 @@ namespace Andon.Utilities
             }
 
             // エンドコード検証
-            int endCodeIndex = is4EFrame ? 15 : 9;
+            // 4Eフレーム: サブヘッダ(2) + シーケンス(2) + 予約(2) + ネットワーク(1) + PC(1) + I/O(2) + 局番(1) + データ長(2) = 13バイト目から
+            // 3Eフレーム: サブヘッダ(2) + ネットワーク(1) + PC(1) + I/O(2) + 局番(1) + データ長(2) = 9バイト目から
+            int endCodeIndex = is4EFrame ? 13 : 9;
             ushort endCode = BitConverter.ToUInt16(responseFrame, endCodeIndex);
 
             if (endCode != 0x0000)

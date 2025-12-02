@@ -204,8 +204,8 @@ public class DataOutputManager_IntegrationTests : IDisposable
         Assert.Single(files);
 
         var fileName = Path.GetFileName(files[0]);
-        // ファイル名形式: yyyyMMdd_HHmmssfff_192-168-1-10_5007.json
-        Assert.Matches(@"^\d{8}_\d{9}_192-168-1-10_5007\.json$", fileName);
+        // ファイル名形式: 192-168-1-10_5007.json（日時なし）
+        Assert.Matches(@"^192-168-1-10_5007\.json$", fileName);
     }
 
 

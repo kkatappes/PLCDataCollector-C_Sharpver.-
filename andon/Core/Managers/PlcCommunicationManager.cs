@@ -2613,18 +2613,19 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
 
     /// <summary>
     /// TC121: Step3（接続）→Step4（送受信）→Step5（切断）→Step6（データ処理）の完全サイクル実行
+    /// Phase12恒久対策: ReadRandom(0x0403)専用のReadRandomRequestInfoを使用
     /// </summary>
     /// <param name="connectionConfig">接続設定</param>
     /// <param name="timeoutConfig">タイムアウト設定</param>
     /// <param name="sendFrame">送信フレーム</param>
-    /// <param name="processedRequestInfo">Step2からのリクエスト情報</param>
+    /// <param name="readRandomRequestInfo">ReadRandom(0x0403)リクエスト情報</param>
     /// <param name="cancellationToken">キャンセレーショントークン</param>
     /// <returns>完全サイクル実行結果</returns>
     public async Task<FullCycleExecutionResult> ExecuteFullCycleAsync(
         ConnectionConfig connectionConfig,
         TimeoutConfig timeoutConfig,
         byte[] sendFrame,
-        ProcessedDeviceRequestInfo processedRequestInfo,
+        ReadRandomRequestInfo readRandomRequestInfo,
         CancellationToken cancellationToken = default)
     {
         var fullCycleResult = new FullCycleExecutionResult();
@@ -2738,9 +2739,18 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
             stepwatch.Restart();
             try
             {
+                // Phase12恒久対策: ReadRandomRequestInfoから一時的にProcessedDeviceRequestInfoを生成
+                // TODO: Phase12.4-Step2でExtractDeviceValuesオーバーロード追加後、直接処理に変更
+                var tempProcessedRequestInfo = new ProcessedDeviceRequestInfo
+                {
+                    DeviceSpecifications = readRandomRequestInfo.DeviceSpecifications,
+                    FrameType = readRandomRequestInfo.FrameType,
+                    RequestedAt = readRandomRequestInfo.RequestedAt
+                };
+
                 fullCycleResult.BasicProcessedData = await ProcessReceivedRawData(
                     fullCycleResult.ReceiveResult.ResponseData,
-                    processedRequestInfo,
+                    tempProcessedRequestInfo,
                     cancellationToken);
 
                 fullCycleResult.RecordStepTime("Step6_1_BasicProcess", stepwatch.Elapsed);
@@ -2821,9 +2831,17 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
             stepwatch.Restart();
             try
             {
+                // Phase12恒久対策: ReadRandomRequestInfoから一時的にProcessedDeviceRequestInfoを生成
+                var tempProcessedRequestInfo2 = new ProcessedDeviceRequestInfo
+                {
+                    DeviceSpecifications = readRandomRequestInfo.DeviceSpecifications,
+                    FrameType = readRandomRequestInfo.FrameType,
+                    RequestedAt = readRandomRequestInfo.RequestedAt
+                };
+
                 fullCycleResult.StructuredData = await ParseRawToStructuredData(
                     fullCycleResult.ProcessedData,
-                    processedRequestInfo,
+                    tempProcessedRequestInfo2,
                     cancellationToken);
 
                 fullCycleResult.RecordStepTime("Step6_3_Structuring", stepwatch.Elapsed);
@@ -2891,6 +2909,296 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
             Console.WriteLine($"[ERROR] 完全サイクル エラー: {ex.Message}");
 
             // 最善努力での切断
+            try
+            {
+                await DisconnectAsync();
+            }
+            catch
+            {
+                // 切断エラーは無視
+            }
+
+            return fullCycleResult;
+        }
+    }
+
+    /// <summary>
+    /// TC121: Step3-6完全サイクル実行（後方互換性維持版、テスト用途専用）
+    /// ProcessedDeviceRequestInfo版: 既存テストとの互換性を維持
+    /// </summary>
+    /// <param name="connectionConfig">接続設定</param>
+    /// <param name="timeoutConfig">タイムアウト設定</param>
+    /// <param name="sendFrame">送信フレーム</param>
+    /// <param name="processedRequestInfo">処理済みリクエスト情報（テスト用途専用）</param>
+    /// <param name="cancellationToken">キャンセルトークン</param>
+    /// <returns>完全サイクル実行結果</returns>
+    public async Task<FullCycleExecutionResult> ExecuteFullCycleAsync(
+        ConnectionConfig connectionConfig,
+        TimeoutConfig timeoutConfig,
+        byte[] sendFrame,
+        ProcessedDeviceRequestInfo processedRequestInfo,
+        CancellationToken cancellationToken = default)
+    {
+        // ProcessedDeviceRequestInfoをそのまま使用する既存実装
+        // Phase12恒久対策前の実装ロジックを保持（テスト用途専用）
+        var fullCycleResult = new FullCycleExecutionResult();
+        var startTime = DateTime.UtcNow;
+        var stepwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        try
+        {
+            Console.WriteLine($"[INFO] 完全サイクル開始（後方互換版）: サーバー={connectionConfig.IpAddress}:{connectionConfig.Port}");
+
+            // ===== Step3: 接続 =====
+            stepwatch.Restart();
+            fullCycleResult.ConnectResult = await ConnectAsync();
+            fullCycleResult.RecordStepTime("Step3_Connect", stepwatch.Elapsed);
+            fullCycleResult.TotalStepsExecuted++;
+
+            if (fullCycleResult.ConnectResult.Status != ConnectionStatus.Connected)
+            {
+                fullCycleResult.AddStepError("Step3", $"接続失敗: {fullCycleResult.ConnectResult.ErrorMessage}");
+                fullCycleResult.IsSuccess = false;
+                fullCycleResult.ErrorMessage = $"Step3接続失敗: {fullCycleResult.ConnectResult.ErrorMessage}";
+                return fullCycleResult;
+            }
+
+            fullCycleResult.SuccessfulSteps++;
+            Console.WriteLine($"[INFO] Step3完了: 接続成功、所要時間={stepwatch.ElapsedMilliseconds}ms");
+
+            // ===== Step4: 送信 =====
+            stepwatch.Restart();
+            try
+            {
+                string sendFrameHex = Convert.ToHexString(sendFrame);
+                await SendFrameAsync(sendFrameHex);
+
+                fullCycleResult.SendResult = new SendResponse
+                {
+                    IsSuccess = true,
+                    SentBytes = sendFrame.Length,
+                    SentAt = DateTime.UtcNow,
+                    ErrorMessage = null
+                };
+                fullCycleResult.RecordStepTime("Step4_Send", stepwatch.Elapsed);
+                fullCycleResult.TotalStepsExecuted++;
+                fullCycleResult.SuccessfulSteps++;
+
+                Console.WriteLine($"[INFO] Step4-送信完了: {sendFrame.Length}バイト、所要時間={stepwatch.ElapsedMilliseconds}ms");
+            }
+            catch (Exception ex)
+            {
+                fullCycleResult.SendResult = new SendResponse
+                {
+                    IsSuccess = false,
+                    SentBytes = 0,
+                    SentAt = DateTime.UtcNow,
+                    ErrorMessage = ex.Message
+                };
+                fullCycleResult.AddStepError("Step4_Send", ex.Message);
+                fullCycleResult.TotalStepsExecuted++;
+                fullCycleResult.IsSuccess = false;
+                fullCycleResult.ErrorMessage = $"Step4送信失敗: {ex.Message}";
+
+                await DisconnectAsync();
+                return fullCycleResult;
+            }
+
+            // ===== Step4: 受信 =====
+            stepwatch.Restart();
+            try
+            {
+                fullCycleResult.ReceiveResult = await ReceiveResponseAsync(timeoutConfig.ReceiveTimeoutMs);
+                fullCycleResult.RecordStepTime("Step4_Receive", stepwatch.Elapsed);
+                fullCycleResult.TotalStepsExecuted++;
+
+                if (fullCycleResult.ReceiveResult.ResponseData == null)
+                {
+                    fullCycleResult.AddStepError("Step4_Receive", "応答データなし");
+                    fullCycleResult.IsSuccess = false;
+                    fullCycleResult.ErrorMessage = "Step4受信失敗: 応答データなし";
+
+                    await DisconnectAsync();
+                    return fullCycleResult;
+                }
+
+                fullCycleResult.SuccessfulSteps++;
+                Console.WriteLine($"[INFO] Step4-受信完了: {fullCycleResult.ReceiveResult.DataLength}バイト、所要時間={stepwatch.ElapsedMilliseconds}ms");
+            }
+            catch (Exception ex)
+            {
+                fullCycleResult.ReceiveResult = new RawResponseData
+                {
+                    ResponseData = null,
+                    DataLength = 0,
+                    ReceivedAt = DateTime.UtcNow,
+                    ReceiveTime = stepwatch.Elapsed,
+                    ResponseHex = null,
+                    FrameType = FrameType.Frame3E,
+                    ErrorMessage = ex.Message
+                };
+
+                fullCycleResult.AddStepError("Step4_Receive", ex.Message);
+                fullCycleResult.TotalStepsExecuted++;
+                fullCycleResult.IsSuccess = false;
+                fullCycleResult.ErrorMessage = $"Step4受信失敗: {ex.Message}";
+
+                await DisconnectAsync();
+                return fullCycleResult;
+            }
+
+            // ===== Step6-1: 基本処理 =====
+            stepwatch.Restart();
+            try
+            {
+                // ProcessedDeviceRequestInfoをそのまま使用
+                fullCycleResult.BasicProcessedData = await ProcessReceivedRawData(
+                    fullCycleResult.ReceiveResult.ResponseData,
+                    processedRequestInfo,
+                    cancellationToken);
+
+                fullCycleResult.RecordStepTime("Step6_1_BasicProcess", stepwatch.Elapsed);
+                fullCycleResult.TotalStepsExecuted++;
+
+                if (!fullCycleResult.BasicProcessedData.IsSuccess)
+                {
+                    fullCycleResult.AddStepError("Step6_1", $"基本処理失敗: {string.Join(", ", fullCycleResult.BasicProcessedData.Errors)}");
+                    fullCycleResult.IsSuccess = false;
+                    fullCycleResult.ErrorMessage = $"Step6-1基本処理失敗: {string.Join(", ", fullCycleResult.BasicProcessedData.Errors)}";
+
+                    await DisconnectAsync();
+                    return fullCycleResult;
+                }
+
+                fullCycleResult.SuccessfulSteps++;
+                Console.WriteLine($"[INFO] Step6-1完了: 基本処理成功、所要時間={stepwatch.ElapsedMilliseconds}ms");
+            }
+            catch (Exception ex)
+            {
+                fullCycleResult.BasicProcessedData = new BasicProcessedResponseData
+                {
+                    IsSuccess = false,
+                    ProcessedDevices = new List<ProcessedDevice>(),
+                    Errors = new List<string> { ex.Message },
+                    Warnings = new List<string>(),
+                    ProcessedAt = DateTime.UtcNow,
+                    ProcessingTimeMs = Math.Max(stepwatch.ElapsedMilliseconds, 1),
+                    ProcessedDeviceCount = 0,
+                    TotalDataSizeBytes = fullCycleResult.ReceiveResult?.ResponseData?.Length ?? 0
+                };
+
+                fullCycleResult.AddStepError("Step6_1", ex.Message);
+                fullCycleResult.TotalStepsExecuted++;
+                fullCycleResult.IsSuccess = false;
+                fullCycleResult.ErrorMessage = $"Step6-1基本処理例外: {ex.Message}";
+
+                await DisconnectAsync();
+                return fullCycleResult;
+            }
+
+            // ===== Step6-2: DWord結合（Phase3.5で廃止、変換処理のみ） =====
+            stepwatch.Restart();
+            try
+            {
+                fullCycleResult.ProcessedData = new ProcessedResponseData
+                {
+                    IsSuccess = fullCycleResult.BasicProcessedData.IsSuccess,
+                    BasicProcessedDevices = fullCycleResult.BasicProcessedData.ProcessedDevices,
+                    CombinedDWordDevices = new List<CombinedDWordDevice>(),
+                    ProcessedAt = DateTime.UtcNow,
+                    ProcessingTimeMs = fullCycleResult.BasicProcessedData.ProcessingTimeMs,
+                    Errors = fullCycleResult.BasicProcessedData.Errors,
+                    Warnings = fullCycleResult.BasicProcessedData.Warnings
+                };
+
+                fullCycleResult.RecordStepTime("Step6_2_DataConversion", stepwatch.Elapsed);
+                fullCycleResult.TotalStepsExecuted++;
+                fullCycleResult.SuccessfulSteps++;
+                Console.WriteLine($"[INFO] Step6-2完了: データ変換成功、所要時間={stepwatch.ElapsedMilliseconds}ms");
+            }
+            catch (Exception ex)
+            {
+                fullCycleResult.AddStepError("Step6_2", ex.Message);
+                fullCycleResult.TotalStepsExecuted++;
+                fullCycleResult.IsSuccess = false;
+                fullCycleResult.ErrorMessage = $"Step6-2データ変換例外: {ex.Message}";
+
+                await DisconnectAsync();
+                return fullCycleResult;
+            }
+
+            // ===== Step6-3: 構造化（最終処理） =====
+            stepwatch.Restart();
+            try
+            {
+                // ProcessedDeviceRequestInfoをそのまま使用（ParseConfiguration含む）
+                fullCycleResult.StructuredData = await ParseRawToStructuredData(
+                    fullCycleResult.ProcessedData,
+                    processedRequestInfo,
+                    cancellationToken);
+
+                fullCycleResult.RecordStepTime("Step6_3_Structuring", stepwatch.Elapsed);
+                fullCycleResult.TotalStepsExecuted++;
+
+                if (!fullCycleResult.StructuredData.IsSuccess)
+                {
+                    fullCycleResult.AddStepError("Step6_3", $"構造化失敗: {string.Join(", ", fullCycleResult.StructuredData.Errors)}");
+                    fullCycleResult.IsSuccess = false;
+                    fullCycleResult.ErrorMessage = $"Step6-3構造化失敗: {string.Join(", ", fullCycleResult.StructuredData.Errors)}";
+
+                    await DisconnectAsync();
+                    return fullCycleResult;
+                }
+
+                fullCycleResult.SuccessfulSteps++;
+                Console.WriteLine($"[INFO] Step6-3完了: 構造化成功、所要時間={stepwatch.ElapsedMilliseconds}ms");
+            }
+            catch (Exception ex)
+            {
+                fullCycleResult.AddStepError("Step6_3", ex.Message);
+                fullCycleResult.TotalStepsExecuted++;
+                fullCycleResult.IsSuccess = false;
+                fullCycleResult.ErrorMessage = $"Step6-3構造化例外: {ex.Message}";
+
+                await DisconnectAsync();
+                return fullCycleResult;
+            }
+
+            // ===== Step5: 切断 =====
+            stepwatch.Restart();
+            try
+            {
+                await DisconnectAsync();
+                fullCycleResult.RecordStepTime("Step5_Disconnect", stepwatch.Elapsed);
+                fullCycleResult.TotalStepsExecuted++;
+                fullCycleResult.SuccessfulSteps++;
+
+                Console.WriteLine($"[INFO] Step5完了: 切断成功、所要時間={stepwatch.ElapsedMilliseconds}ms");
+            }
+            catch (Exception ex)
+            {
+                fullCycleResult.AddStepError("Step5", ex.Message);
+                fullCycleResult.TotalStepsExecuted++;
+            }
+
+            // ===== 完全サイクル成功 =====
+            fullCycleResult.IsSuccess = true;
+            fullCycleResult.TotalExecutionTime = DateTime.UtcNow - startTime;
+            fullCycleResult.CompletedAt = DateTime.UtcNow;
+
+            Console.WriteLine($"[INFO] 完全サイクル成功（後方互換版）: 総ステップ数={fullCycleResult.TotalStepsExecuted}, 成功={fullCycleResult.SuccessfulSteps}, 総所要時間={fullCycleResult.TotalExecutionTime.Value.TotalMilliseconds}ms");
+
+            return fullCycleResult;
+        }
+        catch (Exception ex)
+        {
+            fullCycleResult.IsSuccess = false;
+            fullCycleResult.ErrorMessage = $"完全サイクル例外: {ex.Message}";
+            fullCycleResult.TotalExecutionTime = DateTime.UtcNow - startTime;
+            fullCycleResult.CompletedAt = DateTime.UtcNow;
+
+            Console.WriteLine($"[ERROR] 完全サイクル エラー（後方互換版）: {ex.Message}");
+
             try
             {
                 await DisconnectAsync();

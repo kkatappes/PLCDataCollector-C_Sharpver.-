@@ -1,7 +1,9 @@
 # Phase9: 実機テスト
 
 ## ステータス
-⏳ **未着手** - Phase1-8完了後に実施予定
+✅ **完了** - 実施日: 2025-12-02
+- ✅ 通信・フレーム解析成功
+- ❌ デバイスデータ抽出失敗（ProcessedDeviceRequestInfo未初期化）
 
 ## 概要
 PLC実機環境でReadRandom(0x0403)の動作確認、パフォーマンス測定、バグ修正を行います。
@@ -357,5 +359,109 @@ class Program
 
 ---
 
+## 実機テスト結果（2025-12-02）
+
+### テスト概要
+- **実施方法**: andon.exe実行による実機通信テスト
+- **設定ファイル**: `C:\Users\PPESAdmin\Desktop\x\config\test.json`（デバイス数: 1）
+- **デバイス指定**: D0（1点読み出し）
+
+### ✅ 成功項目
+1. **起動・初期化**: AndonHostedService正常起動、Step1初期化完了
+2. **設定読み込み**: BitExpansion=False、MonitoringIntervalMs=2000ms
+3. **PLC接続**: UDP接続成功、接続時間=8.42ms（1回目）、1.50ms（2回目）
+4. **フレーム送信**: 25バイト送信成功、所要時間=65.11ms（1回目）、4.58ms（2回目）
+5. **フレーム受信**: 17バイト受信成功、所要時間=1.34ms（1回目）、14.70ms（2回目）
+6. **フレーム解析**: 4E Binaryフレーム自動検出成功
+   - サブヘッダ: 0xD4 0x00
+   - シーケンス番号: 0x0000（1回目）、0x0001（2回目）
+   - 終了コード: 0x0000（正常）
+   - データ長: 4バイト、実データ長: 2バイト
+   - デバイスデータ: 0x0521 (1313)
+
+### ❌ 失敗項目
+7. **デバイスデータ抽出**: ExtractDeviceValues()で未サポート機能エラー
+   - エラーメッセージ: `サポートされていないデータ型です: `
+   - デバッグ出力: `DeviceType=` (空文字列)
+   - 原因: ProcessedDeviceRequestInfoが空のまま初期化されている（ExecutionOrchestrator.cs:199）
+
+### 詳細ログ
+
+#### 送信フレーム（25バイト）
+```
+0000: 54 00 00 00 00 00 00 FF FF 03 00 0C 00 04 00 03  T...............
+0010: 04 00 00 01 00 00 00 00 90                       .........
+```
+
+#### 受信フレーム（17バイト）- 1回目
+```
+0000: D4 00 00 00 00 00 00 FF FF 03 00 04 00 00 00 21  ...............!
+0010: 05                                               .
+```
+
+#### 受信フレーム（17バイト）- 2回目
+```
+0000: D4 00 01 00 00 00 00 FF FF 03 00 04 00 00 00 21  ...............!
+0010: 05                                               .
+```
+
+#### エラースタックトレース
+```
+at Andon.Core.Managers.PlcCommunicationManager.ExtractDeviceValues(Byte[] deviceData, ProcessedDeviceRequestInfo requestInfo, DateTime processedAt)
+at Andon.Core.Managers.PlcCommunicationManager.ProcessReceivedRawData(Byte[] rawData, ProcessedDeviceRequestInfo processedRequestInfo, CancellationToken cancellationToken)
+```
+
+### 根本原因分析
+
+**実装状況**: ExecutionOrchestrator.cs:199-205（Phase8.5暫定対策）
+```csharp
+var deviceRequestInfo = new ProcessedDeviceRequestInfo
+{
+    DeviceSpecifications = config.Devices?.ToList(), // ReadRandom用デバイス指定
+    FrameType = config.FrameVersion == "4E" ? FrameType.Frame4E : FrameType.Frame3E,
+    RequestedAt = DateTime.UtcNow
+};
+```
+
+**問題**: `DeviceSpecifications`がnullまたは空のため、ExtractDeviceValues()で既存の処理パス（DeviceType使用）が実行され、DeviceTypeが空文字列のためエラーが発生。
+
+**矛盾点**: ログには「デバイス数: 1」と表示されているが、実行時にDeviceSpecificationsが空またはnull。
+
+**推定原因**:
+1. `config.Devices`が実行時にnullまたは空になっている
+2. デバッグログ不足のため実際の状態が不明
+3. 参照渡しによる予期しない変更の可能性
+
+### 次のアクション
+
+#### 🔴 最優先: デバッグログ追加
+
+ExecutionOrchestrator.cs:202の前後にデバッグログを追加し、`config.Devices`と`DeviceSpecifications`の実際の状態を確認する。
+
+```csharp
+Console.WriteLine($"[DEBUG] config.Devices is null: {config.Devices == null}");
+Console.WriteLine($"[DEBUG] config.Devices.Count: {config.Devices?.Count ?? -1}");
+// ProcessedDeviceRequestInfo作成
+Console.WriteLine($"[DEBUG] DeviceSpecifications.Count: {deviceRequestInfo.DeviceSpecifications?.Count ?? -1}");
+```
+
+#### 優先度2: nullガード追加
+
+デバッグログで原因が判明した後、nullガードを追加：
+```csharp
+DeviceSpecifications = config.Devices?.ToList() ?? new List<DeviceSpecification>(),
+DeviceType = config.Devices?.FirstOrDefault()?.DeviceType ?? "",
+Count = config.Devices?.Count ?? 0
+```
+
+#### 優先度3: Phase12実装（ProcessedDeviceRequestInfo再設計）
+
+根本的な解決のため、ReadRandom(0x0403)の仕様（複数デバイス種別混在）に対応した設計に変更する。
+
+詳細は `Phase9_RealDevice_TestResults.md` および `Phase12_ProcessedDeviceRequestInfo再設計.md` を参照。
+
+---
+
 **作成日**: 2025-11-18
 **元ドキュメント**: read_to_readrandom_migration_plan.md
+**最終更新**: 2025-12-02（実機テスト結果追加）

@@ -53,7 +53,7 @@ public class PlcConfiguration
     /// <summary>
     /// データ取得周期/監視間隔(ミリ秒)（Excel "settings"シート B11セル）
     /// </summary>
-    public int MonitoringIntervalMs { get; set; }
+    public int MonitoringIntervalMs { get; set; } = DefaultValues.MonitoringIntervalMs;
 
     /// <summary>
     /// PLC識別子（自動生成: "{IpAddress}_{Port}"）

@@ -28,7 +28,6 @@ public class OptionsConfiguratorTests
                 ["TimeoutConfig:ConnectTimeoutMs"] = "5000",
                 ["TimeoutConfig:SendTimeoutMs"] = "3000",
                 ["TimeoutConfig:ReceiveTimeoutMs"] = "5000",
-                ["SystemResourcesConfig:MaxConcurrentConnections"] = "10",
                 ["LoggingConfig:LogLevel"] = "Information"
             })
             .Build();
@@ -46,12 +45,10 @@ public class OptionsConfiguratorTests
         var provider = services.BuildServiceProvider();
         var connectionConfig = provider.GetService<IOptions<ConnectionConfig>>();
         var timeoutConfig = provider.GetService<IOptions<TimeoutConfig>>();
-        var systemResourcesConfig = provider.GetService<IOptions<SystemResourcesConfig>>();
         var loggingConfig = provider.GetService<IOptions<LoggingConfig>>();
 
         Assert.NotNull(connectionConfig);
         Assert.NotNull(timeoutConfig);
-        Assert.NotNull(systemResourcesConfig);
         Assert.NotNull(loggingConfig);
     }
 
@@ -215,33 +212,6 @@ public class OptionsConfiguratorTests
         Assert.Equal(10000, options.Value.ConnectTimeoutMs);
         Assert.Equal(3000, options.Value.SendTimeoutMs);
         Assert.Equal(5000, options.Value.ReceiveTimeoutMs);
-    }
-
-    /// <summary>
-    /// ConfigureOptions - 正常系: SystemResourcesConfig値が正しくバインドされる
-    /// </summary>
-    [Fact]
-    public void ConfigureOptions_SystemResourcesConfig_BindsValuesCorrectly()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["SystemResourcesConfig:MaxConcurrentConnections"] = "20"
-            })
-            .Build();
-
-        var configurator = new OptionsConfigurator();
-
-        // Act
-        configurator.ConfigureOptions(services, configuration);
-
-        // Assert
-        var provider = services.BuildServiceProvider();
-        var options = provider.GetRequiredService<IOptions<SystemResourcesConfig>>();
-
-        Assert.Equal(20, options.Value.MaxConcurrentConnections);
     }
 
     /// <summary>

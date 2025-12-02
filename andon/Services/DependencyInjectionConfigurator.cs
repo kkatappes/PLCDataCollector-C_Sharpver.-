@@ -28,14 +28,12 @@ public static class DependencyInjectionConfigurator
 
         // appsettings.jsonから設定をバインド
         services.Configure<DataProcessingConfig>(configuration.GetSection("PlcCommunication"));
-        services.Configure<SystemResourcesConfig>(configuration.GetSection("SystemResources"));
         services.Configure<LoggingConfig>(configuration.GetSection("LoggingConfig"));
 
         // Singleton登録 - アプリケーション全体で1つのインスタンスを共有
         services.AddSingleton<IApplicationController, ApplicationController>();
         services.AddSingleton<ILoggingManager, LoggingManager>();
         services.AddSingleton<IErrorHandler, ErrorHandler>();
-        services.AddSingleton<ResourceManager>(); // インターフェースなし
 
         // Part8追加: Phase3実装クラス（Singleton）
         services.AddSingleton<AsyncExceptionHandler>();

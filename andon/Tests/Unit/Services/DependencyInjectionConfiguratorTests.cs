@@ -18,16 +18,42 @@ namespace Andon.Tests.Unit.Services;
 /// </summary>
 public class DependencyInjectionConfiguratorTests
 {
+    /// <summary>
+    /// mockConfigurationのGetSectionをセットアップするヘルパーメソッド
+    /// </summary>
+    private Mock<IConfiguration> CreateMockConfiguration()
+    {
+        var mockConfiguration = new Mock<IConfiguration>();
+
+        // PlcCommunicationセクションのモック
+        var mockPlcSection = new Mock<IConfigurationSection>();
+        mockPlcSection.Setup(x => x.Path).Returns("PlcCommunication");
+        mockPlcSection.Setup(x => x.Key).Returns("PlcCommunication");
+        mockPlcSection.Setup(x => x.Value).Returns((string?)null);
+
+        // LoggingConfigセクションのモック
+        var mockLoggingSection = new Mock<IConfigurationSection>();
+        mockLoggingSection.Setup(x => x.Path).Returns("LoggingConfig");
+        mockLoggingSection.Setup(x => x.Key).Returns("LoggingConfig");
+        mockLoggingSection.Setup(x => x.Value).Returns((string?)null);
+
+        // GetSectionのセットアップ
+        mockConfiguration.Setup(x => x.GetSection("PlcCommunication")).Returns(mockPlcSection.Object);
+        mockConfiguration.Setup(x => x.GetSection("LoggingConfig")).Returns(mockLoggingSection.Object);
+
+        return mockConfiguration;
+    }
+
     [Fact]
     public void Configure_必要なサービスをすべて登録する()
     {
         // Arrange
         var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var mockConfiguration = CreateMockConfiguration();
 
         // Act
         DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
         // Assert - Singleton登録確認
         var controller1 = provider.GetService<IApplicationController>();
@@ -58,11 +84,11 @@ public class DependencyInjectionConfiguratorTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var mockConfiguration = CreateMockConfiguration();
 
         // Act
         DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
         // Assert
         var multiConfigManager = provider.GetService<MultiPlcConfigManager>();
@@ -77,21 +103,20 @@ public class DependencyInjectionConfiguratorTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var mockConfiguration = CreateMockConfiguration();
 
         // Act
         DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
         // Assert - 全インターフェース・クラスが解決できることを確認
         Assert.NotNull(provider.GetService<IApplicationController>());
         Assert.NotNull(provider.GetService<IExecutionOrchestrator>());
         // PlcCommunicationManagerは手動で設定が必要なため、ここではスキップ
-        Assert.NotNull(provider.GetService<ConfigToFrameManager>());
+        Assert.NotNull(provider.GetService<IConfigToFrameManager>()); // インターフェース経由で解決
         Assert.NotNull(provider.GetService<IDataOutputManager>());
         Assert.NotNull(provider.GetService<ILoggingManager>());
         Assert.NotNull(provider.GetService<IErrorHandler>()); // Part8修正: インターフェース経由で解決
-        Assert.NotNull(provider.GetService<ResourceManager>());
         Assert.NotNull(provider.GetService<ITimerService>());
         Assert.NotNull(provider.GetService<MultiPlcConfigManager>());
         Assert.NotNull(provider.GetService<MultiPlcCoordinator>());
@@ -102,11 +127,11 @@ public class DependencyInjectionConfiguratorTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var mockConfiguration = CreateMockConfiguration();
 
         // Act
         DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
         // Assert
         var loader = provider.GetService<ConfigurationLoaderExcel>();
@@ -122,11 +147,11 @@ public class DependencyInjectionConfiguratorTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var mockConfiguration = CreateMockConfiguration();
 
         // Act
         DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
         // Assert - Part1 Singleton登録確認
         var asyncHandler1 = provider.GetService<AsyncExceptionHandler>();
@@ -152,11 +177,11 @@ public class DependencyInjectionConfiguratorTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var mockConfiguration = CreateMockConfiguration();
 
         // Act
         DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
         // Assert - Part2/3 Transient登録確認
         var reporter1 = provider.GetService<IProgressReporter<ProgressInfo>>();
@@ -177,11 +202,11 @@ public class DependencyInjectionConfiguratorTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var mockConfiguration = CreateMockConfiguration();
 
         // Act
         DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
         // Assert - Singleton確認
         var handler1 = provider.GetService<GracefulShutdownHandler>();
@@ -197,11 +222,11 @@ public class DependencyInjectionConfiguratorTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var mockConfiguration = CreateMockConfiguration();
 
         // Act
         DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
         // Assert - Singleton確認
         var watcher1 = provider.GetService<IConfigurationWatcher>();
@@ -213,37 +238,15 @@ public class DependencyInjectionConfiguratorTests
     [Fact]
     [Trait("Category", "DI")]
     [Trait("Phase", "Part8")]
-    public void Configure_SystemResourcesConfigが登録される()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
-
-        // Act
-        DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
-
-        // Assert
-        var config = provider.GetService<IOptions<SystemResourcesConfig>>();
-        Assert.NotNull(config);
-        Assert.NotNull(config.Value);
-        Assert.Equal(512, config.Value.MaxMemoryUsageMb); // デフォルト値確認
-        Assert.Equal(10, config.Value.MaxConcurrentConnections);
-        Assert.Equal(100, config.Value.MaxLogFileSizeMb);
-    }
-
-    [Fact]
-    [Trait("Category", "DI")]
-    [Trait("Phase", "Part8")]
     public void Configure_LoggingConfigが登録される()
     {
         // Arrange
         var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var mockConfiguration = CreateMockConfiguration();
 
         // Act
         DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
         // Assert
         var config = provider.GetService<IOptions<LoggingConfig>>();
@@ -258,38 +261,15 @@ public class DependencyInjectionConfiguratorTests
     [Fact]
     [Trait("Category", "DI")]
     [Trait("Phase", "Part8")]
-    public void Configure_ResourceManagerがOptions経由で解決できる()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
-
-        // Act
-        DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
-
-        // Assert
-        // ResourceManagerはIOptions<SystemResourcesConfig>に依存
-        var resourceManager = provider.GetService<ResourceManager>();
-        Assert.NotNull(resourceManager);
-
-        // メソッド呼び出しでエラーが出ないことを確認
-        var memoryUsage = resourceManager.GetCurrentMemoryUsageMb();
-        Assert.True(memoryUsage > 0);
-    }
-
-    [Fact]
-    [Trait("Category", "DI")]
-    [Trait("Phase", "Part8")]
     public void Configure_LoggingManagerがOptions経由で解決できる()
     {
         // Arrange
         var services = new ServiceCollection();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var mockConfiguration = CreateMockConfiguration();
 
         // Act
         DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
         // Assert
         var loggingManager = provider.GetService<ILoggingManager>();

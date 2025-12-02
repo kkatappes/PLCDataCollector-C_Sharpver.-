@@ -616,4 +616,240 @@ public class ExecutionOrchestratorTests
             Times.Once,
             "ExecuteFullCycleAsyncがDeviceSpecifications設定済みのProcessedDeviceRequestInfoで呼ばれるべき");
     }
+
+    // ============================================================
+    // Phase12: ReadRandomRequestInfo導入テスト
+    // ============================================================
+
+    /// <summary>
+    /// Phase12 Test Case 1: ReadRandomRequestInfo生成確認
+    /// </summary>
+    [Fact]
+    public async Task Phase12_ExecuteCycleAsync_ReadRandomRequestInfo生成()
+    {
+        // Arrange
+        var mockPlcManager = new Mock<Andon.Core.Interfaces.IPlcCommunicationManager>();
+        var mockConfigToFrameManager = new Mock<Andon.Core.Interfaces.IConfigToFrameManager>();
+        var mockDataOutputManager = new Mock<Andon.Core.Interfaces.IDataOutputManager>();
+        var mockLoggingManager = new Mock<Andon.Core.Interfaces.ILoggingManager>();
+
+        var config = new PlcConfiguration
+        {
+            IpAddress = "172.30.40.15",
+            Port = 8192,
+            FrameVersion = "4E",
+            IsBinary = true,
+            Devices = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(Andon.Core.Constants.DeviceCode.D, 100),
+                new DeviceSpecification(Andon.Core.Constants.DeviceCode.M, 200)
+            }
+        };
+
+        mockConfigToFrameManager.Setup(m => m.BuildReadRandomFrameFromConfig(It.IsAny<PlcConfiguration>()))
+            .Returns(new byte[] { 0x01, 0x02, 0x03 });
+
+        ReadRandomRequestInfo? capturedRequestInfo = null;
+        mockPlcManager
+            .Setup(m => m.ExecuteFullCycleAsync(
+                It.IsAny<ConnectionConfig>(),
+                It.IsAny<TimeoutConfig>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<ProcessedDeviceRequestInfo>(),  // ← 新しいパラメータ型
+                It.IsAny<CancellationToken>()))
+            .Callback<ConnectionConfig, TimeoutConfig, byte[], ReadRandomRequestInfo, CancellationToken>(
+                (conn, timeout, frame, requestInfo, ct) => capturedRequestInfo = requestInfo)
+            .ReturnsAsync(new FullCycleExecutionResult { IsSuccess = true });
+
+        var orchestrator = new ExecutionOrchestrator(
+            mockConfigToFrameManager.Object,
+            mockDataOutputManager.Object,
+            mockLoggingManager.Object);
+
+        var plcConfigs = new List<PlcConfiguration> { config };
+        var plcManagers = new List<Andon.Core.Interfaces.IPlcCommunicationManager> { mockPlcManager.Object };
+
+        // Act
+        await orchestrator.ExecuteSingleCycleAsync(plcConfigs, plcManagers, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(capturedRequestInfo);
+        Assert.NotNull(capturedRequestInfo.DeviceSpecifications);
+        Assert.Equal(2, capturedRequestInfo.DeviceSpecifications.Count);
+        Assert.Equal(Andon.Core.Constants.DeviceCode.D, capturedRequestInfo.DeviceSpecifications[0].Code);
+        Assert.Equal(100, capturedRequestInfo.DeviceSpecifications[0].DeviceNumber);
+        Assert.Equal(Andon.Core.Constants.DeviceCode.M, capturedRequestInfo.DeviceSpecifications[1].Code);
+        Assert.Equal(200, capturedRequestInfo.DeviceSpecifications[1].DeviceNumber);
+        Assert.Equal(FrameType.Frame4E, capturedRequestInfo.FrameType);
+    }
+
+    /// <summary>
+    /// Phase12 Test Case 2: DeviceSpecificationsが空でないことを確認
+    /// </summary>
+    [Fact]
+    public async Task Phase12_ExecuteCycleAsync_DeviceSpecifications空でない()
+    {
+        // Arrange
+        var mockPlcManager = new Mock<Andon.Core.Interfaces.IPlcCommunicationManager>();
+        var mockConfigToFrameManager = new Mock<Andon.Core.Interfaces.IConfigToFrameManager>();
+        var mockDataOutputManager = new Mock<Andon.Core.Interfaces.IDataOutputManager>();
+        var mockLoggingManager = new Mock<Andon.Core.Interfaces.ILoggingManager>();
+
+        var config = new PlcConfiguration
+        {
+            IpAddress = "192.168.1.10",
+            Port = 8192,
+            FrameVersion = "3E",
+            IsBinary = true,
+            Devices = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(Andon.Core.Constants.DeviceCode.D, 500)
+            }
+        };
+
+        mockConfigToFrameManager.Setup(m => m.BuildReadRandomFrameFromConfig(It.IsAny<PlcConfiguration>()))
+            .Returns(new byte[] { 0x01, 0x02, 0x03 });
+
+        ReadRandomRequestInfo? capturedRequestInfo = null;
+        mockPlcManager
+            .Setup(m => m.ExecuteFullCycleAsync(
+                It.IsAny<ConnectionConfig>(),
+                It.IsAny<TimeoutConfig>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<ProcessedDeviceRequestInfo>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<ConnectionConfig, TimeoutConfig, byte[], ReadRandomRequestInfo, CancellationToken>(
+                (conn, timeout, frame, requestInfo, ct) => capturedRequestInfo = requestInfo)
+            .ReturnsAsync(new FullCycleExecutionResult { IsSuccess = true });
+
+        var orchestrator = new ExecutionOrchestrator(
+            mockConfigToFrameManager.Object,
+            mockDataOutputManager.Object,
+            mockLoggingManager.Object);
+
+        var plcConfigs = new List<PlcConfiguration> { config };
+        var plcManagers = new List<Andon.Core.Interfaces.IPlcCommunicationManager> { mockPlcManager.Object };
+
+        // Act
+        await orchestrator.ExecuteSingleCycleAsync(plcConfigs, plcManagers, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(capturedRequestInfo);
+        Assert.NotNull(capturedRequestInfo.DeviceSpecifications);
+        Assert.NotEmpty(capturedRequestInfo.DeviceSpecifications);
+    }
+
+    /// <summary>
+    /// Phase12 Test Case 3: FrameTypeが正しく設定されることを確認
+    /// </summary>
+    [Fact]
+    public async Task Phase12_ExecuteCycleAsync_FrameType正しく設定()
+    {
+        // Arrange
+        var mockPlcManager = new Mock<Andon.Core.Interfaces.IPlcCommunicationManager>();
+        var mockConfigToFrameManager = new Mock<Andon.Core.Interfaces.IConfigToFrameManager>();
+        var mockDataOutputManager = new Mock<Andon.Core.Interfaces.IDataOutputManager>();
+        var mockLoggingManager = new Mock<Andon.Core.Interfaces.ILoggingManager>();
+
+        var config = new PlcConfiguration
+        {
+            IpAddress = "192.168.1.10",
+            Port = 8192,
+            FrameVersion = "3E",  // 3Eフレーム
+            IsBinary = true,
+            Devices = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(Andon.Core.Constants.DeviceCode.D, 100)
+            }
+        };
+
+        mockConfigToFrameManager.Setup(m => m.BuildReadRandomFrameFromConfig(It.IsAny<PlcConfiguration>()))
+            .Returns(new byte[] { 0x01, 0x02, 0x03 });
+
+        ReadRandomRequestInfo? capturedRequestInfo = null;
+        mockPlcManager
+            .Setup(m => m.ExecuteFullCycleAsync(
+                It.IsAny<ConnectionConfig>(),
+                It.IsAny<TimeoutConfig>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<ProcessedDeviceRequestInfo>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<ConnectionConfig, TimeoutConfig, byte[], ReadRandomRequestInfo, CancellationToken>(
+                (conn, timeout, frame, requestInfo, ct) => capturedRequestInfo = requestInfo)
+            .ReturnsAsync(new FullCycleExecutionResult { IsSuccess = true });
+
+        var orchestrator = new ExecutionOrchestrator(
+            mockConfigToFrameManager.Object,
+            mockDataOutputManager.Object,
+            mockLoggingManager.Object);
+
+        var plcConfigs = new List<PlcConfiguration> { config };
+        var plcManagers = new List<Andon.Core.Interfaces.IPlcCommunicationManager> { mockPlcManager.Object };
+
+        // Act
+        await orchestrator.ExecuteSingleCycleAsync(plcConfigs, plcManagers, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(capturedRequestInfo);
+        Assert.Equal(FrameType.Frame3E, capturedRequestInfo.FrameType);
+    }
+
+    /// <summary>
+    /// Phase12 Test Case 4: DeviceSpecifications数が設定と一致することを確認
+    /// </summary>
+    [Fact]
+    public async Task Phase12_ExecuteCycleAsync_DeviceSpecifications数一致()
+    {
+        // Arrange
+        var mockPlcManager = new Mock<Andon.Core.Interfaces.IPlcCommunicationManager>();
+        var mockConfigToFrameManager = new Mock<Andon.Core.Interfaces.IConfigToFrameManager>();
+        var mockDataOutputManager = new Mock<Andon.Core.Interfaces.IDataOutputManager>();
+        var mockLoggingManager = new Mock<Andon.Core.Interfaces.ILoggingManager>();
+
+        var config = new PlcConfiguration
+        {
+            IpAddress = "192.168.1.10",
+            Port = 8192,
+            FrameVersion = "4E",
+            IsBinary = true,
+            Devices = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(Andon.Core.Constants.DeviceCode.D, 100),
+                new DeviceSpecification(Andon.Core.Constants.DeviceCode.M, 200),
+                new DeviceSpecification(Andon.Core.Constants.DeviceCode.X, 0)
+            }
+        };
+
+        mockConfigToFrameManager.Setup(m => m.BuildReadRandomFrameFromConfig(It.IsAny<PlcConfiguration>()))
+            .Returns(new byte[] { 0x01, 0x02, 0x03 });
+
+        ReadRandomRequestInfo? capturedRequestInfo = null;
+        mockPlcManager
+            .Setup(m => m.ExecuteFullCycleAsync(
+                It.IsAny<ConnectionConfig>(),
+                It.IsAny<TimeoutConfig>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<ProcessedDeviceRequestInfo>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<ConnectionConfig, TimeoutConfig, byte[], ReadRandomRequestInfo, CancellationToken>(
+                (conn, timeout, frame, requestInfo, ct) => capturedRequestInfo = requestInfo)
+            .ReturnsAsync(new FullCycleExecutionResult { IsSuccess = true });
+
+        var orchestrator = new ExecutionOrchestrator(
+            mockConfigToFrameManager.Object,
+            mockDataOutputManager.Object,
+            mockLoggingManager.Object);
+
+        var plcConfigs = new List<PlcConfiguration> { config };
+        var plcManagers = new List<Andon.Core.Interfaces.IPlcCommunicationManager> { mockPlcManager.Object };
+
+        // Act
+        await orchestrator.ExecuteSingleCycleAsync(plcConfigs, plcManagers, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(capturedRequestInfo);
+        Assert.NotNull(capturedRequestInfo.DeviceSpecifications);
+        Assert.Equal(3, capturedRequestInfo.DeviceSpecifications.Count);
+        Assert.Equal(config.Devices.Count, capturedRequestInfo.DeviceSpecifications.Count);
+    }
 }

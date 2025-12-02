@@ -48,11 +48,12 @@ public class DataOutputManager : IDataOutputManager
             // PLC機種名は現時点では固定値(Phase7実装)
             const string plcModel = "Unknown";
 
-            // ファイル名生成: yyyymmdd_hhmmssSSS_xxx-xxx-x-xx_zzzz.json
+            // Phase7: データ処理時刻を取得（JSON timestampフィールド用）
             var timestamp = data.ProcessedAt;
-            var dateString = timestamp.ToString("yyyyMMdd_HHmmssfff");
+
+            // ファイル名生成: xxx-xxx-x-xx_zzzz.json
             var ipString = ipAddress.Replace(".", "-");
-            var fileName = $"{dateString}_{ipString}_{port}.json";
+            var fileName = $"{ipString}_{port}.json";
             var filePath = Path.Combine(outputDirectory, fileName);
 
             // Phase2: ディレクトリ存在確認・自動作成
