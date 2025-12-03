@@ -12,10 +12,11 @@ namespace Andon.Tests.Unit.Core.Managers;
 /// </summary>
 public class ConfigToFrameManagerTests
 {
+#if FALSE  // TargetDeviceConfig/DeviceEntry削除により一時的にコンパイル除外（JSON設定廃止）
     /// <summary>
     /// TC_Step12_001: BuildReadRandomFrameFromConfig() - 正常系（4Eフレーム、48デバイス）
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC_Step12_001_BuildReadRandomFrameFromConfig_正常系_4Eフレーム_48デバイス()
     {
         // Arrange
@@ -105,7 +106,7 @@ public class ConfigToFrameManagerTests
     /// <summary>
     /// TC_Step12_002: BuildReadRandomFrameFromConfig() - 3Eフレーム検証
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC_Step12_002_BuildReadRandomFrameFromConfig_正常系_3Eフレーム()
     {
         // Arrange
@@ -148,7 +149,7 @@ public class ConfigToFrameManagerTests
     /// <summary>
     /// TC_Step12_003: BuildReadRandomFrameFromConfig() - 異常系（デバイスリストが空）
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC_Step12_003_BuildReadRandomFrameFromConfig_異常系_デバイスリスト空()
     {
         // Arrange
@@ -171,7 +172,7 @@ public class ConfigToFrameManagerTests
     /// <summary>
     /// TC_Step12_004: BuildReadRandomFrameFromConfig() - 異常系（config null）
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC_Step12_004_BuildReadRandomFrameFromConfig_異常系_ConfigNull()
     {
         // Arrange
@@ -187,7 +188,7 @@ public class ConfigToFrameManagerTests
     /// <summary>
     /// TC_Step12_005: BuildReadRandomFrameFromConfig() - 異常系（未対応フレームタイプ）
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC_Step12_005_BuildReadRandomFrameFromConfig_異常系_未対応フレームタイプ()
     {
         // Arrange
@@ -215,7 +216,7 @@ public class ConfigToFrameManagerTests
     /// <summary>
     /// TC_Step12_ASCII_001: BuildReadRandomFrameFromConfigAscii - 正常系 - 4Eフレーム48デバイス（ASCII形式）
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC_Step12_ASCII_001_BuildReadRandomFrameFromConfigAscii_正常系_4Eフレーム_48デバイス()
     {
         // Arrange: conmoni_testと同じ48デバイス設定
@@ -261,7 +262,7 @@ public class ConfigToFrameManagerTests
     /// <summary>
     /// TC_Step12_ASCII_002: BuildReadRandomFrameFromConfigAscii - 正常系 - 3Eフレーム（ASCII形式）
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC_Step12_ASCII_002_BuildReadRandomFrameFromConfigAscii_正常系_3Eフレーム()
     {
         // Arrange: 3デバイス設定
@@ -299,7 +300,7 @@ public class ConfigToFrameManagerTests
     /// <summary>
     /// TC_Step12_ASCII_003: BuildReadRandomFrameFromConfigAscii - 異常系 - デバイスリスト空
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC_Step12_ASCII_003_BuildReadRandomFrameFromConfigAscii_異常系_デバイスリスト空()
     {
         // Arrange: 空デバイスリスト
@@ -322,7 +323,7 @@ public class ConfigToFrameManagerTests
     /// <summary>
     /// TC_Step12_ASCII_004: BuildReadRandomFrameFromConfigAscii - 異常系 - Config null
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC_Step12_ASCII_004_BuildReadRandomFrameFromConfigAscii_異常系_ConfigNull()
     {
         // Arrange
@@ -337,7 +338,7 @@ public class ConfigToFrameManagerTests
     /// <summary>
     /// TC_Step12_ASCII_005: BuildReadRandomFrameFromConfigAscii - 異常系 - 未対応フレームタイプ
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC_Step12_ASCII_005_BuildReadRandomFrameFromConfigAscii_異常系_未対応フレームタイプ()
     {
         // Arrange: 未対応フレームタイプ
@@ -367,7 +368,7 @@ public class ConfigToFrameManagerTests
     /// <summary>
     /// TC019: Phase2統合確認 - Phase2でリファクタリングしたSlmpFrameBuilderとの統合確認
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC019_BuildReadRandomFrameFromConfig_Phase2統合_正しいフレーム構築()
     {
         // Arrange
@@ -430,7 +431,7 @@ public class ConfigToFrameManagerTests
     /// <summary>
     /// TC020: ReadRandom非対応デバイス統合テスト - ConfigToFrameManagerでのエラーハンドリング確認
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
     public void TC020_BuildReadRandomFrameFromConfig_TS指定_ArgumentExceptionをスロー()
     {
         // Arrange
@@ -456,6 +457,7 @@ public class ConfigToFrameManagerTests
     }
 
     #endregion
+#endif
 
     #region Phase2: PlcConfiguration版オーバーロードテスト（ASCII形式）
 

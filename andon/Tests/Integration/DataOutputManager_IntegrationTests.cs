@@ -45,7 +45,7 @@ public class DataOutputManager_IntegrationTests : IDisposable
         var deviceConfig = CreateMockDeviceConfig_BitDevice();
 
         // Act
-        _manager.OutputToJson(data, _testOutputDirectory, "192.168.1.10", 5007, deviceConfig);
+        _manager.OutputToJson(data, _testOutputDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
 
         // Assert
         var files = Directory.GetFiles(_testOutputDirectory, "*.json");
@@ -87,7 +87,7 @@ public class DataOutputManager_IntegrationTests : IDisposable
         var deviceConfig = CreateMockDeviceConfig_WordDevice();
 
         // Act
-        _manager.OutputToJson(data, _testOutputDirectory, "192.168.1.10", 5007, deviceConfig);
+        _manager.OutputToJson(data, _testOutputDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
 
         // Assert
         var files = Directory.GetFiles(_testOutputDirectory, "*.json");
@@ -120,7 +120,7 @@ public class DataOutputManager_IntegrationTests : IDisposable
         var deviceConfig = CreateMockDeviceConfig_DWordDevice();
 
         // Act
-        _manager.OutputToJson(data, _testOutputDirectory, "192.168.1.10", 5007, deviceConfig);
+        _manager.OutputToJson(data, _testOutputDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
 
         // Assert
         var files = Directory.GetFiles(_testOutputDirectory, "*.json");
@@ -153,7 +153,7 @@ public class DataOutputManager_IntegrationTests : IDisposable
         var deviceConfig = CreateMockDeviceConfig_Mixed();
 
         // Act
-        _manager.OutputToJson(data, _testOutputDirectory, "192.168.1.10", 5007, deviceConfig);
+        _manager.OutputToJson(data, _testOutputDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
 
         // Assert
         var files = Directory.GetFiles(_testOutputDirectory, "*.json");
@@ -197,7 +197,7 @@ public class DataOutputManager_IntegrationTests : IDisposable
         var deviceConfig = CreateMockDeviceConfig_WordDevice();
 
         // Act
-        _manager.OutputToJson(data, _testOutputDirectory, "192.168.1.10", 5007, deviceConfig);
+        _manager.OutputToJson(data, _testOutputDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
 
         // Assert
         var files = Directory.GetFiles(_testOutputDirectory, "*.json");

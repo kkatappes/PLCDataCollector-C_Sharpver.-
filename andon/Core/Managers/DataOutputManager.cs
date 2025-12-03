@@ -7,12 +7,11 @@ using System.Text.Json;
 namespace Andon.Core.Managers;
 
 /// <summary>
-/// Step7: データ出力
+/// Step7: データ出力（Excel設定ベース）
+/// PlcConfigurationモデルを使用した統一設計
+/// ⚠️ 注意: JSON設定用メソッドは削除済み（JSON設定廃止により不要）
 /// Phase7 (2025-11-25)実装: JSON形式での不連続デバイスデータ出力
-/// </summary>
-/// <summary>
-/// Step7: データ出力
-/// Phase7 (2025-11-25)実装: JSON形式での不連続デバイスデータ出力
+/// Phase 2-3: PlcModelをJSON出力に追加（Excel設定から読み込み）
 /// </summary>
 public class DataOutputManager : IDataOutputManager
 {
@@ -27,6 +26,7 @@ public class DataOutputManager : IDataOutputManager
     /// <param name="outputDirectory">出力ディレクトリパス</param>
     /// <param name="ipAddress">IPアドレス（設定ファイルのConnection.IpAddressから取得）</param>
     /// <param name="port">ポート番号（設定ファイルのConnection.Portから取得）</param>
+    /// <param name="plcModel">PLCモデル（デバイス名）</param>
     /// <param name="deviceConfig">デバイス設定情報（設定ファイルのTargetDevices.Devicesから構築）
     /// キー: デバイス名（"M0", "D100"など）
     /// 値: DeviceEntryInfo（Name=Description, Digits=1）</param>
@@ -35,6 +35,7 @@ public class DataOutputManager : IDataOutputManager
         string outputDirectory,
         string ipAddress,
         int port,
+        string plcModel,
         Dictionary<string, DeviceEntryInfo> deviceConfig)
     {
         try
@@ -44,9 +45,6 @@ public class DataOutputManager : IDataOutputManager
 
             // Phase2: ログ出力開始
             Console.WriteLine($"[INFO] JSON出力開始: IP={ipAddress}, Port={port}, デバイス数={data.ProcessedData.Count}");
-
-            // PLC機種名は現時点では固定値(Phase7実装)
-            const string plcModel = "Unknown";
 
             // Phase7: データ処理時刻を取得（JSON timestampフィールド用）
             var timestamp = data.ProcessedAt;
@@ -86,7 +84,7 @@ public class DataOutputManager : IDataOutputManager
             {
                 source = new
                 {
-                    plcModel = plcModel,
+                    plcModel = plcModel ?? "",  // nullの場合は空文字列
                     ipAddress = ipAddress,
                     port = port
                 },

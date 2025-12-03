@@ -12,6 +12,7 @@ namespace Andon.Tests.Unit.Core.Managers;
 /// LoggingManagerクラスのテスト（Phase7実装: データ取得ログ記録）
 /// TDD Red Phase: 失敗するテストを先に作成
 /// </summary>
+[Collection("LoggingManagerTests")]
 public class LoggingManagerTests_Phase7
 {
     private readonly TestLogger<LoggingManager> _logger;

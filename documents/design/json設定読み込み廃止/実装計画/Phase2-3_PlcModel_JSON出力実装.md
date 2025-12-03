@@ -3,7 +3,8 @@
 **フェーズ**: Phase 2-3（新規追加）
 **影響度**: 中（JSON出力の完全性に影響）
 **工数**: **小**（Phase 1-5完了により簡略化）
-**前提条件**: Phase 0, Phase 1, Phase 2-1, Phase 2-2完了
+**前提条件**: Phase 0完了（✅ 2025-12-02）, Phase 1完了（✅ 2025-12-02）, Phase 2-1完了（✅ 2025-12-03）, Phase 2-2完了（✅ 2025-12-03）
+**状態**: ⏳ 未着手
 
 ---
 
@@ -12,6 +13,92 @@
 PlcModelをJSON出力に追加します。現在、Excel設定から読み込まれているが、DataOutputManagerに渡されず、JSON出力に含まれていない問題を修正します。
 
 **✅ Phase 1-5完了により、Excel読み込み処理は既に実装済みです。DataOutputManagerへの引数追加のみで完了します。**
+
+---
+
+## 🔄 Phase 2-2からの引き継ぎ事項
+
+### Phase 2-2完了により確立された知見
+
+**Phase 2-2実装結果**: [Phase2_2_MonitoringInterval_Excel移行_TestResults.md](../実装結果/Phase2_2_MonitoringInterval_Excel移行_TestResults.md)
+
+#### ✅ TDDサイクルの成功パターン
+
+Phase 2-2では以下のTDDサイクルを完全遵守し、8/8テスト成功を達成しました：
+
+| ステップ | 内容 | Phase 2-2結果 |
+|---------|------|---------------|
+| **Red** | 失敗するテストを先に書く | 失敗: 2、合格: 6（期待通り） |
+| **Green** | テストを通すための最小限のコードを実装 | 成功: 8、失敗: 0 |
+| **Refactor** | 動作を保ったままコードを改善 | 成功: 8、失敗: 0 |
+
+**Phase 2-3でも同じアプローチを適用します。**
+
+#### ✅ 既存テスト修正の重要性
+
+Phase 2-2では、実装完了後に以下の既存テスト修正が必要でした：
+
+| 修正対象 | 修正内容 | 影響範囲 |
+|---------|---------|---------|
+| **ExecutionOrchestratorTests.cs** | DataProcessingConfig参照削除 | 1テスト削除、5箇所修正 |
+| **DependencyInjectionConfigurator.cs** | DataProcessingConfig DI登録削除 | DI設定修正 |
+
+**Phase 2-3での注意点**:
+- DataOutputManager.OutputToJson()のシグネチャ変更により、以下のテストファイルで修正が必要：
+  - DataOutputManagerTests.cs
+  - ExecutionOrchestratorTests.cs（OutputToJson呼び出し箇所）
+  - Step3_6_IntegrationTests.cs（統合テスト）
+
+#### ✅ appsettings.json完全空化の維持
+
+Phase 2-2完了時点でappsettings.jsonは以下の状態（コメントのみ、5行）：
+
+```json
+{
+  // Phase 2-2完了: appsettings.json完全空化
+  // MonitoringIntervalMsは各PlcConfigurationから取得
+  // Phase 3でこのファイル自体を削除予定
+}
+```
+
+**Phase 2-3はappsettings.jsonに影響しません。** PlcModelは既にExcel設定から読み込まれているため、JSON出力への追加のみです。
+
+#### ✅ Excel設定の活用状況（Phase 2-2完了時点）
+
+| 項目 | Excel読み込み | モデル格納 | 使用状況 |
+|------|------------|----------|---------|
+| **MonitoringIntervalMs** | ✅ ConfigurationLoaderExcel.cs:115 | ✅ PlcConfiguration | **✅ Phase 2-2完了: ExecutionOrchestrator.cs:98-100で使用** |
+| **PlcModel** | ✅ ConfigurationLoaderExcel.cs:116 | ✅ PlcConfiguration | **⏳ Phase 2-3対象: DataOutputManagerに渡す** |
+| **SavePath** | ✅ ConfigurationLoaderExcel.cs:117 | ✅ PlcConfiguration | ⏳ Phase 2-4対象: ハードコード削除 |
+
+**Phase 2-3の作業範囲**: PlcModelをDataOutputManager.OutputToJson()に渡し、JSON出力に含める。
+
+#### ⚠️ Phase 2-2で遭遇した問題と対策
+
+**問題1**: ビルドエラー（DataProcessingConfig参照が残る）
+- **原因**: 既存テストコードが古いシグネチャを参照
+- **対策**: Green段階完了後、全ファイルをビルドして参照エラーを洗い出す
+- **Phase 2-3での対応**: DataOutputManager.OutputToJson()のシグネチャ変更後、全テストファイルをビルド確認
+
+**問題2**: 同じプロジェクト内で複数バージョンのシグネチャが混在
+- **原因**: インターフェースと実装の両方を修正する必要があるが、片方のみ修正
+- **対策**: インターフェース（IDataOutputManager）と実装（DataOutputManager）を同時に修正
+- **Phase 2-3での対応**: IDataOutputManager.csとDataOutputManager.csを同時修正
+
+**問題3**: Mockオブジェクトのセットアップ更新漏れ
+- **原因**: テストコードのMock.Setup()が古いシグネチャを使用
+- **対策**: 全テストファイルで`It.IsAny<string>()`（plcModel用）を追加
+- **Phase 2-3での対応**: DataOutputManagerを使用する全てのテストでMockセットアップを更新
+
+#### ✅ Phase 2-2のビルド結果（参考）
+
+```
+ビルドに成功しました。
+    0 エラー
+    59 警告
+```
+
+**Phase 2-3でも同様の結果を目指します。**
 
 ---
 
@@ -599,19 +686,65 @@ await _dataOutputManager.OutputToJson(
 
 ## 🔄 Phase 2-2との違い
 
-| 項目 | Phase 2-2 | Phase 2-3 |
+| 項目 | Phase 2-2（✅ 完了） | Phase 2-3（⏳ 未着手） |
 |------|-----------|-----------|
 | **対象項目** | MonitoringIntervalMs | PlcModel |
 | **修正内容** | 使用箇所の変更（appsettings.json → Excel設定） | JSON出力への追加 |
 | **影響度** | 中（タイマー間隔） | 中（JSON出力の完全性） |
 | **工数** | 小 | **小** |
-| **Excel読み込み実装** | **✅ 完了済み（Phase 2）** | **✅ 完了済み（Phase 2）** |
-| **修正箇所** | ExecutionOrchestrator.cs:75の1箇所 | DataOutputManager.cs, ExecutionOrchestrator.cs:227 |
+| **Excel読み込み実装** | **✅ 完了済み（Phase 1-5）** | **✅ 完了済み（Phase 1-5）** |
+| **修正箇所** | ExecutionOrchestrator.cs:98-100の1箇所 | DataOutputManager.cs, IDataOutputManager.cs, ExecutionOrchestrator.cs:243 |
+| **削除ファイル** | DataProcessingConfig.cs | なし |
+| **DI設定変更** | あり（DataProcessingConfig削除） | なし |
+| **appsettings.json影響** | あり（PlcCommunicationセクション削除） | **なし** |
+| **TDDサイクル** | Red→Green→Refactor（8/8テスト成功） | 同様のアプローチを適用予定 |
+| **既存テスト修正** | ExecutionOrchestratorTests.cs（6箇所） | DataOutputManagerTests.cs, ExecutionOrchestratorTests.cs, 統合テスト |
+
+### Phase 2-2からの教訓
+
+**Phase 2-2で成功した点**:
+- ✅ TDDサイクルの厳格な遵守（Red→Green→Refactor）
+- ✅ 境界値テストの実施（1ms, 1000ms, 5000ms, 3600000ms, 0ms, -1ms）
+- ✅ 既存テストの網羅的な修正（ExecutionOrchestratorTests.cs 6箇所）
+- ✅ インターフェースと実装の同時修正（IOptions依存削除）
+
+**Phase 2-3で適用すべき教訓**:
+- ⚠️ DataOutputManager.OutputToJson()のシグネチャ変更時、IDataOutputManagerも同時修正
+- ⚠️ 既存テストでMock.Setup()のシグネチャを更新（`It.IsAny<string>()`追加）
+- ⚠️ Green段階完了後、必ず全ファイルのビルドで参照エラーを確認
+- ⚠️ Refactor段階でXMLドキュメントコメント、using文の整理を実施
 
 ---
 
 ## 📈 次のステップ
 
+### Phase 2-3実装前の準備
+
+**Phase 2-2完了情報の確認**:
+- ✅ 実装結果: [Phase2_2_MonitoringInterval_Excel移行_TestResults.md](../実装結果/Phase2_2_MonitoringInterval_Excel移行_TestResults.md)
+- ✅ TDDサイクル: Red→Green→Refactor 完全遵守
+- ✅ テスト結果: 8/8合格（100%）
+- ✅ 全体テスト結果: 825/837合格
+- ✅ appsettings.json: 完全空化（5行、コメントのみ）
+
+**Phase 2-3実装開始時の確認事項**:
+1. Phase 2-2実装結果文書を読み、TDDサイクルの成功パターンを理解
+2. Phase 2-2で遭遇した問題（ビルドエラー、シグネチャ変更の影響範囲）を確認
+3. 既存テスト修正の必要性を認識（DataOutputManagerTests.cs, ExecutionOrchestratorTests.cs, 統合テスト）
+4. IDataOutputManager.csとDataOutputManager.csの同時修正を計画
+
+### Phase 2-3完了後の進行先
+
 Phase 2-3完了後、Phase 2-4（SavePathの利用実装）に進みます。
 
 → [Phase2-4_SavePath_利用実装.md](./Phase2-4_SavePath_利用実装.md)
+
+### 累積進捗（Phase 0～2-2完了時点）
+
+| 項目 | Phase 0開始前 | Phase 2-2完了後 | 累積削減量 |
+|------|-------------|---------------|------------|
+| **appsettings.json** | 101行 | 5行（コメントのみ） | **96行削減（95%削減）** |
+| **削除クラスファイル** | - | - | **10ファイル削除** |
+| **削除テストファイル** | - | - | **3ファイル削除** |
+
+**Phase 2-3ではappsettings.jsonへの影響はありません。** Excel設定からJSON出力への橋渡しのみを実装します。

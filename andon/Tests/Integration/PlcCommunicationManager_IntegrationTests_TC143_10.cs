@@ -12,6 +12,11 @@ namespace Andon.Tests.Integration;
 /// <summary>
 /// TC143_10: Step3-6 M100～M107ビット読み出し4パターン統合テスト
 /// 目的: 3E/4E × バイナリ/ASCIIの4パターンでM100～M107ビット読み出しの完全サイクルを統合検証
+///
+/// 【レガシーテスト】
+/// このテストはRead(0x0401)コマンドを使用した歴史的テストです。
+/// ProcessedDeviceRequestInfoと共に「テスト専用資産」として保持されています（Phase12決定事項）。
+/// 本番実装ではReadRandom(0x0403)を使用してください。
 /// </summary>
 public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
 {

@@ -2,12 +2,17 @@
 
 **作成日**: 2025-11-27
 **実装方式**: TDD (Red-Green-Refactor)
+**最終更新**: 2025-12-03（MonitoringIntervalMs変換修正）
 
 ## 概要
 
 Step1（設定ファイル読み込み）のPhase2で実装したExcel読み込み基礎機能のテスト結果。
 EPPlusライブラリを使用してExcelファイルから設定情報とデバイス情報を読み込む機能を実装。
 TDD方式により全テストケースがパスし、Excel読み込み機能が正常に動作することを確認完了。
+
+**重要な更新履歴**:
+- 2025-11-27: Phase2初回実装完了（25テスト合格）
+- 2025-12-03: MonitoringIntervalMs秒→ミリ秒変換修正完了（38テスト + Phase5統合5テスト合格）
 
 ---
 
@@ -24,16 +29,16 @@ TDD方式により全テストケースがパスし、Excel読み込み機能が
 
 ### 1.2 PlcConfigurationプロパティ
 
-| プロパティ名 | 型 | 説明 | Excel位置 |
-|-------------|-----|------|-----------|
-| `IpAddress` | string | PLCのIPアドレス | settings!B8 |
-| `Port` | int | PLCのポート | settings!B9 |
-| `DataReadingFrequency` | int | データ取得周期(ms) | settings!B11 |
-| `PlcModel` | string | デバイス名/PLC識別名 | settings!B12 |
-| `SavePath` | string | データ保存先パス | settings!B13 |
-| `SourceExcelFile` | string | 設定元Excelファイルパス | (メタ情報) |
-| `ConfigurationName` | string | 設定名（計算プロパティ） | (ファイル名から生成) |
-| `Devices` | List<DeviceSpecification> | デバイスリスト | データ収集デバイスシート |
+| プロパティ名 | 型 | 説明 | Excel位置 | 備考 |
+|-------------|-----|------|-----------|------|
+| `IpAddress` | string | PLCのIPアドレス | settings!B8 | - |
+| `Port` | int | PLCのポート | settings!B9 | - |
+| `MonitoringIntervalMs` | int | データ取得周期(ms) | settings!B11 | ✅ **秒単位で読み込み×1000でミリ秒変換** |
+| `PlcModel` | string | デバイス名/PLC識別名 | settings!B12 | - |
+| `SavePath` | string | データ保存先パス | settings!B13 | - |
+| `SourceExcelFile` | string | 設定元Excelファイルパス | (メタ情報) | - |
+| `ConfigurationName` | string | 設定名（計算プロパティ） | (ファイル名から生成) | - |
+| `Devices` | List<DeviceSpecification> | デバイスリスト | データ収集デバイスシート | - |
 
 ### 1.3 ConfigurationLoaderExcel実装メソッド
 
@@ -85,6 +90,8 @@ Phase2でExcel読み込み用に以下のプロパティを追加（既存機能
 
 ### 2.1 全体サマリー
 
+#### 初回実装（2025-11-27）
+
 ```
 実行日時: 2025-11-27
 VSTest: 17.14.1 (x64)
@@ -94,13 +101,36 @@ VSTest: 17.14.1 (x64)
 実行時間: PlcConfiguration 1.43秒 + ConfigurationLoaderExcel 4.70秒 = 6.13秒
 ```
 
+#### MonitoringIntervalMs変換修正後（2025-12-03）
+
+```
+実行日時: 2025-12-03
+VSTest: 17.14.1 (x64)
+.NET: 9.0
+
+結果: 成功 - 失敗: 0、合格: 38、スキップ: 1、合計: 39
+Phase5統合テスト: 合格: 5、スキップ: 0、合計: 5
+全体回帰テスト: 合格: 847、スキップ: 3、合計: 850（回帰なし）
+実行時間: ConfigurationLoaderExcel 12秒 + Phase5統合 1秒 + 全体 17秒 = 30秒
+```
+
 ### 2.2 テストケース内訳
+
+#### 初回実装（2025-11-27）
 
 | テストクラス | テスト数 | 成功 | 失敗 | 実行時間 |
 |-------------|----------|------|------|----------|
 | PlcConfigurationTests | 13 | 13 | 0 | ~1.43秒 |
 | ConfigurationLoaderExcelTests | 12 | 12 | 0 | ~4.70秒 |
 | **合計** | **25** | **25** | **0** | **6.13秒** |
+
+#### MonitoringIntervalMs変換修正後（2025-12-03）
+
+| テストクラス | テスト数 | 成功 | スキップ | 実行時間 |
+|-------------|----------|------|---------|----------|
+| ConfigurationLoaderExcelTests | 39 | 38 | 1 | ~12秒 |
+| Phase5統合テスト | 5 | 5 | 0 | ~1秒 |
+| **合計** | **44** | **43** | **1** | **13秒** |
 
 ---
 
@@ -178,16 +208,29 @@ VSTest: 17.14.1 (x64)
 
 ### 4.2 正常系テストデータ内容
 
-**settingsシート**:
-| セル | 値 |
-|------|-----|
-| B8 | 172.30.40.15 |
-| B9 | 8192 |
-| B11 | 1000 |
-| B12 | テスト用PLC |
-| B13 | C:\data\output |
+#### 初回実装（2025-11-27）
 
-**データ収集デバイスシート**:
+**settingsシート**:
+| セル | 値 | 備考 |
+|------|-----|------|
+| B8 | 172.30.40.15 | - |
+| B9 | 8192 | - |
+| B11 | 1000 | ⚠️ **変換未実装時の値（修正前）** |
+| B12 | テスト用PLC | - |
+| B13 | C:\data\output | - |
+
+#### MonitoringIntervalMs変換修正後（2025-12-03）
+
+**settingsシート**:
+| セル | 値 | 備考 |
+|------|-----|------|
+| B8 | 172.30.40.15 | - |
+| B9 | 8192 | - |
+| B11 | 1 | ✅ **秒単位（1秒 = 1000ms変換後）** |
+| B12 | テスト用PLC | - |
+| B13 | C:\data\output | - |
+
+**データ収集デバイスシート**（共通）:
 | A | B | C | D | E |
 |---|---|---|---|---|
 | 項目名 | デバイスコード | デバイス番号 | 桁数 | 単位 |
@@ -226,9 +269,144 @@ VSTest: 17.14.1 (x64)
 
 ---
 
-## 6. Phase2完了基準チェック
+## 6. MonitoringIntervalMs変換修正（2025-12-03）
 
-### 6.1 機能面
+### 6.1 修正の背景
+
+**問題発覚の経緯**:
+1. Phase5統合テスト実行時、4テストが `MonitoringIntervalMsの値が範囲外です: 1 (推奨範囲: 100～60000)` で失敗
+2. Phase2実装計画書（L112）を確認: **「取得値を1000倍してミリ秒に変換」が実装されていない**
+3. ConfigurationLoaderExcel.cs:117の実装が変換処理を欠落
+
+**Phase2仕様（実装計画書L112）**:
+- Excel B11セル: データ取得周期を**秒(sec)単位**で設定
+- 読み込み時: **×1000でミリ秒(ms)に自動変換**
+- PlcConfigurationプロパティ: **MonitoringIntervalMs**として格納
+
+### 6.2 実施した修正
+
+#### 6.2.1 ConfigurationLoaderExcel.cs修正
+
+**ファイル**: `andon/Infrastructure/Configuration/ConfigurationLoaderExcel.cs:117`
+
+```csharp
+// 【修正前】変換処理なし
+MonitoringIntervalMs = ReadCell<int>(settingsSheet, "B11", "データ取得周期(ms)"),
+
+// 【修正後】秒→ミリ秒変換追加
+MonitoringIntervalMs = ReadCell<int>(settingsSheet, "B11", "データ取得周期(sec)") * 1000,
+```
+
+#### 6.2.2 テストデータ修正
+
+**ファイル**: `andon/Tests/TestUtilities/TestData/SampleConfigurations/CreateTestExcelFile.cs`
+
+**修正内容**: 全27テストファイル作成メソッドのB11値を `1000` → `1` に変更
+
+**修正理由**:
+- **変換実装前**: B11=1000 → 1000msとして直接使用（想定動作）
+- **変換実装後**: B11=1000 → 1000秒 × 1000 = 1000000ms → 最大値60000ms超過でエラー
+- **修正後**: B11=1 → 1秒 × 1000 = 1000ms → 有効範囲内（✅ 正常）
+
+**更新したメソッド数**: 27メソッド
+- 例外: Line 512（CreateInvalidFrequencyLowFile）、Line 547（CreateInvalidFrequencyHighFile）は意図的無効テストのため対象外
+
+**更新メソッド一覧**:
+<details>
+<summary>クリックして全27メソッドを表示</summary>
+
+1. CreateValidConfigFile (L30)
+2. CreateMissingDevicesSheetFile (L103)
+3. CreateEmptyCellsFile (L124)
+4. CreateNoDevicesFile (L149)
+5. CreateBitDeviceFile (L181)
+6. CreateHexDeviceFile (L217)
+7. CreateMixedCaseFile (L253)
+8. CreateInvalidDeviceTypeFile (L289)
+9. CreateInvalidUnitFile (L325)
+10. CreateAllDeviceTypesFile (L361)
+11. CreateInvalidIpAddressFile (L407)
+12. CreateInvalidPortLowFile (L442)
+13. CreateInvalidPortHighFile (L477)
+14. CreateInvalidDeviceNumberFile (L582)
+15. CreateExceedTotalPointsFile (L617)
+16. CreateEmptySavePathFile (L656)
+17. CreateInvalidPathFormatFile (L691)
+18. CreateEmptyPlcModelFile (L726)
+19. CreatePhase2EmptyConnectionMethodFile (L764)
+20. CreatePhase2EmptyFrameVersionFile (L784)
+21. CreatePhase2EmptyTimeoutFile (L805)
+22. CreatePhase2EmptyIsBinaryFile (L826)
+23. CreatePhase2EmptyMonitoringIntervalFile (L847)
+24. CreatePhase2PlcIdGenerationFile (L868)
+25. CreatePhase2EmptyPlcNameFile (L888)
+26. CreatePhase2IsBinary1File (L910)
+27. CreatePhase2IsBinary0File (L931)
+</details>
+
+### 6.3 修正後のテスト結果
+
+#### ConfigurationLoaderExcel単体テスト
+```
+✅ 合格: 38/39 (97.4%)
+⏭️ スキップ: 1 (.NET 9互換性問題)
+❌ 失敗: 0
+```
+
+#### Phase5統合テスト
+```
+✅ 合格: 5/5 (100%)
+❌ 失敗: 0
+```
+
+#### 全体回帰テスト
+```
+✅ 合格: 847/850 (99.6%)
+⏭️ スキップ: 3 (.NET 9互換性問題)
+❌ 失敗: 0
+📊 回帰: なし
+```
+
+### 6.4 検証範囲
+
+| 項目 | 修正前 | 修正後 | 結果 |
+|------|--------|--------|------|
+| ConfigurationLoaderExcel.cs:117 | 変換なし | ×1000変換追加 | ✅ |
+| B11テストデータ（27メソッド） | 1000 | 1 | ✅ |
+| MonitoringIntervalMs値範囲 | 1ms（範囲外） | 1000ms（範囲内） | ✅ |
+| Phase2仕様準拠 | ❌ 未実装 | ✅ 実装完了 | ✅ |
+| ConfigurationLoaderExcel単体 | - | 38/39合格 | ✅ |
+| Phase5統合テスト | 1/5合格 | 5/5合格 | ✅ |
+| 全体回帰テスト | - | 847/850合格 | ✅ |
+
+### 6.5 修正の技術的詳細
+
+#### 検証範囲（SettingsValidator）
+- **MonitoringIntervalMs**: 100～60000ms（0.1秒～60秒）
+- **Excel B11値の意味**:
+  - 設定値 `1` → 1秒 → 変換後 `1000ms` ✅ 有効範囲内
+  - 設定値 `60` → 60秒 → 変換後 `60000ms` ✅ 有効範囲上限
+  - 設定値 `1000` → 1000秒 → 変換後 `1000000ms` ❌ 範囲外（60秒超過）
+
+#### TDD Red-Green-Refactor適用
+
+**Red（テスト失敗）**:
+- Phase5統合テスト: 1/5合格、4テストが範囲外エラー
+
+**Green（実装修正）**:
+1. ConfigurationLoaderExcel.cs:117に ×1000変換追加
+2. 全27テストファイルのB11値を1に修正
+
+**Refactor（確認）**:
+- ConfigurationLoaderExcel単体: 38/39合格
+- Phase5統合テスト: 5/5合格
+- 全体回帰テスト: 847/850合格（回帰なし）
+
+---
+
+## 7. Phase2完了基準チェック
+
+### 7.1 機能面
 
 - ✅ 実行フォルダ内の全.xlsxファイルを自動検出できる
 - ✅ Excelの"settings"シートから5項目を正確に読み込める
@@ -238,24 +416,33 @@ VSTest: 17.14.1 (x64)
 - ✅ 複数のExcelファイルを同時に管理できる
 - ✅ 不正な設定値を検出してエラーを返す
 
-### 6.2 テスト面
+### 7.2 テスト面
 
+**初回実装（2025-11-27）**:
 - ✅ 全単体テストがパスする（25/25テスト成功）
 - ✅ エラーケースで適切な例外がスローされる
 - ✅ ログ出力が適切に行われる（ArgumentExceptionでファイル名・セル位置明示）
 
-### 6.3 コード品質
+**MonitoringIntervalMs変換修正後（2025-12-03）**:
+- ✅ ConfigurationLoaderExcel単体テストがパスする（38/39合格、1スキップ）
+- ✅ Phase5統合テストがパスする（5/5合格）
+- ✅ 全体回帰テストで回帰なし（847/850合格、3スキップ）
+- ✅ **Phase2仕様通りの秒→ミリ秒変換が実装完了**
+
+### 7.3 コード品質
 
 - ✅ TDD方式で実装（Red→Green→Refactor）
 - ✅ 既存機能を壊していない（DeviceSpecification拡張）
 - ✅ 責任の分離（ConfigurationLoaderとConfigurationLoaderExcel）
 - ✅ エラーメッセージが詳細（ファイル名、シート名、セル位置を明示）
+- ✅ **Phase2仕様（実装計画書L112）準拠**
+- ✅ **検証範囲内での正常動作確認完了（100～60000ms）**
 
 ---
 
-## 7. Phase3への引き継ぎ
+## 8. Phase3への引き継ぎ
 
-### 7.1 実装必要な機能
+### 8.1 実装必要な機能
 
 Phase3では以下を実装予定:
 
@@ -264,14 +451,15 @@ Phase3では以下を実装予定:
 3. **10進/16進デバイス判定**: DeviceCodeMapを使用
 4. **24種類デバイスコード対応**: Phase1で実装済みのDeviceCodeMap活用
 
-### 7.2 Phase2で実装済みの機能（Phase3で活用）
+### 8.2 Phase2で実装済みの機能（Phase3で活用）
 
 - ✅ PlcConfiguration: Excelデータ保持済み
 - ✅ DeviceSpecification: Excel列データ保持済み（ItemName, DeviceType, Digits, Unit）
 - ✅ DeviceCodeMap: Phase1で実装済み（24種類デバイス対応）
 - ✅ ConfigurationLoaderExcel: Excel読み込み完了
+- ✅ **MonitoringIntervalMs変換: Phase2仕様通り実装完了（2025-12-03）**
 
-### 7.3 Phase2から保留した処理
+### 8.3 Phase2から保留した処理
 
 **Phase2でのDeviceSpecification生成**:
 ```csharp
@@ -293,9 +481,10 @@ Phase3で実装:
 
 ---
 
-## 8. 実装記録
+## 9. 実装記録
 
-**実装日**: 2025年11月27日
+### 9.1 初回実装（2025-11-27）
+
 **実装時間**: 約2時間
 **TDD サイクル数**: 2回（PlcConfiguration, ConfigurationLoaderExcel）
 **テスト合計**: 25テスト（全成功）
@@ -307,23 +496,62 @@ Phase3で実装:
 - DeviceSpecification拡張: +20行
 - テストコード: 約400行
 
-**使用技術**:
+### 9.2 MonitoringIntervalMs変換修正（2025-12-03）
+
+**修正時間**: 約1時間
+**TDD サイクル数**: 1回（Red-Green-Refactor厳守）
+**テスト合計**: 43テスト（38 ConfigurationLoaderExcel + 5 Phase5統合）
+
+**変更行数**:
+- ConfigurationLoaderExcel.cs: 1行修正（L117に ×1000追加）
+- CreateTestExcelFile.cs: 27メソッド修正（B11値 1000→1）
+- Phase2実装結果ドキュメント更新: +約200行
+
+### 9.3 使用技術
+
 - EPPlus 6.2.0
 - xUnit 2.8.2
 - .NET 9.0
+- VSTest 17.14.1 (x64)
 
 ---
 
-## 9. まとめ
+## 10. まとめ
 
 Phase2「Excel読み込み基礎機能」の実装が完了しました。
 
-**達成事項**:
-- TDD方式で全25テストがパス
-- Excelファイルから設定情報とデバイス情報を正常に読み込み可能
-- エラーハンドリングが適切に実装され、詳細なエラーメッセージを提供
-- 既存機能との互換性を維持しながらDeviceSpecificationを拡張
-- テスト用Excelファイルをプログラマティックに生成する仕組みを構築
+### 10.1 達成事項（初回実装: 2025-11-27）
 
-**次のステップ**:
+- ✅ TDD方式で全25テストがパス
+- ✅ Excelファイルから設定情報とデバイス情報を正常に読み込み可能
+- ✅ エラーハンドリングが適切に実装され、詳細なエラーメッセージを提供
+- ✅ 既存機能との互換性を維持しながらDeviceSpecificationを拡張
+- ✅ テスト用Excelファイルをプログラマティックに生成する仕組みを構築
+
+### 10.2 達成事項（MonitoringIntervalMs変換修正: 2025-12-03）
+
+- ✅ Phase2仕様通りの秒→ミリ秒変換実装完了（ConfigurationLoaderExcel.cs:117）
+- ✅ 全27テストデータファイルのB11値修正完了（1000→1）
+- ✅ ConfigurationLoaderExcel単体テスト38/39合格（97.4%）
+- ✅ Phase5統合テスト5/5合格（100%）
+- ✅ 全体回帰テスト847/850合格（99.6%、回帰なし）
+- ✅ 検証範囲内での正常動作確認（100～60000ms）
+
+### 10.3 Phase2完成状態
+
+**機能完成度**: 100%
+- Excel読み込み基礎機能: ✅ 完成
+- MonitoringIntervalMs変換: ✅ Phase2仕様準拠
+- エラーハンドリング: ✅ 完成
+- テストカバレッジ: ✅ 高（38単体 + 5統合 = 43テスト）
+
+**品質確認**: 完了
+- TDD方式厳守: ✅
+- Phase2仕様準拠: ✅（実装計画書L112）
+- 回帰テスト: ✅ 回帰なし（847/850合格）
+- ドキュメント更新: ✅ 完了
+
+### 10.4 次のステップ
+
 Phase3「デバイス情報変換と正規化」の実装に進みます。
+Phase2で構築したExcel読み込み基盤とMonitoringIntervalMs変換機能を活用し、デバイスタイプの正規化処理を実装します。

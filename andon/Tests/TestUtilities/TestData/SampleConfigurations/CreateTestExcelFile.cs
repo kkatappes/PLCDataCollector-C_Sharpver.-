@@ -27,7 +27,7 @@ public static class TestExcelFileCreator
         settingsSheet.Cells["B9"].Value = 8192;
 
         settingsSheet.Cells["A11"].Value = "データ取得周期(ms)";
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
 
         settingsSheet.Cells["A12"].Value = "デバイス名";
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
@@ -100,7 +100,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -121,7 +121,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = ""; // 空文字
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -146,7 +146,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -178,7 +178,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -214,7 +214,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -250,7 +250,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -286,7 +286,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -322,7 +322,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -358,7 +358,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -404,7 +404,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "invalid-ip-address"; // 不正なIPアドレス
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -439,7 +439,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 0; // 範囲外（下限）
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -474,7 +474,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 70000; // 範囲外（上限）
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -579,7 +579,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -614,7 +614,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -653,7 +653,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = ""; // 空の保存先パス
 
@@ -688,7 +688,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "テスト用PLC";
         settingsSheet.Cells["B13"].Value = @"C:\invalid<path>\data"; // 不正なパス形式
 
@@ -723,7 +723,7 @@ public static class TestExcelFileCreator
         var settingsSheet = package.Workbook.Worksheets.Add("settings");
         settingsSheet.Cells["B8"].Value = "172.30.40.15";
         settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = ""; // 空のデバイス名
         settingsSheet.Cells["B13"].Value = @"C:\data\output";
 
@@ -761,7 +761,7 @@ public static class TestExcelFileCreator
         settingsSheet.Cells["B8"].Value = "192.168.1.10";
         settingsSheet.Cells["B9"].Value = 8192;
         settingsSheet.Cells["B10"].Value = ""; // 空 → 既定値UDP
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "TestPLC";
         settingsSheet.Cells["B13"].Value = @"C:\data";
 
@@ -781,7 +781,7 @@ public static class TestExcelFileCreator
         settingsSheet.Cells["B8"].Value = "192.168.1.10";
         settingsSheet.Cells["B9"].Value = 8192;
         settingsSheet.Cells["B10"].Value = "UDP";
-        settingsSheet.Cells["B11"].Value = 1000; // B11は必須（DataReadingFrequency用）
+        settingsSheet.Cells["B11"].Value = 1; // B11は必須（DataReadingFrequency用）
         settingsSheet.Cells["B12"].Value = "TestPLC"; // B12は必須（PlcModel用）
         settingsSheet.Cells["B13"].Value = @"C:\data"; // B13は必須（SavePath用）
         // FrameVersionは将来的な拡張用（現在は内部で既定値4Eが設定される）
@@ -802,7 +802,7 @@ public static class TestExcelFileCreator
         settingsSheet.Cells["B8"].Value = "192.168.1.10";
         settingsSheet.Cells["B9"].Value = 8192;
         settingsSheet.Cells["B10"].Value = "UDP";
-        settingsSheet.Cells["B11"].Value = 1000; // B11は必須（DataReadingFrequency用）
+        settingsSheet.Cells["B11"].Value = 1; // B11は必須（DataReadingFrequency用）
         settingsSheet.Cells["B12"].Value = "TestPLC"; // B12は必須（PlcModel用）
         settingsSheet.Cells["B13"].Value = @"C:\data"; // B13は必須（SavePath用）
         // Timeoutは将来的な拡張用（現在は内部で既定値1000msが設定される）
@@ -823,7 +823,7 @@ public static class TestExcelFileCreator
         settingsSheet.Cells["B8"].Value = "192.168.1.10";
         settingsSheet.Cells["B9"].Value = 8192;
         settingsSheet.Cells["B10"].Value = "UDP";
-        settingsSheet.Cells["B11"].Value = 1000; // B11は必須（DataReadingFrequency用）
+        settingsSheet.Cells["B11"].Value = 1; // B11は必須（DataReadingFrequency用）
         settingsSheet.Cells["B12"].Value = "TestPLC"; // B12は必須（PlcModel用）
         settingsSheet.Cells["B13"].Value = @"C:\data"; // B13は必須（SavePath用）
         // IsBinaryは将来的な拡張用（現在は内部で既定値trueが設定される）
@@ -844,7 +844,7 @@ public static class TestExcelFileCreator
         settingsSheet.Cells["B8"].Value = "192.168.1.10";
         settingsSheet.Cells["B9"].Value = 8192;
         settingsSheet.Cells["B10"].Value = "UDP";
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "TestPLC";
         settingsSheet.Cells["B13"].Value = @"C:\data";
         settingsSheet.Cells["B14"].Value = ""; // 空 → 既定値1000ms
@@ -865,7 +865,7 @@ public static class TestExcelFileCreator
         settingsSheet.Cells["B8"].Value = "192.168.1.10";
         settingsSheet.Cells["B9"].Value = 8192;
         settingsSheet.Cells["B10"].Value = "UDP";
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "TestPLC";
         settingsSheet.Cells["B13"].Value = @"C:\data";
 
@@ -885,7 +885,7 @@ public static class TestExcelFileCreator
         settingsSheet.Cells["B8"].Value = "192.168.1.10";
         settingsSheet.Cells["B9"].Value = 8192;
         settingsSheet.Cells["B10"].Value = "UDP";
-        settingsSheet.Cells["B11"].Value = 1000;
+        settingsSheet.Cells["B11"].Value = 1;
         settingsSheet.Cells["B12"].Value = "TestPLC";
         settingsSheet.Cells["B13"].Value = @"C:\data";
         settingsSheet.Cells["B14"].Value = 1000;
@@ -899,43 +899,43 @@ public static class TestExcelFileCreator
     /// IsBinary=1のファイルを作成（true変換テスト用）
     /// </summary>
     public static void CreatePhase2IsBinary1File(string filePath)
-    {
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-        using var package = new ExcelPackage();
+{
+    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+    using var package = new ExcelPackage();
 
-        var settingsSheet = package.Workbook.Worksheets.Add("settings");
-        settingsSheet.Cells["B8"].Value = "192.168.1.10";
-        settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B10"].Value = "UDP";
-        settingsSheet.Cells["B11"].Value = 1000; // B11は必須（DataReadingFrequency用）
-        settingsSheet.Cells["B12"].Value = "TestPLC"; // B12は必須（PlcModel用）
-        settingsSheet.Cells["B13"].Value = @"C:\data"; // B13は必須（SavePath用）
-        // IsBinary=1は将来的な拡張用（現在は内部で"1"→trueに変換される）
+    var settingsSheet = package.Workbook.Worksheets.Add("settings");
+    settingsSheet.Cells["B8"].Value = "192.168.1.10";
+    settingsSheet.Cells["B9"].Value = 8192;
+    settingsSheet.Cells["B10"].Value = "UDP";
+    settingsSheet.Cells["B11"].Value = 1; // B11は必須（DataReadingFrequency用）
+    settingsSheet.Cells["B12"].Value = "TestPLC"; // B12は必須（PlcModel用）
+    settingsSheet.Cells["B13"].Value = @"C:\data"; // B13は必須（SavePath用）
+    // IsBinary=1は将来的な拡張用（現在は内部で"1"→trueに変換される）
 
-        CreateMinimalDevicesSheet(package);
-        package.SaveAs(new FileInfo(filePath));
-    }
+    CreateMinimalDevicesSheet(package);
+    package.SaveAs(new FileInfo(filePath));
+}
 
     /// <summary>
     /// IsBinary=0のファイルを作成（false変換テスト用）
     /// </summary>
     public static void CreatePhase2IsBinary0File(string filePath)
-    {
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-        using var package = new ExcelPackage();
+{
+    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+    using var package = new ExcelPackage();
 
-        var settingsSheet = package.Workbook.Worksheets.Add("settings");
-        settingsSheet.Cells["B8"].Value = "192.168.1.10";
-        settingsSheet.Cells["B9"].Value = 8192;
-        settingsSheet.Cells["B10"].Value = "UDP";
-        settingsSheet.Cells["B11"].Value = 1000; // B11は必須（DataReadingFrequency用）
-        settingsSheet.Cells["B12"].Value = "TestPLC"; // B12は必須（PlcModel用）
-        settingsSheet.Cells["B13"].Value = @"C:\data"; // B13は必須（SavePath用）
-        // IsBinary=0は将来的な拡張用（現在は内部で"0"→falseに変換される）
+    var settingsSheet = package.Workbook.Worksheets.Add("settings");
+    settingsSheet.Cells["B8"].Value = "192.168.1.10";
+    settingsSheet.Cells["B9"].Value = 8192;
+    settingsSheet.Cells["B10"].Value = "UDP";
+    settingsSheet.Cells["B11"].Value = 1; // B11は必須（DataReadingFrequency用）
+    settingsSheet.Cells["B12"].Value = "TestPLC"; // B12は必須（PlcModel用）
+    settingsSheet.Cells["B13"].Value = @"C:\data"; // B13は必須（SavePath用）
+    // IsBinary=0は将来的な拡張用（現在は内部で"0"→falseに変換される）
 
-        CreateMinimalDevicesSheet(package);
-        package.SaveAs(new FileInfo(filePath));
-    }
+    CreateMinimalDevicesSheet(package);
+    package.SaveAs(new FileInfo(filePath));
+}
 
     /// <summary>
     /// 最小限のデバイスシートを作成（Phase2テスト用ヘルパー）

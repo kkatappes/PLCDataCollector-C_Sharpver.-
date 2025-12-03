@@ -8,11 +8,15 @@ namespace Andon.Infrastructure.Configuration;
 
 /// <summary>
 /// Excelファイルから設定を読み込むクラス（Phase2～Phase5実装）
+/// PlcConfigurationモデルを使用した統一設計
+/// ⚠️ 注意: JSON設定読み込み機能は廃止（appsettings.json完全廃止により不要）
+/// Phase 2-5: SettingsValidator統合完了（IPアドレス、ポート、MonitoringIntervalMs検証）
 /// </summary>
 public class ConfigurationLoaderExcel
 {
     private readonly string _baseDirectory;
     private readonly MultiPlcConfigManager? _configManager;
+    private readonly SettingsValidator _validator; // Phase 2-5: SettingsValidator統合
 
     /// <summary>
     /// コンストラクタ（Phase5: DI統合対応）
@@ -23,6 +27,7 @@ public class ConfigurationLoaderExcel
     {
         _baseDirectory = baseDirectory ?? AppContext.BaseDirectory;
         _configManager = configManager;
+        _validator = new SettingsValidator(); // Phase 2-5: SettingsValidator初期化
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
     }
 
@@ -112,7 +117,7 @@ public class ConfigurationLoaderExcel
         {
             IpAddress = ipAddress,
             Port = port,
-            MonitoringIntervalMs = ReadCell<int>(settingsSheet, "B11", "データ取得周期(ms)"),
+            MonitoringIntervalMs = ReadCell<int>(settingsSheet, "B11", "データ取得周期(sec)") * 1000,
             PlcModel = ReadCell<string>(settingsSheet, "B12", "デバイス名"),
             SavePath = ReadCell<string>(settingsSheet, "B13", "データ保存先パス"),
             // Phase2: 追加プロパティ
@@ -373,25 +378,18 @@ public class ConfigurationLoaderExcel
     /// <exception cref="ArgumentOutOfRangeException">値が範囲外の場合</exception>
     private void ValidateConfiguration(PlcConfiguration config)
     {
-        // ① 接続情報検証
-        if (!System.Net.IPAddress.TryParse(config.IpAddress, out _))
-        {
-            throw new ArgumentException(
-                $"IPアドレスの形式が不正です: {config.IpAddress}");
-        }
+        // ===== Phase 2-5: SettingsValidator統合 =====
+        // 基本設定項目の検証（SettingsValidator使用）
+        _validator.ValidateIpAddress(config.IpAddress);
+        _validator.ValidatePort(config.Port);
+        _validator.ValidateMonitoringIntervalMs(config.MonitoringIntervalMs);
 
-        if (config.Port < 1 || config.Port > 65535)
-        {
-            throw new ArgumentException(
-                $"ポート番号が範囲外です: {config.Port}（1～65535）");
-        }
+        // 将来拡張: オプション項目の検証
+        // _validator.ValidateTimeout(config.Timeout);
+        // _validator.ValidateConnectionMethod(config.ConnectionMethod);
+        // _validator.ValidateFrameVersion(config.FrameVersion);
 
-        // ② データ取得周期（監視間隔）検証
-        if (config.MonitoringIntervalMs < 1 || config.MonitoringIntervalMs > 86400000)
-        {
-            throw new ArgumentException(
-                $"データ取得周期が範囲外です: {config.MonitoringIntervalMs}（1～86400000ms）");
-        }
+        // ===== ConfigurationLoaderExcel固有の検証 =====
 
         // ③ デバイスリスト検証
         if (config.Devices == null || config.Devices.Count == 0)

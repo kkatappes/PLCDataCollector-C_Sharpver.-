@@ -1,6 +1,6 @@
 # Phase 0: 概要と前提条件
 
-**最終更新**: 2025-11-28
+**最終更新**: 2025-12-03
 
 ## 概要
 
@@ -117,13 +117,33 @@ public class ConnectionResponse
 }
 ```
 
-**通信プロトコル自動切り替え機能実装時に追加予定:**
+**通信プロトコル自動切り替え機能実装時に追加済み（Phase1完了: 2025-12-03）:**
 ```csharp
-// ★以下のプロパティを追加予定（クラス設計.md記載内容と整合）
+// ✅ 以下のプロパティを追加完了（Phase1実装済み）
 public string? UsedProtocol { get; init; }          // 実際に使用されたプロトコル（"TCP"/"UDP"、string型、null許容）
 public bool IsFallbackConnection { get; init; }     // 代替プロトコルで接続したか（bool型、デフォルト：false）
 public string? FallbackErrorDetails { get; init; }  // 初期プロトコル失敗時のエラー詳細（string型、null許容）
 ```
+
+**接続ロジック実装完了（Phase2完了: 2025-12-03）:**
+- ✅ PlcCommunicationManager.ConnectAsync()に代替プロトコル試行ロジックを実装
+- ✅ 初期プロトコル失敗時に自動的に代替プロトコル（TCP↔UDP）で再試行
+- ✅ ConnectionResponseの新規プロパティ（UsedProtocol, IsFallbackConnection, FallbackErrorDetails）を活用
+- ✅ 例外オブジェクト保持によるエラータイプ正確判定（TimeoutException/SocketException）
+- ✅ ConnectionStatus.Timeout vs Failed の適切な判定実装
+- ✅ ErrorDetails.AdditionalInfoへの条件付きフィールド追加（TimeoutMs/SocketErrorCode）
+- ✅ テスト結果: 799/801テスト成功（新規6テスト+既存799テスト）
+- 📄 実装結果: [Phase2_接続ロジック実装_TestResults.md](../実装結果/Phase2_接続ロジック実装_TestResults.md)
+
+**ログ出力実装完了（Phase3完了: 2025-12-03）:**
+- ✅ PlcCommunicationManagerにLoggingManager統合（ILoggingManager?フィールド・パラメータ追加）
+- ✅ Console.WriteLineからLoggingManagerへの置き換え（4箇所）
+- ✅ ErrorMessages.csにログ出力用メソッド4件追加（詳細形式、IPアドレス/ポート含む）
+- ✅ 適切なログレベル（INFO/WARNING/ERROR）での出力実装
+- ✅ TDDサイクル（Red-Green-Refactor）完全実施
+- ✅ null許容設計で既存テストへの影響なし
+- ✅ テスト結果: 45/45テスト成功（新規3テスト+既存42テスト）
+- 📄 実装結果: [Phase3_ログ出力実装_TestResults.md](../実装結果/Phase3_ログ出力実装_TestResults.md)
 
 **成功パターン:**
 1. 初期プロトコルで成功
@@ -280,10 +300,30 @@ public string? FallbackErrorDetails { get; init; }  // 初期プロトコル失�
 Excel設定ファイル (*.xlsx)
   ↓ ConfigurationLoaderExcel.LoadFromExcel()
 PlcConfiguration
-  ↓ ★変換処理（未実装）
+  ↓ ★変換処理（✅ 実装済み）
 ConnectionConfig + TimeoutConfig
   ↓ PlcCommunicationManagerコンストラクタ
 PlcCommunicationManager
 ```
 
-→ **PlcConfigurationからConnectionConfig/TimeoutConfigへの変換処理が必要**
+→ **✅ PlcConfigurationからConnectionConfig/TimeoutConfigへの変換処理は実装済み**
+   - 実装場所1: `ApplicationController.cs:92-110` (ExecuteStep1InitializationAsync内)
+   - 実装場所2: `ExecutionOrchestrator.cs:186-199` (ExecuteMultiPlcCycleAsync_Internal内)
+
+**変換処理の実装例:**
+```csharp
+var connectionConfig = new ConnectionConfig
+{
+    IpAddress = config.IpAddress,
+    Port = config.Port,
+    UseTcp = config.ConnectionMethod == "TCP",
+    IsBinary = config.IsBinary
+};
+
+var timeoutConfig = new TimeoutConfig
+{
+    ConnectTimeoutMs = config.Timeout,
+    SendTimeoutMs = config.Timeout,
+    ReceiveTimeoutMs = config.Timeout
+};
+```

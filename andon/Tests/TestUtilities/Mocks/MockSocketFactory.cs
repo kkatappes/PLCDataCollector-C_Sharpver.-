@@ -13,6 +13,10 @@ public class MockSocketFactory : ISocketFactory
     private readonly int _simulatedDelayMs;
     private readonly MockSocket? _preconfiguredSocket;
 
+    // Phase 2-Green Step 2: プロトコルごとの成功/失敗制御
+    private readonly bool? _tcpShouldSucceed;
+    private readonly bool? _udpShouldSucceed;
+
     /// <summary>
     /// コンストラクタ
     /// </summary>
@@ -23,6 +27,8 @@ public class MockSocketFactory : ISocketFactory
         _shouldSucceed = shouldSucceed;
         _simulatedDelayMs = simulatedDelayMs;
         _preconfiguredSocket = null;
+        _tcpShouldSucceed = null;
+        _udpShouldSucceed = null;
     }
 
     /// <summary>
@@ -36,6 +42,24 @@ public class MockSocketFactory : ISocketFactory
         _shouldSucceed = shouldSucceed;
         _simulatedDelayMs = simulatedDelayMs;
         _preconfiguredSocket = preconfiguredSocket;
+        _tcpShouldSucceed = null;
+        _udpShouldSucceed = null;
+    }
+
+    /// <summary>
+    /// コンストラクタ（プロトコルごとの成功/失敗制御用）
+    /// Phase 2-Green Step 2: TC_P2_003, TC_P2_004用
+    /// </summary>
+    /// <param name="tcpShouldSucceed">TCP接続成功をシミュレートするか</param>
+    /// <param name="udpShouldSucceed">UDP接続成功をシミュレートするか</param>
+    /// <param name="simulatedDelayMs">シミュレートする接続遅延（ミリ秒）</param>
+    public MockSocketFactory(bool tcpShouldSucceed, bool udpShouldSucceed, int simulatedDelayMs = 10)
+    {
+        _shouldSucceed = true; // デフォルト値（使用されない）
+        _simulatedDelayMs = simulatedDelayMs;
+        _preconfiguredSocket = null;
+        _tcpShouldSucceed = tcpShouldSucceed;
+        _udpShouldSucceed = udpShouldSucceed;
     }
 
     /// <summary>
@@ -105,6 +129,23 @@ public class MockSocketFactory : ISocketFactory
         if (socket is MockSocket mockSocket && mockSocket.HasConnectionFailure())
         {
             throw mockSocket.GetConnectionFailureException()!;
+        }
+
+        // Phase 2-Green Step 2: プロトコルごとの成功/失敗制御
+        if (_tcpShouldSucceed.HasValue || _udpShouldSucceed.HasValue)
+        {
+            // プロトコルを判定
+            bool isTcp = socket.ProtocolType == ProtocolType.Tcp;
+
+            // プロトコルに応じて成功/失敗を返す
+            if (isTcp)
+            {
+                return _tcpShouldSucceed ?? _shouldSucceed;
+            }
+            else
+            {
+                return _udpShouldSucceed ?? _shouldSucceed;
+            }
         }
 
         if (!_shouldSucceed)

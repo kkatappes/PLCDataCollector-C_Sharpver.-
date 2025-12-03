@@ -40,4 +40,79 @@ public static class ErrorMessages
     // 変換エラー
     public const string HexConversionFailed = "16進数変換に失敗しました: {0}";
     public const string UnsupportedDataType = "サポートされていないデータ型です: {0}";
+
+    // Phase 2-Refactor: 接続プロトコル関連エラーメッセージ生成（短い形式、エラー詳細記録用）
+    /// <summary>
+    /// 両プロトコル接続失敗時のエラーメッセージを生成（短い形式）
+    /// </summary>
+    /// <param name="tcpError">TCPエラー詳細</param>
+    /// <param name="udpError">UDPエラー詳細</param>
+    /// <returns>エラーメッセージ</returns>
+    public static string BothProtocolsConnectionFailed(string tcpError, string udpError)
+    {
+        return $"TCP/UDP両プロトコルで接続失敗\n- TCP: {tcpError}\n- UDP: {udpError}";
+    }
+
+    /// <summary>
+    /// 初期プロトコル失敗時のエラーメッセージを生成（短い形式）
+    /// </summary>
+    /// <param name="protocol">プロトコル名（"TCP"/"UDP"）</param>
+    /// <param name="error">エラー詳細</param>
+    /// <returns>エラーメッセージ</returns>
+    public static string InitialProtocolFailed(string protocol, string error)
+    {
+        return $"初期プロトコル({protocol})失敗: {error}";
+    }
+
+    // Phase 3: ログ出力用メッセージ生成（詳細形式、IPアドレス/ポート番号含む）
+    /// <summary>
+    /// 接続試行開始ログメッセージを生成
+    /// </summary>
+    /// <param name="ipAddress">IPアドレス</param>
+    /// <param name="port">ポート番号</param>
+    /// <param name="protocol">プロトコル名（"TCP"/"UDP"）</param>
+    /// <returns>ログメッセージ</returns>
+    public static string ConnectionAttemptStarted(string ipAddress, int port, string protocol)
+    {
+        return $"PLC接続試行開始: {ipAddress}:{port}, プロトコル: {protocol}";
+    }
+
+    /// <summary>
+    /// 初期プロトコル失敗・代替プロトコル再試行ログメッセージを生成
+    /// </summary>
+    /// <param name="failedProtocol">失敗したプロトコル名</param>
+    /// <param name="error">エラー詳細</param>
+    /// <param name="alternativeProtocol">代替プロトコル名</param>
+    /// <returns>ログメッセージ</returns>
+    public static string InitialProtocolFailedRetrying(string failedProtocol, string error, string alternativeProtocol)
+    {
+        return $"{failedProtocol}接続失敗: {error}. 代替プロトコル({alternativeProtocol})で再試行します。";
+    }
+
+    /// <summary>
+    /// 代替プロトコル接続成功ログメッセージを生成
+    /// </summary>
+    /// <param name="protocol">成功したプロトコル名</param>
+    /// <param name="ipAddress">IPアドレス</param>
+    /// <param name="port">ポート番号</param>
+    /// <returns>ログメッセージ</returns>
+    public static string FallbackConnectionSucceeded(string protocol, string ipAddress, int port)
+    {
+        return $"代替プロトコル({protocol})で接続成功: {ipAddress}:{port}";
+    }
+
+    /// <summary>
+    /// 両プロトコル失敗詳細ログメッセージを生成（ログ出力用）
+    /// </summary>
+    /// <param name="ipAddress">IPアドレス</param>
+    /// <param name="port">ポート番号</param>
+    /// <param name="tcpError">TCPエラー詳細</param>
+    /// <param name="udpError">UDPエラー詳細</param>
+    /// <returns>ログメッセージ</returns>
+    public static string BothProtocolsConnectionFailedDetailed(string ipAddress, int port, string tcpError, string udpError)
+    {
+        return $"PLC接続失敗: {ipAddress}:{port}. TCP/UDP両プロトコルで接続に失敗しました。\n" +
+               $"  - TCP接続エラー: {tcpError}\n" +
+               $"  - UDP接続エラー: {udpError}";
+    }
 }

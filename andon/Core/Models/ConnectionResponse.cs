@@ -31,4 +31,22 @@ public class ConnectionResponse
     /// エラーメッセージ（失敗時のみ）
     /// </summary>
     public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// 実際に使用されたプロトコル（"TCP"または"UDP"）
+    /// </summary>
+    public string? UsedProtocol { get; init; }
+
+    /// <summary>
+    /// 代替プロトコルで接続したかどうか
+    /// true: 初期プロトコル失敗後、代替プロトコルで接続成功
+    /// false: 初期プロトコルで接続成功
+    /// </summary>
+    public bool IsFallbackConnection { get; init; }
+
+    /// <summary>
+    /// 初期プロトコル失敗時のエラー詳細
+    /// IsFallbackConnection=trueの場合のみ値が設定される
+    /// </summary>
+    public string? FallbackErrorDetails { get; init; }
 }

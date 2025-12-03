@@ -146,4 +146,3 @@ C:\Users\1010821\Desktop\python\andon\andon\Tests\obj\Debug\net9.0\refint\andon.
 C:\Users\1010821\Desktop\python\andon\andon\Tests\obj\Debug\net9.0\andon.Tests.pdb
 C:\Users\1010821\Desktop\python\andon\andon\Tests\obj\Debug\net9.0\andon.Tests.genruntimeconfig.cache
 C:\Users\1010821\Desktop\python\andon\andon\Tests\obj\Debug\net9.0\ref\andon.Tests.dll
-C:\Users\1010821\Desktop\python\andon\andon\Tests\bin\Debug\net9.0\appsettings.json

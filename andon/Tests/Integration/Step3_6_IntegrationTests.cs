@@ -57,7 +57,7 @@ public class Step3_6_IntegrationTests : IDisposable
         // 3. SLMPフレーム準備（M機器用、D機器用）
         var slmpFrames = new List<string>
         {
-            "54001234000000010401006400000090E8030000",  // M機器用フレーム
+            "54001234000000010401006400000090E8030000",  // M機器用フレーム - Read(0x0401)レガシーフレーム
             "54001234000000010400A800000090E8030000"   // D機器用フレーム
         };
 
@@ -262,7 +262,7 @@ public class Step3_6_IntegrationTests : IDisposable
             socketFactory: mockSocketFactory);
 
         // 送信フレーム準備（SLMP読み込みコマンド - M000-M999）
-        string sendFrameHex = "54001234000000010401006400000090E8030000";
+        string sendFrameHex = "54001234000000010401006400000090E8030000"; // Read(0x0401)レガシーフレーム
 
         // Act（実行） - Step3: 接続
         var connectResult = await manager.ConnectAsync();
@@ -705,7 +705,7 @@ public class Step3_6_IntegrationTests : IDisposable
             Assert.Equal(ConnectionStatus.Connected, connectResponse.Status);
 
             // Step4: SendFrame
-            string frameString = "54001234000000010401006400000090E8030000"; // M機器フレーム
+            string frameString = "54001234000000010401006400000090E8030000"; // M機器フレーム - Read(0x0401)レガシーフレーム
             await plcCommManager.SendFrameAsync(frameString);
 
             // Step4: ReceiveResponse（ネットワーク遅延はMockSocketで自動シミュレート）

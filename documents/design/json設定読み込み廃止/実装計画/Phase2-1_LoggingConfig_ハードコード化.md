@@ -4,7 +4,75 @@
 **影響度**: 高（すべてのログ出力に影響）
 **工数**: 中
 **前提条件**: Phase 0完了（✅ 2025-12-02）, Phase 1完了（✅ 2025-12-02）
-**状態**: ⏳ 準備中
+**状態**: ✅ **完了** (2025-12-03)
+**実装結果**: [Phase2_1_LoggingConfig_Hardcoding_TestResults.md](../実装結果/Phase2_1_LoggingConfig_Hardcoding_TestResults.md)
+
+---
+
+## ✅ Phase 2-1 実装完了サマリー
+
+### 実施結果
+
+**実装完了日**: 2025-12-03
+**実装方式**: TDD (Red→Green→Refactor)
+**最終テスト結果**: 100% (12/12対象テスト合格)
+
+### 完了事項
+
+✅ **LoggingConfig全7項目のハードコード化**:
+- LogLevel="Debug"（現在のappsettings.json値を採用）
+- EnableFileOutput=true
+- EnableConsoleOutput=true
+- LogFilePath="logs/andon.log"（現在のappsettings.json値を採用）
+- MaxLogFileSizeMb=10（現在のappsettings.json値を採用）
+- MaxLogFileCount=7（現在のappsettings.json値を採用）
+- EnableDateBasedRotation=false（現在のappsettings.json値を採用）
+
+✅ **修正ファイル（3ファイル）**:
+- LoggingManager.cs: IOptions<LoggingConfig>依存削除、ハードコード定数追加
+- DependencyInjectionConfigurator.cs: LoggingConfig DI登録削除
+- OptionsConfigurator.cs: LoggingConfig設定・検証削除
+
+✅ **削除ファイル（1ファイル）**:
+- LoggingConfig.cs: クラスファイル完全削除
+
+✅ **appsettings.json削減**: 14行 → 5行（9行削減）
+
+✅ **テストファイル作成・更新（5ファイル）**:
+- Phase2_1_LoggingConfig_HardcodingTests.cs: 新規作成（5テスト）
+- LoggingManagerTests.cs: 完全書き換え（808行→445行、26テスト→17テスト）
+- Phase0_UnusedItemsDeletion_NoImpactTests.cs: LoggingConfig削除対応
+- DependencyInjectionConfiguratorTests.cs: LoggingConfig DI登録テスト削除
+- OptionsConfiguratorTests.cs: LoggingConfig設定テスト削除
+
+### テスト結果
+
+| テストクラス | テスト数 | 成功 | 失敗 |
+|-------------|----------|------|------|
+| Phase2_1_LoggingConfig_HardcodingTests | 5 | 5 | 0 |
+| Phase0_UnusedItemsDeletion_NoImpactTests | 7 | 7 | 0 |
+| **対象テスト合計** | **12** | **12** | **0** |
+
+### 重要な実装判断
+
+**現在のappsettings.json値を採用**:
+- 計画値と実際の値が異なっていたため、既存動作を維持するために現在値を採用
+- LogLevel="Debug"（計画値: "Information"）
+- LogFilePath="logs/andon.log"（計画値: "./logs"）
+- MaxLogFileSizeMb=10（計画値: 1）
+- MaxLogFileCount=7（計画値: 10）
+- EnableDateBasedRotation=false（計画値: true）
+
+**ファイルアクセス競合解決**:
+- テストでファイルアクセス競合が発生
+- using文とTask.Delay(50)で明示的なDispose管理を実装
+- 結果: 5/5テスト全成功
+
+### Phase 2-2への引き継ぎ
+
+⏳ **MonitoringIntervalMs**: Excel設定読み込みへの移行（Phase 2-2で対応）
+⏳ **PlcModel**: JSON出力実装（Phase 2-3で対応）
+⏳ **SavePath**: 利用実装（Phase 2-4で対応）
 
 ---
 

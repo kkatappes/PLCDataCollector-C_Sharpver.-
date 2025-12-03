@@ -3,7 +3,7 @@
 **フェーズ**: Phase 2-4（新規追加）
 **影響度**: 中（データ保存先パスに影響）
 **工数**: **小**（Phase 1-5完了により簡略化）
-**前提条件**: Phase 0, Phase 1, Phase 2-1, Phase 2-2, Phase 2-3完了
+**前提条件**: Phase 0, Phase 1, Phase 2-1, Phase 2-2, **Phase 2-3完了（2025-12-03）**
 
 ---
 
@@ -12,6 +12,41 @@
 SavePathをExcel設定から使用するようにします。現在、Excel設定から読み込まれているが、ExecutionOrchestratorでハードコードされたパスが使用されている問題を修正します。
 
 **✅ Phase 1-5完了により、Excel読み込み処理は既に実装済みです。ハードコード削除のみで完了します。**
+
+---
+
+## 🔗 Phase 2-3からの引継ぎ事項（2025-12-03完了）
+
+### ✅ Phase 2-3完了内容
+- **PlcModel JSON出力実装**: 100%完了
+- **Excel設定読み込み**: ConfigurationLoaderExcel.cs:116で実装済み
+- **DataOutputManager統合**: PlcModelパラメータ追加完了
+- **JSON出力**: source.plcModelフィールド追加完了
+- **TDDサイクル**: Red→Green→Refactor完全実施（27/27テスト合格）
+
+### 📝 Phase 2-3の成功パターンをPhase 2-4に適用
+
+| Phase 2-3の実装パターン | Phase 2-4への適用 |
+|------------------------|------------------|
+| **Excel読み込み**: 既に完了（Phase 1-5） | ✅ SavePathも同様に完了済み（ConfigurationLoaderExcel.cs:117） |
+| **ハードコード削除**: DataOutputManager.cs L48 | ✅ ExecutionOrchestrator.cs L238のハードコード削除 |
+| **nullチェック**: `plcModel ?? ""` | ✅ SavePathも同様の処理（`savePath ?? "./output"`） |
+| **インターフェース変更**: IDataOutputManager | ❌ Phase 2-4では不要（既存メソッド使用） |
+| **既存テスト修正**: 30箇所修正 | ⚠️ ExecutionOrchestratorTests.csの確認必要 |
+
+### 🎯 Phase 2-4の実装方針（Phase 2-3の教訓活用）
+
+**Phase 2-3で学んだこと**:
+1. ✅ **並行修正の重要性**: インターフェースと実装を同時修正
+2. ✅ **網羅的なテスト修正**: 既存テストを一括修正
+3. ✅ **ビルド確認の徹底**: Green段階完了後、即座にビルド確認
+4. ✅ **TDDサイクル厳守**: Red→Green→Refactorを完全遵守
+
+**Phase 2-4での適用**:
+- ✅ ExecutionOrchestrator.cs L238の修正のみ（シンプル）
+- ✅ インターフェース変更なし（Phase 2-3より簡単）
+- ✅ TDDサイクル厳守（Phase 2-4専用テスト作成）
+- ✅ 既存テストの影響確認（ExecutionOrchestratorTests.cs）
 
 ---
 
@@ -580,21 +615,35 @@ Assert.That(File.Exists("./test_output/data.json"), Is.True);
 
 ---
 
-## 🔄 Phase 2-3との違い
+## 🔄 Phase 2-3との違い（Phase 2-3: 2025-12-03完了）
 
-| 項目 | Phase 2-3 | Phase 2-4 |
+| 項目 | Phase 2-3（完了） | Phase 2-4（これから実装） |
 |------|-----------|-----------|
 | **対象項目** | PlcModel | SavePath |
-| **修正内容** | JSON出力への追加 | ハードコード削除 |
+| **修正内容** | JSON出力への追加（source.plcModel） | ハードコード削除（outputDirectory） |
 | **影響度** | 中（JSON出力の完全性） | 中（データ保存先パス） |
-| **工数** | 小 | **小** |
-| **Excel読み込み実装** | **✅ 完了済み（Phase 2）** | **✅ 完了済み（Phase 2）** |
-| **修正箇所** | DataOutputManager.cs, ExecutionOrchestrator.cs:227 | ExecutionOrchestrator.cs:228のみ |
+| **工数** | 小 | **小（Phase 2-3より簡単）** |
+| **完了日** | ✅ **2025-12-03** | ⏳ 未着手 |
+| **Excel読み込み実装** | ✅ 完了済み（ConfigurationLoaderExcel.cs:116） | ✅ 完了済み（ConfigurationLoaderExcel.cs:117） |
+| **修正箇所** | 4ファイル（IDataOutputManager, DataOutputManager, ExecutionOrchestrator, 新規テスト） | **1ファイル**（ExecutionOrchestrator.cs:238のみ） |
+| **インターフェース変更** | ✅ あり（IDataOutputManager） | ❌ **なし**（既存メソッド使用） |
+| **既存テスト修正** | ✅ 30箇所修正（DataOutputManagerTests 24箇所、統合テスト 5箇所、Mockセットアップ 1箇所） | ⚠️ 確認必要（ExecutionOrchestratorTests.cs） |
+| **新規テスト** | Phase2_3_PlcModel_JsonOutputTests.cs（4テスト） | Phase2_4_SavePath_ExcelConfigTests.cs（5テスト予定） |
+| **TDDサイクル結果** | ✅ Red→Green→Refactor完全実施（100%合格） | ⏳ 未実施 |
+| **設計仕様準拠** | ✅ JSON出力に`source.plcModel`追加完了 | ⏳ ハードコード削除により柔軟性向上 |
+
+### Phase 2-4がPhase 2-3より簡単な理由
+
+1. **インターフェース変更なし**: Phase 2-3ではIDataOutputManagerの変更が必要だったが、Phase 2-4では不要
+2. **修正箇所が1箇所のみ**: ExecutionOrchestrator.cs L238のみ修正
+3. **既存テスト修正が少ない**: Phase 2-3では30箇所修正が必要だったが、Phase 2-4では最小限の確認のみ
+4. **Phase 2-3の成功パターン適用**: 同様のアプローチで実装可能
 
 ---
 
 ## 📈 次のステップ
 
-Phase 2-4完了後、Phase 3（appsettings.json完全廃止）に進みます。
+Phase 2-4完了後、Phase 2-5（SettingsValidator統合）またはPhase 3（appsettings.json完全廃止）に進みます。
 
+→ [Phase2-5_SettingsValidator統合.md](./Phase2-5_SettingsValidator統合.md)
 → [Phase3_appsettings完全廃止.md](./Phase3_appsettings完全廃止.md)

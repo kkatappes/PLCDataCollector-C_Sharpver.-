@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Andon.Core.Models;
 using Andon.Core.Models.ConfigModels;
 using Andon.Core.Interfaces;
@@ -8,15 +7,26 @@ using System.Text;
 namespace Andon.Core.Managers;
 
 /// <summary>
-/// ログ機能（Phase 3 Part6拡張版）
+/// ログ機能（Phase 2-1: ハードコード化版）
 /// - ファイル出力
 /// - ログレベル設定
 /// - ログファイルローテーション
+///
+/// Phase 2-1完了: IOptions<LoggingConfig>依存を削除し、ハードコード値を使用
+/// appsettings.jsonのLoggingConfigセクションが不要になりました
 /// </summary>
 public class LoggingManager : ILoggingManager, IDisposable
 {
+    // ハードコード定数定義（appsettings.jsonの現在値を使用）
+    private const string LOG_LEVEL = "Debug";
+    private const bool ENABLE_FILE_OUTPUT = true;
+    private const bool ENABLE_CONSOLE_OUTPUT = true;
+    private const string LOG_FILE_PATH = "logs/andon.log";
+    private const int MAX_LOG_FILE_SIZE_MB = 10;
+    private const int MAX_LOG_FILE_COUNT = 7;
+    private const bool ENABLE_DATE_BASED_ROTATION = false;
+
     private readonly ILogger<LoggingManager> _logger;
-    private readonly LoggingConfig _config;
     private readonly SemaphoreSlim _fileLock = new(1, 1);
     private StreamWriter? _fileWriter;
     private bool _disposed = false;
@@ -34,19 +44,10 @@ public class LoggingManager : ILoggingManager, IDisposable
 
     public LoggingManager(ILogger<LoggingManager> logger)
     {
-        _logger = logger;
-        _config = new LoggingConfig(); // デフォルト設定
-        _currentLogLevel = ParseLogLevel(_config.LogLevel);
-    }
-
-    public LoggingManager(ILogger<LoggingManager> logger, IOptions<LoggingConfig> configOptions)
-    {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        if (configOptions == null) throw new ArgumentNullException(nameof(configOptions));
-        _config = configOptions.Value ?? throw new ArgumentNullException(nameof(configOptions.Value));
-        _currentLogLevel = ParseLogLevel(_config.LogLevel);
+        _currentLogLevel = ParseLogLevel(LOG_LEVEL);
 
-        if (_config.EnableFileOutput)
+        if (ENABLE_FILE_OUTPUT)
         {
             InitializeFileWriter();
         }
@@ -69,14 +70,14 @@ public class LoggingManager : ILoggingManager, IDisposable
         try
         {
             // ディレクトリが存在しない場合は作成
-            var directory = Path.GetDirectoryName(_config.LogFilePath);
+            var directory = Path.GetDirectoryName(LOG_FILE_PATH);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
             }
 
-            // StreamWriterを初期化（追記モード、自動フラッシュ有効、読み取り共有）
-            var fileStream = new FileStream(_config.LogFilePath, FileMode.Append, FileAccess.Write, FileShare.Read);
+            // StreamWriterを初期化（追記モード、自動フラッシュ有効、読み書き共有）
+            var fileStream = new FileStream(LOG_FILE_PATH, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
             _fileWriter = new StreamWriter(fileStream, Encoding.UTF8)
             {
                 AutoFlush = true
@@ -84,7 +85,7 @@ public class LoggingManager : ILoggingManager, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"ファイル出力の初期化に失敗: {_config.LogFilePath}");
+            _logger.LogError(ex, $"ファイル出力の初期化に失敗: {LOG_FILE_PATH}");
             throw;
         }
     }
@@ -96,7 +97,7 @@ public class LoggingManager : ILoggingManager, IDisposable
 
     private async Task WriteToFileAsync(string level, string message)
     {
-        if (!_config.EnableFileOutput || _fileWriter == null)
+        if (!ENABLE_FILE_OUTPUT || _fileWriter == null)
             return;
 
         await _fileLock.WaitAsync();
@@ -121,21 +122,21 @@ public class LoggingManager : ILoggingManager, IDisposable
 
     private async Task CheckAndRotateFileAsync()
     {
-        if (_fileWriter == null || string.IsNullOrEmpty(_config.LogFilePath))
+        if (_fileWriter == null || string.IsNullOrEmpty(LOG_FILE_PATH))
             return;
 
         try
         {
             // 日付ベースのローテーション
-            if (_config.EnableDateBasedRotation)
+            if (ENABLE_DATE_BASED_ROTATION)
             {
                 // 簡易実装: 日付変更は頻繁ではないため、ここでは基本的なサポートのみ
                 // 実際の日付変更検知は別途タイマーで実装する必要がある
             }
 
             // サイズベースのローテーション
-            var fileInfo = new FileInfo(_config.LogFilePath);
-            if (fileInfo.Exists && fileInfo.Length > _config.MaxLogFileSizeMb * 1024 * 1024)
+            var fileInfo = new FileInfo(LOG_FILE_PATH);
+            if (fileInfo.Exists && fileInfo.Length > MAX_LOG_FILE_SIZE_MB * 1024 * 1024)
             {
                 await RotateLogFileAsync();
             }
@@ -156,14 +157,14 @@ public class LoggingManager : ILoggingManager, IDisposable
             _fileWriter = null;
 
             // 既存のローテーションファイルをリネーム
-            for (int i = _config.MaxLogFileCount - 1; i >= 1; i--)
+            for (int i = MAX_LOG_FILE_COUNT - 1; i >= 1; i--)
             {
-                var oldFile = $"{_config.LogFilePath}.{i}";
-                var newFile = $"{_config.LogFilePath}.{i + 1}";
+                var oldFile = $"{LOG_FILE_PATH}.{i}";
+                var newFile = $"{LOG_FILE_PATH}.{i + 1}";
 
                 if (File.Exists(oldFile))
                 {
-                    if (i + 1 > _config.MaxLogFileCount)
+                    if (i + 1 > MAX_LOG_FILE_COUNT)
                     {
                         // 最大ファイル数を超える場合は削除
                         File.Delete(oldFile);
@@ -178,16 +179,16 @@ public class LoggingManager : ILoggingManager, IDisposable
             }
 
             // 現在のファイルを.1にリネーム
-            if (File.Exists(_config.LogFilePath))
+            if (File.Exists(LOG_FILE_PATH))
             {
-                var rotatedFile = $"{_config.LogFilePath}.1";
+                var rotatedFile = $"{LOG_FILE_PATH}.1";
                 if (File.Exists(rotatedFile))
                     File.Delete(rotatedFile);
-                File.Move(_config.LogFilePath, rotatedFile);
+                File.Move(LOG_FILE_PATH, rotatedFile);
             }
 
             // 新しいStreamWriterを初期化（読み取り共有）
-            var fileStream = new FileStream(_config.LogFilePath, FileMode.Append, FileAccess.Write, FileShare.Read);
+            var fileStream = new FileStream(LOG_FILE_PATH, FileMode.Append, FileAccess.Write, FileShare.Read);
             _fileWriter = new StreamWriter(fileStream, Encoding.UTF8)
             {
                 AutoFlush = true
@@ -200,7 +201,7 @@ public class LoggingManager : ILoggingManager, IDisposable
             // エラーが発生した場合でも、新しいStreamWriterを初期化
             try
             {
-                var fileStream = new FileStream(_config.LogFilePath, FileMode.Append, FileAccess.Write, FileShare.Read);
+                var fileStream = new FileStream(LOG_FILE_PATH, FileMode.Append, FileAccess.Write, FileShare.Read);
                 _fileWriter = new StreamWriter(fileStream, Encoding.UTF8)
                 {
                     AutoFlush = true
@@ -217,7 +218,7 @@ public class LoggingManager : ILoggingManager, IDisposable
     {
         if (ShouldLog(LogLevel.Information))
         {
-            if (_config.EnableConsoleOutput)
+            if (ENABLE_CONSOLE_OUTPUT)
             {
                 _logger.LogInformation(message);
             }
@@ -229,7 +230,7 @@ public class LoggingManager : ILoggingManager, IDisposable
     {
         if (ShouldLog(LogLevel.Warning))
         {
-            if (_config.EnableConsoleOutput)
+            if (ENABLE_CONSOLE_OUTPUT)
             {
                 _logger.LogWarning(message);
             }
@@ -241,7 +242,7 @@ public class LoggingManager : ILoggingManager, IDisposable
     {
         if (ShouldLog(LogLevel.Error))
         {
-            if (_config.EnableConsoleOutput)
+            if (ENABLE_CONSOLE_OUTPUT)
             {
                 if (ex != null)
                 {
@@ -262,7 +263,7 @@ public class LoggingManager : ILoggingManager, IDisposable
     {
         if (ShouldLog(LogLevel.Debug))
         {
-            if (_config.EnableConsoleOutput)
+            if (ENABLE_CONSOLE_OUTPUT)
             {
                 _logger.LogDebug(message);
             }
@@ -300,7 +301,7 @@ public class LoggingManager : ILoggingManager, IDisposable
             ? $"[ReadRandom] {deviceCount}点取得: {deviceList}"
             : $"[ReadRandom] {deviceCount}点取得: {deviceList}... （他{deviceCount - 5}点）";
 
-        if (_config.EnableConsoleOutput)
+        if (ENABLE_CONSOLE_OUTPUT)
         {
             _logger.LogInformation(message);
         }
@@ -318,7 +319,7 @@ public class LoggingManager : ILoggingManager, IDisposable
     {
         var message = $"[送信] {commandType}フレーム: {frame.Length}バイト";
 
-        if (_config.EnableConsoleOutput)
+        if (ENABLE_CONSOLE_OUTPUT)
         {
             _logger.LogDebug(message);
         }
@@ -334,7 +335,7 @@ public class LoggingManager : ILoggingManager, IDisposable
     {
         var message = $"[受信] レスポンス: {response.Length}バイト";
 
-        if (_config.EnableConsoleOutput)
+        if (ENABLE_CONSOLE_OUTPUT)
         {
             _logger.LogDebug(message);
         }
@@ -351,7 +352,7 @@ public class LoggingManager : ILoggingManager, IDisposable
     {
         var message = $"[エラー] {context}: {ex.Message}";
 
-        if (_config.EnableConsoleOutput)
+        if (ENABLE_CONSOLE_OUTPUT)
         {
             _logger.LogError(ex, message);
         }

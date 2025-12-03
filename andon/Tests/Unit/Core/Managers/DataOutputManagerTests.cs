@@ -63,6 +63,7 @@ public class DataOutputManagerTests : IDisposable
             _testDirectory,
             "192.168.1.100",
             5000,
+            "TestPlcModel",
             deviceConfig);
 
         // Assert - ファイル名検証
@@ -78,7 +79,7 @@ public class DataOutputManagerTests : IDisposable
         var root = jsonDoc.RootElement;
 
         // source検証
-        Assert.Equal("Unknown", root.GetProperty("source").GetProperty("plcModel").GetString());
+        Assert.Equal("TestPlcModel", root.GetProperty("source").GetProperty("plcModel").GetString());
         Assert.Equal("192.168.1.100", root.GetProperty("source").GetProperty("ipAddress").GetString());
         Assert.Equal(5000, root.GetProperty("source").GetProperty("port").GetInt32());
 
@@ -135,8 +136,8 @@ public class DataOutputManagerTests : IDisposable
         };
 
         // Act - 異なるIPアドレスで2回出力（日時なしファイル名では同じIP:ポートだと上書きされる）
-        _manager.OutputToJson(data1, _testDirectory, "192.168.1.100", 5000, deviceConfig);
-        _manager.OutputToJson(data2, _testDirectory, "192.168.1.101", 5000, deviceConfig);
+        _manager.OutputToJson(data1, _testDirectory, "192.168.1.100", 5000, "TestPlcModel", deviceConfig);
+        _manager.OutputToJson(data2, _testDirectory, "192.168.1.101", 5000, "TestPlcModel", deviceConfig);
 
         // Assert - 2ファイル作成されることを確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -176,7 +177,7 @@ public class DataOutputManagerTests : IDisposable
         };
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "172.30.40.15", 8192, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "172.30.40.15", 8192, "TestPlcModel", deviceConfig);
 
         // Assert
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -209,7 +210,7 @@ public class DataOutputManagerTests : IDisposable
         };
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, "TestPlcModel", deviceConfig);
 
         // Assert
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -244,7 +245,7 @@ public class DataOutputManagerTests : IDisposable
         };
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "172.30.40.15", 8192, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "172.30.40.15", 8192, "TestPlcModel", deviceConfig);
 
         // Assert - ファイル名フォーマット検証
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -273,7 +274,7 @@ public class DataOutputManagerTests : IDisposable
         var deviceConfig = new Dictionary<string, DeviceEntryInfo>();  // 空の設定
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, "TestPlcModel", deviceConfig);
 
         // Assert
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -312,7 +313,7 @@ public class DataOutputManagerTests : IDisposable
         };
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
 
         // Assert - device.numberが"000"（3桁ゼロ埋め）であることを確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -346,7 +347,7 @@ public class DataOutputManagerTests : IDisposable
         };
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
 
         // Assert - device.numberが"010"（3桁ゼロ埋め）であることを確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -380,7 +381,7 @@ public class DataOutputManagerTests : IDisposable
         };
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
 
         // Assert - device.numberが"100"（3桁そのまま）であることを確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -421,7 +422,7 @@ public class DataOutputManagerTests : IDisposable
         try
         {
             // Act - 存在しないディレクトリに出力
-            _manager.OutputToJson(data, nonExistentDir, "192.168.1.10", 5007, deviceConfig);
+            _manager.OutputToJson(data, nonExistentDir, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
 
             // Assert - ディレクトリが自動作成され、ファイルが出力されることを確認
             Assert.True(Directory.Exists(nonExistentDir));
@@ -470,7 +471,7 @@ public class DataOutputManagerTests : IDisposable
         try
         {
             // Act
-            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, deviceConfig);
+            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
 
             // Assert - ログ出力を確認
             var output = stringWriter.ToString();
@@ -521,7 +522,7 @@ public class DataOutputManagerTests : IDisposable
         }
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, "TestPlcModel", deviceConfig);
 
         // Assert - JSON出力確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -592,7 +593,7 @@ public class DataOutputManagerTests : IDisposable
         }
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, "TestPlcModel", deviceConfig);
 
         // Assert - JSON出力確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -652,7 +653,7 @@ public class DataOutputManagerTests : IDisposable
         }
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, "TestPlcModel", deviceConfig);
 
         // Assert - JSON出力確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -710,7 +711,7 @@ public class DataOutputManagerTests : IDisposable
         };
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, "TestPlcModel", deviceConfig);
 
         // Assert - JSON出力確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -759,7 +760,7 @@ public class DataOutputManagerTests : IDisposable
         deviceConfig["D100"] = new DeviceEntryInfo { Name = "生産カウンタ", Digits = 5 };
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, "TestPlcModel", deviceConfig);
 
         // Assert - JSON出力確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -815,7 +816,7 @@ public class DataOutputManagerTests : IDisposable
         }
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, "TestPlcModel", deviceConfig);
 
         // Assert - JSON出力確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -861,7 +862,7 @@ public class DataOutputManagerTests : IDisposable
         }
 
         // Act
-        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, deviceConfig);
+        _manager.OutputToJson(data, _testDirectory, "192.168.1.100", 5000, "TestPlcModel", deviceConfig);
 
         // Assert - JSON出力確認
         var files = Directory.GetFiles(_testDirectory, "*.json");
@@ -897,7 +898,7 @@ public class DataOutputManagerTests : IDisposable
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
         {
-            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, deviceConfig);
+            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
         });
 
         // エラーメッセージの検証
@@ -924,7 +925,7 @@ public class DataOutputManagerTests : IDisposable
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
         {
-            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, deviceConfig);
+            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
         });
 
         // エラーメッセージの検証
@@ -957,14 +958,14 @@ public class DataOutputManagerTests : IDisposable
         // Act & Assert - ポート番号0
         var exception1 = Assert.Throws<ArgumentException>(() =>
         {
-            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 0, deviceConfig);
+            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 0, "TestPlcModel", deviceConfig);
         });
         Assert.Contains("ポート番号", exception1.Message);
 
         // Act & Assert - ポート番号65536（範囲外）
         var exception2 = Assert.Throws<ArgumentException>(() =>
         {
-            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 65536, deviceConfig);
+            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 65536, "TestPlcModel", deviceConfig);
         });
         Assert.Contains("ポート番号", exception2.Message);
     }
@@ -1002,7 +1003,7 @@ public class DataOutputManagerTests : IDisposable
         try
         {
             // Act
-            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, deviceConfig);
+            _manager.OutputToJson(data, _testDirectory, "192.168.1.10", 5007, "TestPlcModel", deviceConfig);
 
             // Assert
             var logOutput = output.ToString();

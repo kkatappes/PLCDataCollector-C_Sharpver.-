@@ -87,22 +87,11 @@ public class ApplicationController : IApplicationController
             _plcManagers = new List<IPlcCommunicationManager>();
 
             // Phase 2 TDDサイクル1 Green: PlcCommunicationManager を設定ごとに初期化
+            // Phase 3-4: 拡張メソッド使用（重複コード削減）
             foreach (var config in configs)
             {
-                var connectionConfig = new ConnectionConfig
-                {
-                    IpAddress = config.IpAddress,
-                    Port = config.Port,
-                    UseTcp = config.ConnectionMethod == "TCP",
-                    IsBinary = config.IsBinary  // Binary/ASCII形式を設定から適用
-                };
-
-                var timeoutConfig = new TimeoutConfig
-                {
-                    ConnectTimeoutMs = config.Timeout,
-                    SendTimeoutMs = config.Timeout,
-                    ReceiveTimeoutMs = config.Timeout
-                };
+                var connectionConfig = config.ToConnectionConfig();
+                var timeoutConfig = config.ToTimeoutConfig();
 
                 var manager = new PlcCommunicationManager(
                     connectionConfig,

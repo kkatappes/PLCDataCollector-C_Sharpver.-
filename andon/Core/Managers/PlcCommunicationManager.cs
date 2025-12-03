@@ -14,9 +14,14 @@ namespace Andon.Core.Managers;
 /// </summary>
 public class PlcCommunicationManager : IPlcCommunicationManager
 {
+    // Phase 2-Refactor: プロトコル名定数
+    private const string PROTOCOL_TCP = "TCP";
+    private const string PROTOCOL_UDP = "UDP";
+
     private readonly ConnectionConfig _connectionConfig;
     private readonly TimeoutConfig _timeoutConfig;
     private readonly ISocketFactory? _socketFactory;
+    private readonly ILoggingManager? _loggingManager;  // Phase 3: ログ出力用
     private readonly BitExpansionSettings _bitExpansionSettings;
     private ConnectionResponse? _connectionResponse;
     private Socket? _socket;
@@ -31,13 +36,15 @@ public class PlcCommunicationManager : IPlcCommunicationManager
         TimeoutConfig timeoutConfig,
         BitExpansionSettings? bitExpansionSettings = null,
         ConnectionResponse? connectionResponse = null,
-        ISocketFactory? socketFactory = null)
+        ISocketFactory? socketFactory = null,
+        ILoggingManager? loggingManager = null)  // Phase 3: ログマネージャー追加
     {
         _connectionConfig = connectionConfig;
         _timeoutConfig = timeoutConfig;
         _bitExpansionSettings = bitExpansionSettings ?? new BitExpansionSettings();
         _connectionResponse = connectionResponse;
         _socketFactory = socketFactory;
+        _loggingManager = loggingManager;  // Phase 3: 初期化
 
         // ビット展開設定の検証
         try
@@ -83,26 +90,17 @@ public class PlcCommunicationManager : IPlcCommunicationManager
     {
         var startTime = DateTime.UtcNow; // UTC時間を使用
 
-        Console.WriteLine($"[ConnectAsync] === PLC Connection Start ===");
-        Console.WriteLine($"[ConnectAsync] Target: {_connectionConfig.IpAddress}:{_connectionConfig.Port}");
-        Console.WriteLine($"[ConnectAsync] Protocol: {(_connectionConfig.UseTcp ? "TCP" : "UDP")}");
+        // Phase 3-Refactor: 接続開始ログ出力（ErrorMessages使用）
+        var initialProtocolName = GetProtocolName(_connectionConfig.UseTcp);
+        await (_loggingManager?.LogInfo(
+            ErrorMessages.ConnectionAttemptStarted(_connectionConfig.IpAddress, _connectionConfig.Port, initialProtocolName)) ?? Task.CompletedTask);
 
         try
         {
             // [TODO: ログ出力] 接続開始
             // LoggingManager: $"PLC接続開始 - IP:{_connectionConfig.IpAddress}, Port:{_connectionConfig.Port}, Protocol:{_connectionConfig.ConnectionType}"
 
-            // 1. IP検証（不正なIPアドレスチェック）
-            // IPアドレス形式の妥当性を検証し、不正な場合は即座に例外をスローします。
-            // これにより、後続の接続処理前に設定エラーを早期検出できます。
-            //
-            // 検証対象:
-            // - IPアドレス形式の妥当性（例: "192.168.1.1"は有効、"999.999.999.999"は無効）
-            // - IPv4/IPv6両対応
-            //
-            // エラー時の動作:
-            // - PlcConnectionExceptionをスロー（ErrorCode: E001, FailedStep: Step3）
-            // - 統計情報に検証エラーを記録（ErrorType: Validation）
+            // 1. IP検証(不正なIPアドレスチェック)
             if (!System.Net.IPAddress.TryParse(_connectionConfig.IpAddress, out _))
             {
                 // 統計更新: 検証エラー
@@ -120,17 +118,271 @@ public class PlcCommunicationManager : IPlcCommunicationManager
                 throw new InvalidOperationException(Constants.ErrorMessages.AlreadyConnected);
             }
 
-            // 3. Socket作成（TCP or UDP）
-            Socket socket;
+            // Phase 2-Green Step 2: 代替プロトコル試行ロジック
+            var initialProtocol = _connectionConfig.UseTcp;
+
+            // 3. 初期プロトコルで試行
+            var (success, socket, error, errorException) = await TryConnectWithProtocolAsync(
+                initialProtocol,
+                _timeoutConfig.ConnectTimeoutMs);
+
+            if (success)
+            {
+                // 初期プロトコルで接続成功
+                var connectionTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                var response = new ConnectionResponse
+                {
+                    Status = ConnectionStatus.Connected,
+                    Socket = socket,
+                    ConnectedAt = DateTime.UtcNow,
+                    ConnectionTime = connectionTime,
+                    ErrorMessage = null,
+                    UsedProtocol = GetProtocolName(initialProtocol),  // Phase 2: 使用したプロトコル
+                    IsFallbackConnection = false,  // Phase 2: 初期プロトコルで成功
+                    FallbackErrorDetails = null    // Phase 2: 初期プロトコル成功時はnull
+                };
+
+                _connectionResponse = response;
+                _socket = socket;
+
+                // 統計更新: 接続成功
+                _stats.AddConnection(true);
+
+                return response;
+            }
+
+            // 4. 代替プロトコルで試行
+            var alternativeProtocol = !initialProtocol;
+            var alternativeProtocolName = GetProtocolName(alternativeProtocol);
+
+            // Phase 3-Refactor: 初期プロトコル失敗・代替プロトコル再試行ログ（ErrorMessages使用）
+            await (_loggingManager?.LogWarning(
+                ErrorMessages.InitialProtocolFailedRetrying(initialProtocolName, error!, alternativeProtocolName)) ?? Task.CompletedTask);
+            
+            var (altSuccess, altSocket, altError, altException) = await TryConnectWithProtocolAsync(
+                alternativeProtocol,
+                _timeoutConfig.ConnectTimeoutMs);
+
+            if (altSuccess)
+            {
+                // 代替プロトコルで接続成功
+                var connectionTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                var response = new ConnectionResponse
+                {
+                    Status = ConnectionStatus.Connected,
+                    Socket = altSocket,
+                    ConnectedAt = DateTime.UtcNow,
+                    ConnectionTime = connectionTime,
+                    ErrorMessage = null,
+                    UsedProtocol = GetProtocolName(alternativeProtocol),  // Phase 2: 代替プロトコル
+                    IsFallbackConnection = true,  // Phase 2: 代替プロトコルで成功
+                    FallbackErrorDetails = ErrorMessages.InitialProtocolFailed(GetProtocolName(initialProtocol), error!)  // Phase 2-Refactor: ErrorMessages使用
+                };
+
+                _connectionResponse = response;
+                _socket = altSocket;
+
+                // 統計更新: 接続成功
+                _stats.AddConnection(true);
+
+                // Phase 3-Refactor: 代替プロトコル接続成功ログ（ErrorMessages使用）
+                await (_loggingManager?.LogInfo(
+                    ErrorMessages.FallbackConnectionSucceeded(alternativeProtocolName, _connectionConfig.IpAddress, _connectionConfig.Port)) ?? Task.CompletedTask);
+
+                return response;
+            }
+
+            // 5. 両プロトコル失敗
+            var totalConnectionTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            
+            // Phase 2-Refactor: エラーメッセージ生成(ErrorMessages使用)
+            string tcpError = initialProtocol ? error! : altError!;
+            string udpError = initialProtocol ? altError! : error!;
+            
+            // 例外タイプ判定: 実際の例外オブジェクトから判定
+            Exception? primaryException = errorException ?? altException;
+            bool isTimeout = (errorException is TimeoutException) || (altException is TimeoutException);
+            bool isRefused = (errorException is SocketException socketEx && socketEx.SocketErrorCode == SocketError.ConnectionRefused) ||
+                           (altException is SocketException altSocketEx && altSocketEx.SocketErrorCode == SocketError.ConnectionRefused);
+
+            // 統計更新: 接続失敗
+            _stats.AddConnection(false);
+            
+            // エラータイプ判定
+            string errorType;
+            ConnectionStatus status;
+            Exception exception;
+
+            if (isTimeout)
+            {
+                errorType = ErrorConstants.TimeoutError;
+                status = ConnectionStatus.Timeout;
+                exception = primaryException ?? new TimeoutException(ErrorMessages.BothProtocolsConnectionFailed(tcpError, udpError));
+                _stats.AddConnectionError(ErrorConstants.TimeoutError);
+            }
+            else if (isRefused)
+            {
+                errorType = ErrorConstants.RefusedError;
+                status = ConnectionStatus.Failed;
+                exception = primaryException ?? new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionRefused);
+                _stats.AddConnectionError(ErrorConstants.RefusedError);
+            }
+            else
+            {
+                errorType = ErrorConstants.NetworkError;
+                status = ConnectionStatus.Failed;
+                exception = primaryException ?? new InvalidOperationException(ErrorMessages.BothProtocolsConnectionFailed(tcpError, udpError));
+                _stats.AddConnectionError(ErrorConstants.NetworkError);
+            }
+
+            var failedResponse = new ConnectionResponse
+            {
+                Status = status,
+                Socket = null,
+                ConnectedAt = null,
+                ConnectionTime = totalConnectionTime,
+                ErrorMessage = ErrorMessages.BothProtocolsConnectionFailed(tcpError, udpError),
+                UsedProtocol = null,  // Phase 2: 両方失敗時はnull
+                IsFallbackConnection = false,
+                FallbackErrorDetails = null
+            };
+
+            // AdditionalInfo辞書を作成（エラータイプに応じて追加フィールドを含む）
+            var additionalInfo = new Dictionary<string, object>
+            {
+                ["IpAddress"] = _connectionConfig.IpAddress,
+                ["Port"] = _connectionConfig.Port,
+                ["InitialProtocol"] = GetProtocolName(initialProtocol),
+                ["AlternativeProtocol"] = GetProtocolName(alternativeProtocol),
+                ["InitialError"] = error!,
+                ["AlternativeError"] = altError!
+            };
+
+            // タイムアウトエラーの場合、TimeoutMs を追加
+            if (isTimeout)
+            {
+                additionalInfo["TimeoutMs"] = _timeoutConfig.ConnectTimeoutMs;
+            }
+
+            // 接続拒否エラーの場合、SocketErrorCode を追加
+            if (isRefused)
+            {
+                additionalInfo["SocketErrorCode"] = "ConnectionRefused";
+            }
+
+            // 最後の操作結果を記録(エラー伝播)
+            _lastOperationResult = new AsyncOperationResult<ConnectionResponse>
+            {
+                IsSuccess = false,
+                Data = failedResponse,
+                FailedStep = "Step3_Connect",
+                Exception = exception,
+                EndTime = DateTime.UtcNow,
+                ErrorDetails = new ErrorDetails
+                {
+                    ErrorType = errorType,
+                    ErrorMessage = failedResponse.ErrorMessage,
+                    OccurredAt = DateTime.UtcNow,
+                    FailedOperation = "ConnectAsync",
+                    AdditionalInfo = additionalInfo
+                }
+            };
+
+            // Phase 3-Refactor: 両プロトコル失敗エラーログ（ErrorMessages使用）
+            await (_loggingManager?.LogError(null,
+                ErrorMessages.BothProtocolsConnectionFailedDetailed(_connectionConfig.IpAddress, _connectionConfig.Port, tcpError, udpError)) ?? Task.CompletedTask);
+
+            return failedResponse;
+        }
+        catch (PlcConnectionException)
+        {
+            // PlcConnectionExceptionはそのまま再スロー
+            throw;
+        }
+        catch (InvalidOperationException)
+        {
+            // InvalidOperationException(既接続等)もそのまま再スロー
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // 予期しないエラー
+            var connectionTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
+
+            // 統計更新: 接続失敗
+            _stats.AddConnection(false);
+            _stats.AddConnectionError(ErrorConstants.NetworkError);
+
+            var response = new ConnectionResponse
+            {
+                Status = ConnectionStatus.Failed,
+                Socket = null,
+                ConnectedAt = null,
+                ConnectionTime = connectionTime,
+                ErrorMessage = $"予期しないエラー: {ex.Message}"
+            };
+
+            _lastOperationResult = new AsyncOperationResult<ConnectionResponse>
+            {
+                IsSuccess = false,
+                Data = response,
+                FailedStep = "Step3_Connect",
+                Exception = ex,
+                EndTime = DateTime.UtcNow,
+                ErrorDetails = new ErrorDetails
+                {
+                    ErrorType = ErrorConstants.NetworkError,
+                    ErrorMessage = ex.Message,
+                    OccurredAt = DateTime.UtcNow,
+                    FailedOperation = "ConnectAsync",
+                    AdditionalInfo = new Dictionary<string, object>
+                    {
+                        ["IpAddress"] = _connectionConfig.IpAddress,
+                        ["Port"] = _connectionConfig.Port,
+                        ["Protocol"] = _connectionConfig.UseTcp ? "TCP" : "UDP"
+                    }
+                }
+            };
+
+            return response;
+        }
+    }
+
+
+    /// <summary>
+    /// Phase 2: プロトコル名を取得（定数使用にリファクタリング済み）
+    /// </summary>
+    /// <param name="useTcp">TCPを使用するかどうか</param>
+    /// <returns>プロトコル名（"TCP"または"UDP"）</returns>
+    private string GetProtocolName(bool useTcp)
+    {
+        return useTcp ? PROTOCOL_TCP : PROTOCOL_UDP;
+    }
+
+
+    /// <summary>
+    /// 指定されたプロトコルで接続を試行
+    /// Phase 2-Green Step 2: 代替プロトコル試行ロジックのヘルパーメソッド
+    /// </summary>
+    /// <param name="useTcp">TCPを使用するかどうか</param>
+    /// <param name="timeoutMs">接続タイムアウト（ミリ秒）</param>
+    /// <returns>接続結果（成功/失敗、ソケット、エラー詳細）</returns>
+    private async Task<(bool success, Socket? socket, string? error, Exception? exception)>
+        TryConnectWithProtocolAsync(bool useTcp, int timeoutMs)
+    {
+        Socket? socket = null;
+        try
+        {
+            // 1. Socket作成(TCP or UDP)
             if (_socketFactory != null)
             {
                 // テスト時: SocketFactoryを使用
-                socket = _socketFactory.CreateSocket(_connectionConfig.UseTcp);
+                socket = _socketFactory.CreateSocket(useTcp);
             }
             else
             {
                 // 本番実行時: 実際のSocket作成
-                if (_connectionConfig.UseTcp)
+                if (useTcp)
                 {
                     socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 }
@@ -140,16 +392,13 @@ public class PlcCommunicationManager : IPlcCommunicationManager
                 }
             }
 
-            // 4. タイムアウト設定（Step4送受信処理で個別制御不要）
+            // 2. タイムアウト設定
             socket.SendTimeout = _timeoutConfig.SendTimeoutMs;
             socket.ReceiveTimeout = _timeoutConfig.ReceiveTimeoutMs;
 
-            // [TODO: ログ出力] タイムアウト設定
-            // LoggingManager: $"Socketタイムアウト設定 - SendTimeout:{_timeoutConfig.SendTimeoutMs}ms, ReceiveTimeout:{_timeoutConfig.ReceiveTimeoutMs}ms"
-
-            // 5. 接続実行（TCP/UDP分岐、タイムアウト付き）
+            // 3. 接続実行
             bool connected;
-            if (_connectionConfig.UseTcp)
+            if (useTcp)
             {
                 // TCP接続処理
                 if (_socketFactory != null)
@@ -159,13 +408,13 @@ public class PlcCommunicationManager : IPlcCommunicationManager
                         socket,
                         _connectionConfig.IpAddress,
                         _connectionConfig.Port,
-                        _timeoutConfig.ConnectTimeoutMs);
+                        timeoutMs);
                 }
                 else
                 {
-                    // 本番実行時: 実際のTCP接続（タイムアウト監視）
+                    // 本番実行時: 実際のTCP接続(タイムアウト監視)
                     var connectTask = socket.ConnectAsync(_connectionConfig.IpAddress, _connectionConfig.Port);
-                    if (await Task.WhenAny(connectTask, Task.Delay(_timeoutConfig.ConnectTimeoutMs)) == connectTask)
+                    if (await Task.WhenAny(connectTask, Task.Delay(timeoutMs)) == connectTask)
                     {
                         await connectTask; // 例外がある場合はここでスロー
                         connected = true;
@@ -174,7 +423,8 @@ public class PlcCommunicationManager : IPlcCommunicationManager
                     {
                         // タイムアウト発生
                         socket.Dispose();
-                        throw new TimeoutException($"TCP接続タイムアウト: {_connectionConfig.IpAddress}:{_connectionConfig.Port}（タイムアウト時間: {_timeoutConfig.ConnectTimeoutMs}ms）");
+                        var timeoutEx = new TimeoutException($"TCP接続タイムアウト: {_connectionConfig.IpAddress}:{_connectionConfig.Port}(タイムアウト時間: {timeoutMs}ms)");
+                        return (false, null, timeoutEx.Message, timeoutEx);
                     }
                 }
 
@@ -182,12 +432,13 @@ public class PlcCommunicationManager : IPlcCommunicationManager
                 if (!connected)
                 {
                     socket.Dispose();
-                    throw new TimeoutException($"TCP接続タイムアウト: {_connectionConfig.IpAddress}:{_connectionConfig.Port}（タイムアウト時間: {_timeoutConfig.ConnectTimeoutMs}ms）");
+                    var timeoutEx = new TimeoutException($"TCP接続タイムアウト: {_connectionConfig.IpAddress}:{_connectionConfig.Port}(タイムアウト時間: {timeoutMs}ms)");
+                    return (false, null, timeoutEx.Message, timeoutEx);
                 }
             }
             else
             {
-                // UDP接続処理（疎通確認含む）
+                // UDP接続処理(疎通確認含む)
                 if (_socketFactory != null)
                 {
                     // テスト時: SocketFactoryを使用
@@ -195,160 +446,53 @@ public class PlcCommunicationManager : IPlcCommunicationManager
                         socket,
                         _connectionConfig.IpAddress,
                         _connectionConfig.Port,
-                        _timeoutConfig.ConnectTimeoutMs);
+                        timeoutMs);
 
                     if (!connected)
                     {
                         socket.Dispose();
-                        throw new TimeoutException($"UDP疎通確認タイムアウト: {_connectionConfig.IpAddress}:{_connectionConfig.Port}（タイムアウト時間: {_timeoutConfig.ConnectTimeoutMs}ms）");
+                        var timeoutEx = new TimeoutException($"UDP疎通確認タイムアウト: {_connectionConfig.IpAddress}:{_connectionConfig.Port}(タイムアウト時間: {timeoutMs}ms)");
+                        return (false, null, timeoutEx.Message, timeoutEx);
                     }
                 }
                 else
                 {
-                    // 本番実行時: UDP接続（送信先設定のみ、疎通確認スキップ）
+                    // 本番実行時: UDP接続(送信先設定のみ、疎通確認スキップ)
                     try
                     {
-                        // UDP接続: 送信先設定のみ（実際の接続確立なし）
+                        // UDP接続: 送信先設定のみ(実際の接続確立なし)
                         var connectTask = socket.ConnectAsync(_connectionConfig.IpAddress, _connectionConfig.Port);
                         await connectTask;
 
-                        // UDP疎通確認をスキップ（緊急対応）
-                        // 理由: ping問題が解決したため、疎通確認なしで直接データ送受信を試行
+                        // UDP疎通確認をスキップ(緊急対応)
                         Console.WriteLine($"[INFO] UDP connection established (verification skipped) - {_connectionConfig.IpAddress}:{_connectionConfig.Port}");
                         connected = true;
                     }
                     catch (SocketException ex)
                     {
                         socket.Dispose();
-                        throw new InvalidOperationException($"UDP接続失敗: {_connectionConfig.IpAddress}:{_connectionConfig.Port} - {ex.Message}", ex);
+                        return (false, null, $"UDP接続失敗: {_connectionConfig.IpAddress}:{_connectionConfig.Port} - {ex.Message}", ex);
                     }
                 }
-
-                // connected = true; // この行は不要（上で既に設定済み）
             }
 
-            // 6. ConnectionResponse作成
-            var connectionTime = (DateTime.UtcNow - startTime).TotalMilliseconds; // UTC時間を使用
-            var response = new ConnectionResponse
-            {
-                Status = ConnectionStatus.Connected,
-                Socket = socket,
-                ConnectedAt = DateTime.UtcNow, // UTC時間を使用
-                ConnectionTime = connectionTime,
-                ErrorMessage = null
-            };
-
-            _connectionResponse = response;
-            _socket = socket;
-
-            // 統計更新: 接続成功
-            _stats.AddConnection(true);
-
-            // ログ出力: 接続完了
-            Console.WriteLine($"[ConnectAsync] Connected successfully in {connectionTime:F2}ms");
-            Console.WriteLine($"[ConnectAsync] === PLC Connection Complete ===\n");
-
-            return response;
+            // 接続成功
+            return (true, socket, null, null);
         }
         catch (SocketException ex)
         {
-            // ソケット例外発生（ネットワークエラー、接続拒否等）
-            var connectionTime = (DateTime.UtcNow - startTime).TotalMilliseconds; // UTC時間を使用
-
-            // [TODO: ログ出力] エラー発生
-            // LoggingManager: $"PLC接続失敗 - SocketException: {ex.Message}, StackTrace: {ex.StackTrace}"
-
-            // エラータイプ判定（SocketErrorCode基準）
-            string errorType = ex.SocketErrorCode == SocketError.ConnectionRefused
-                ? ErrorConstants.RefusedError
-                : ErrorConstants.NetworkError;
-
-            // 統計更新: 接続失敗とエラー記録
-            _stats.AddConnection(false);
-            _stats.AddConnectionError(errorType);
-
-            // 最後の操作結果を記録（エラー伝播）
-            var response = new ConnectionResponse
-            {
-                Status = ConnectionStatus.Failed,
-                Socket = null,
-                ConnectedAt = null,
-                ConnectionTime = connectionTime,
-                ErrorMessage = $"接続失敗: {ex.Message}"
-            };
-
-            _lastOperationResult = new AsyncOperationResult<ConnectionResponse>
-            {
-                IsSuccess = false,
-                Data = response,
-                FailedStep = "Step3_Connect",
-                Exception = ex,
-                EndTime = DateTime.UtcNow,
-                ErrorDetails = new ErrorDetails
-                {
-                    ErrorType = errorType,
-                    ErrorMessage = ex.Message,
-                    OccurredAt = DateTime.UtcNow,
-                    FailedOperation = "ConnectAsync",
-                    AdditionalInfo = new Dictionary<string, object>
-                    {
-                        ["SocketErrorCode"] = ex.SocketErrorCode.ToString(),
-                        ["IpAddress"] = _connectionConfig.IpAddress,
-                        ["Port"] = _connectionConfig.Port,
-                        ["Protocol"] = _connectionConfig.UseTcp ? "TCP" : "UDP"
-                    }
-                }
-            };
-
-            return response;
+            socket?.Dispose();
+            return (false, null, $"接続失敗: {ex.Message}", ex);
         }
         catch (TimeoutException ex)
         {
-            // タイムアウト例外発生
-            var connectionTime = (DateTime.UtcNow - startTime).TotalMilliseconds; // UTC時間を使用
-
-            // [TODO: ログ出力] タイムアウト発生
-            // LoggingManager: $"PLC接続タイムアウト - 経過時間:{connectionTime:F2}ms, タイムアウト設定:{_timeoutConfig.ConnectTimeoutMs}ms"
-
-            // 統計更新: 接続失敗とタイムアウトエラー記録
-            _stats.AddConnection(false);
-            _stats.AddConnectionError(ErrorConstants.TimeoutError);
-
-            // 最後の操作結果を記録（エラー伝播）
-            var response = new ConnectionResponse
-            {
-                Status = ConnectionStatus.Timeout,
-                Socket = null,
-                ConnectedAt = null,
-                ConnectionTime = connectionTime,
-                ErrorMessage = Constants.ErrorMessages.ConnectionTimeout
-            };
-
-            _lastOperationResult = new AsyncOperationResult<ConnectionResponse>
-            {
-                IsSuccess = false,
-                Data = response,
-                FailedStep = "Step3_Connect",
-                Exception = ex,
-                EndTime = DateTime.UtcNow,
-                ErrorDetails = new ErrorDetails
-                {
-                    ErrorType = ErrorConstants.TimeoutError,
-                    ErrorMessage = ex.Message,
-                    OccurredAt = DateTime.UtcNow,
-                    FailedOperation = "ConnectAsync",
-                    AdditionalInfo = new Dictionary<string, object>
-                    {
-                        ["TimeoutMs"] = _timeoutConfig.ConnectTimeoutMs,
-                        ["ElapsedTimeMs"] = connectionTime,
-                        ["IpAddress"] = _connectionConfig.IpAddress,
-                        ["Port"] = _connectionConfig.Port,
-                        ["Protocol"] = _connectionConfig.UseTcp ? "TCP" : "UDP"
-                    }
-                }
-            };
-
-            return response;
+            socket?.Dispose();
+            return (false, null, $"タイムアウト: {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            socket?.Dispose();
+            return (false, null, $"予期しないエラー: {ex.Message}", ex);
         }
     }
 

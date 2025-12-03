@@ -1,0 +1,5 @@
+{
+  // Phase 2-2完了: appsettings.json完全空化
+  // MonitoringIntervalMsは各PlcConfigurationから取得
+  // Phase 3でこのファイル自体を削除予定
+}

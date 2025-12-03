@@ -1,7 +1,7 @@
 # Phase10: 旧コードの削除・クリーンアップ
 
 ## ステータス
-✅ **ほぼ完了** - 選択肢A（完全削除）が既に実施済み、残りは軽微なクリーンアップのみ
+✅ **完了** - 選択肢C（レガシーテスト保持）方針でクリーンアップ完了（2025-12-03）
 
 ## 概要
 Read(0x0401)専用コードの削除判断を行い、プロジェクト方針に基づいてクリーンアップします。
@@ -12,7 +12,7 @@ Read(0x0401)専用コードの削除判断を行い、プロジェクト方針�
 
 ---
 
-## 現状分析（2025-11-27時点）
+## 現状分析（2025-12-03更新）
 
 ### ✅ 既に完了している削除項目
 
@@ -25,20 +25,24 @@ Phase1-9の実装過程で、Read(0x0401)専用コードは既に削除されて
 5. **ProcessedResponseDataの旧形式プロパティ** → ✅ 削除済み
    - DeviceCode, StartDeviceNumber, Values, IsReadData等は存在しない
    - 現在はReadRandom専用プロパティのみ（ProcessedData, BitDeviceCount等）
+6. **PlcCommunicationManager.cs** → ✅ 0x0401の痕跡完全削除済み
 
 ### ⚠️ 残存している0x0401の痕跡
 
-実際の動作には影響しないが、以下の箇所に参照が残存:
+実際の動作には影響しないが、以下の箇所にコメント・テストデータとして参照が残存:
 
-1. **PlcCommunicationManager.cs:1109付近**
-   - コメント内に検証用フレーム例として0x0401フレームが記載
-   - 実装コードには影響なし
+1. **テストファイル内のコメント**
+   - `Tests/Integration/PlcCommunicationManager_IntegrationTests_TC143_10.cs:110`
+   - コメント: "コマンド: 0x0401 (2bytes, Little Endian) → 01 04"
 
-2. **統合テストファイル**
-   - `Tests/Integration/Step3_6_IntegrationTests.cs`
-   - `Tests/Integration/PlcCommunicationManager_IntegrationTests_TC143_10.cs`
-   - 過去のテストデータとして0x0401フレームが残存
-   - 現在の実行には使用されていない
+2. **テストファイル内の0x0401フレーム例（16進数文字列）**
+   - `Tests/Integration/Step3_6_IntegrationTests.cs` - 3箇所（60行目、265行目、708行目）
+   - `Tests/Unit/Core/Managers/PlcCommunicationManagerTests.cs` - 2箇所（57行目、163行目）
+   - フレーム例: "54001234000000010401006400000090E8030000"
+
+3. **バックアップファイル**
+   - `Tests/Integration/Step3_6_IntegrationTests.cs.broken` - 3箇所
+   - 削除候補
 
 ---
 
@@ -46,59 +50,101 @@ Phase1-9の実装過程で、Read(0x0401)専用コードは既に削除されて
 
 ### ステップ29: Read(0x0401)専用コードの削除判断
 
-#### 判断結果: 選択肢A（完全削除）が既に実施済み
+#### 判断結果: 選択肢C（レガシーテスト保持）を採用
 
 **現状**:
 - Read(0x0401)の実装コードは既に存在しない
 - ReadRandom(0x0403)のみが実装されている
-- 選択肢Bを実施する場合は、Read(0x0401)コードの**新規作成**が必要
+- ProcessedDeviceRequestInfoはPhase12で「テスト専用」として保持決定済み
+- TC143_10テストはProcessedDeviceRequestInfoを使用し、現在も成功している
 
 **結論**:
-- 選択肢A（完全削除）が既に完了している
-- 残作業は「痕跡のクリーンアップ」のみ
+- 選択肢C（レガシーテスト保持）を採用
+- TC143_10テスト等のRead(0x0401)関連テストを「歴史的資産」として保持
+- コメントで「レガシーテスト」であることを明確化
+- 残作業は「コメント明確化」と「バックアップファイル削除」のみ
 
 #### ~~選択肢A: 完全削除（ReadRandom(0x0403)のみに統一）~~
 
-**✅ 既に実施済み**
+**✅ 本番実装コードは既に完全削除済み**
+- SlmpFrameBuilder.BuildReadRequest()メソッド削除済み
+- PlcCommunicationManager内の0x0401処理削除済み
 
 #### ~~選択肢B: 残す（互換性維持、設定で切り替え可能）~~
 
 **注意**: 現状でこの選択肢を実施する場合、Read(0x0401)コードを新規に実装する必要があります。
 
+#### ✅ 選択肢C: レガシーテスト保持（ProcessedDeviceRequestInfoと共に保持）
+
+**採用理由**:
+- Phase12でProcessedDeviceRequestInfoが「テスト専用」として保持決定済み
+- TC143_10テストは現在も成功しており、通信層の低レベルテストとして価値がある
+- テストコードはプロジェクトの歴史的資産として有用
+- 動作に影響せず、混同リスクも低い
+
+**実施内容**:
+1. TC143_10テストファイルにXMLコメントで「Read(0x0401)レガシーテスト」と明記
+2. 他のファイルの0x0401フレーム文字列にコメントで「レガシーフレーム」と明記
+3. バックアップファイル `Step3_6_IntegrationTests.cs.broken` を削除
+4. ProcessedDeviceRequestInfo使用箇所は保持（Phase12決定事項に準拠）
+
 ---
 
-### ステップ30: 残存痕跡のクリーンアップ（軽微な作業）
+### ステップ30: レガシーテストのコメント明確化（軽微な作業）
 
-#### クリーンアップ対象
+#### 対象ファイルと作業内容（選択肢C方針）
 
-1. **PlcCommunicationManager.cs:1109付近のコメント**
-   - 0x0401フレーム例を削除またはReadRandomフレーム例に更新
-
-2. **統合テストファイル内の0x0401フレーム**
-   - `Tests/Integration/Step3_6_IntegrationTests.cs`
+1. **TC143_10テストファイル - XMLコメント追加**
    - `Tests/Integration/PlcCommunicationManager_IntegrationTests_TC143_10.cs`
-   - 0x0401フレームをReadRandom(0x0403)フレームに更新
+   - ファイル冒頭のXMLコメントに「Read(0x0401)レガシーテスト」と明記
+   - 110行目のコメント「コマンド: 0x0401」はそのまま保持（歴史的正確性のため）
+   - 115行目のフレーム文字列もそのまま保持（テスト実行中で動作確認済み）
 
-#### 実装手順（簡略版）
+2. **Step3_6_IntegrationTests.cs - コメント追加**
+   - `Tests/Integration/Step3_6_IntegrationTests.cs` - 3箇所（60行目、265行目、708行目）
+   - フレーム文字列の行末に `// Read(0x0401)レガシーフレーム` コメント追加
+   - フレーム自体は変更しない（歴史的資産として保持）
+
+3. **PlcCommunicationManagerTests.cs - コメント追加**
+   - `Tests/Unit/Core/Managers/PlcCommunicationManagerTests.cs` - 2箇所（57行目、163行目）
+   - フレーム文字列の行末に `// Read(0x0401)レガシーフレーム` コメント追加
+   - フレーム自体は変更しない（歴史的資産として保持）
+
+4. **バックアップファイル削除**
+   - `Tests/Integration/Step3_6_IntegrationTests.cs.broken` を削除
+
+#### 実施方針
+
+**選択肢C: レガシーテスト保持**
+- 0x0401フレームを0x0403に変更しない（歴史的正確性維持）
+- コメントで「レガシーテスト」であることを明示
+- ProcessedDeviceRequestInfo保持方針（Phase12）と整合
+- テストは引き続き実行可能（現在も成功している）
+
+#### 実装手順（選択肢C版）
 
 ```bash
-# 1. 残存箇所の確認
-grep -r "0x0401" andon/Core/
-grep -r "54001234000000010401" andon/Tests/
+# 1. TC143_10テストファイルにXMLコメント追加
+# - ファイル冒頭に「Read(0x0401)レガシーテスト」と明記
 
-# 2. クリーンアップ実施
-# - PlcCommunicationManager.cs: コメント修正
-# - テストファイル: 0x0401フレーム → 0x0403フレームに更新
+# 2. Step3_6_IntegrationTests.cs - コメント追加（3箇所）
+# - 60行目, 265行目, 708行目のフレーム文字列に行末コメント追加
 
-# 3. ビルド確認
+# 3. PlcCommunicationManagerTests.cs - コメント追加（2箇所）
+# - 57行目, 163行目のフレーム文字列に行末コメント追加
+
+# 4. バックアップファイル削除
+rm Tests/Integration/Step3_6_IntegrationTests.cs.broken
+
+# 5. ビルド確認
 dotnet build
 
-# 4. テスト実行
+# 6. テスト実行（レガシーテスト含む全テスト）
 dotnet test
 
-# 5. コミット
+# 7. コミット
 git add .
-git commit -m "Read(0x0401)痕跡のクリーンアップ完了"
+git commit -m "Phase10: Read(0x0401)レガシーテストのコメント明確化完了"
 ```
 
 #### クリーンアップ後のテスト
@@ -251,14 +297,24 @@ public class TargetDeviceConfig
 
 ## 完了条件
 
-### 現在の状況（選択肢A完了済み）
-- ✅ Read(0x0401)専用コード完全削除（Phase1-9で実施済み）
-- ✅ 全テストパス（ReadRandomのみ）
-- ✅ ビルド成功
-- ⏳ 残存痕跡のクリーンアップ（軽微な作業）
+### 選択肢C（レガシーテスト保持）の完了条件
+- ✅ Read(0x0401)本番実装コード完全削除（Phase1-9で実施済み）
+- ✅ PlcCommunicationManager.cs内の0x0401処理削除済み
+- ✅ ReadRandom(0x0403)のみが本番実装として稼働
+- ✅ ProcessedDeviceRequestInfo「テスト専用」として保持（Phase12決定事項）
+- ✅ レガシーテストのコメント明確化（2025-12-03完了）
+  - [x] TC143_10テストファイルにXMLコメント追加
+  - [x] Step3_6_IntegrationTests.cs - 行末コメント追加（3箇所）
+  - [x] PlcCommunicationManagerTests.cs - 行末コメント追加（2箇所）
+  - [x] バックアップファイル削除（Step3_6_IntegrationTests.cs.broken）
+- ✅ Phase10関連テスト全てパス（16/16合格）
+- ✅ ビルド成功（0 errors, 0 warnings）
 
-### ~~選択肢B（切り替え機能）の場合~~
-実施不要（選択肢Aが既に完了しているため）
+### ~~選択肢A（完全削除）~~
+本番実装コードは既に削除済み。テストコードは選択肢Cにより保持。
+
+### ~~選択肢B（切り替え機能）~~
+実施不要（選択肢Cを採用）
 
 ## 次フェーズへの依存関係
 - Phase11（ドキュメント更新）で、削除・変更内容をドキュメントに反映します
@@ -273,5 +329,5 @@ public class TargetDeviceConfig
 ---
 
 **作成日**: 2025-11-18
-**更新日**: 2025-11-27（現状反映）
+**更新日**: 2025-12-03（選択肢C方針に修正、Phase12との整合性確保）
 **元ドキュメント**: read_to_readrandom_migration_plan.md

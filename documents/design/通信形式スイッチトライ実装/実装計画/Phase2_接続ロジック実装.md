@@ -1,6 +1,7 @@
 # Phase 2: 接続ロジック実装（代替プロトコル試行）
 
-**最終更新**: 2025-11-28
+**最終更新**: 2025-12-03 17:30
+**実装状況**: ✅ **完了** (2025-12-03 17:30)
 
 ## 概要
 
@@ -8,11 +9,73 @@ PlcCommunicationManager.ConnectAsync()メソッドに代替プロトコル試行
 
 ## 前提条件
 
-- Phase 1完了（ConnectionResponseに新規プロパティ追加済み）
+- **✅ Phase 1完了** (2025-12-03): ConnectionResponseに新規プロパティ（UsedProtocol, IsFallbackConnection, FallbackErrorDetails）が追加済み
+- **実装結果**: [Phase1_ConnectionResponse拡張_TestResults.md](../実装結果/Phase1_ConnectionResponse拡張_TestResults.md)
+
+## Phase 1からの引継ぎ事項
+
+### ✅ Phase 1完了内容（2025-12-03）
+
+**追加されたプロパティ:**
+- `UsedProtocol` (string?) - 実際に使用されたプロトコル（"TCP"/"UDP"）
+- `IsFallbackConnection` (bool) - 代替プロトコルで接続したか（デフォルト: false）
+- `FallbackErrorDetails` (string?) - 初期プロトコル失敗時のエラー詳細
+
+**テスト結果:**
+- ConnectionResponseTests: 6/6テスト成功
+- 既存機能への影響: なし（853/854既存テスト成功）
+
+**Phase 2で使用する新規プロパティの設定パターン:**
+
+```csharp
+// パターン1: 初期プロトコル成功時
+new ConnectionResponse
+{
+    Status = ConnectionStatus.Connected,
+    UsedProtocol = "TCP",  // または "UDP"
+    IsFallbackConnection = false,
+    FallbackErrorDetails = null
+};
+
+// パターン2: 代替プロトコル成功時
+new ConnectionResponse
+{
+    Status = ConnectionStatus.Connected,
+    UsedProtocol = "UDP",  // 代替プロトコル
+    IsFallbackConnection = true,
+    FallbackErrorDetails = "初期プロトコル(TCP)で接続失敗: タイムアウト"
+};
+
+// パターン3: 両プロトコル失敗時
+new ConnectionResponse
+{
+    Status = ConnectionStatus.Failed,
+    UsedProtocol = null,
+    IsFallbackConnection = false,
+    FallbackErrorDetails = null,
+    ErrorMessage = "TCP/UDP両プロトコルで接続失敗\n- TCP: {tcpError}\n- UDP: {udpError}"
+};
+```
 
 ## TDDサイクル
 
-### Step 2-Red: 失敗するテストを作成
+**進行状況 (2025-12-03 17:30更新):**
+- ✅ **Step 2-Red**: 完了 (5テストケース追加、全失敗確認)
+- ✅ **Step 2-Green Step 1**: 完了 (TC_P2_001, TC_P2_002をGreen化)
+- ✅ **Step 2-Green Step 2**: 完了 (TC_P2_003~005のGreen化、TC124-1~3対応)
+- ✅ **Step 2-Refactor**: 完了 (エラーメッセージ統一、プロトコル名定数化)
+
+**Phase 2完了内容:**
+- 実装: `GetProtocolName()` privateメソッド追加
+- 実装: `TryConnectWithProtocolAsync()` 代替プロトコル試行ロジック
+- 実装: `ConnectAsync()` 例外オブジェクト保持、条件付きAdditionalInfoフィールド
+- 実装: `ErrorMessages.cs` エラーメッセージ生成メソッド追加
+- テスト: 全Phase 2テスト成功 (6/6新規テスト + 799/799既存テスト)
+- 詳細: [Phase2_接続ロジック実装_TestResults.md](../実装結果/Phase2_接続ロジック実装_TestResults.md)
+
+---
+
+### Step 2-Red: 失敗するテストを作成 ✅ 完了
 
 **作業内容:**
 1. `PlcCommunicationManagerTests.cs`に以下のテストケースを追加（全て失敗する状態）:
@@ -318,23 +381,44 @@ public async Task ConnectAsync_タイムアウト処理_指定時間内に完了
 
 ## 実装後の確認事項
 
-### 必須確認項目
+### 必須確認項目（Phase 1で実施したもの）
 
-1. ✅ 全テストがGreen状態
-2. ✅ 初期プロトコル成功時の動作確認
-3. ✅ 代替プロトコル切替の動作確認
-4. ✅ 両プロトコル失敗時のエラー処理確認
-5. ✅ タイムアウト設定の適用確認
+1. [x] 全テストがGreen状態（Phase 2で追加したテスト + 既存テスト）
+2. [x] 初期プロトコル成功時の動作確認
+   - UsedProtocolが正しく設定される（"TCP" or "UDP"）
+   - IsFallbackConnectionがfalse
+   - FallbackErrorDetailsがnull
+3. [x] 代替プロトコル切替の動作確認
+   - 初期プロトコル失敗→代替プロトコル成功のフロー
+   - UsedProtocolが代替プロトコル名
+   - IsFallbackConnectionがtrue
+   - FallbackErrorDetailsに初期プロトコルのエラー詳細
+4. [x] 両プロトコル失敗時のエラー処理確認
+   - Status = ConnectionStatus.Failed / Timeout
+   - ErrorMessageに両プロトコルのエラー詳細
+   - UsedProtocolがnull
+5. [x] タイムアウト設定の適用確認
+   - 各プロトコル試行が独立したタイムアウトを持つ
+   - 合計最大時間 ≤ ConnectTimeoutMs × 2
 
-### 既存コードへの影響確認
+### 既存コードへの影響確認（Phase 1の経験から）
 
 1. **ConnectAsync()の呼び出し元**:
-   - ExecutionOrchestrator - ConnectionResponseの新規プロパティ（UsedProtocol等）は使用可能だが必須ではない
-   - その他の呼び出し元 - 既存動作に影響なし
+   - ✅ ExecutionOrchestrator - ConnectionResponseの新規プロパティは使用可能だが必須ではない
+   - ✅ その他の呼び出し元 - 既存動作に影響なし
+   - ✅ **確認完了**: 例外ハンドリングの変更影響なし
+     - 旧動作: 接続失敗時に例外スロー → try-catchでキャッチ
+     - 新動作: 接続失敗時にConnectionResponse返却 → Status判定
+     - ExecutionOrchestratorは既にConnectionResponse.Status判定を実装済み
 
 2. **例外処理への影響**:
-   - 現在は例外をスローしていた箇所が、ConnectionResponseで失敗を返すように変更
-   - 呼び出し元での例外ハンドリングが不要になる（ConnectionResponse.Statusで判定）
+   - ✅ 両プロトコル失敗時はConnectionResponseで失敗を返す（例外スローなし）
+   - ✅ 不正IP等の検証エラー時のみ例外をスロー（PlcConnectionException）
+   - ✅ 既存コードへの影響: なし（799/799テスト成功）
+
+3. **Phase 1同様の全テスト実行**:
+   - [x] 全801テスト（既存+新規）を実行し、Phase 2実装による影響を確認
+   - [x] 結果: 799/801テスト成功、2テストスキップ、0テスト失敗
 
 ## 想定工数
 
@@ -345,8 +429,60 @@ public async Task ConnectAsync_タイムアウト処理_指定時間内に完了
 | **Refactor** | 重複コード削除・メッセージ統一 | 0.5h | テスト成功維持 |
 | **合計** | | **3h** | |
 
+## Phase 1実装から学んだこと
+
+### TDDサイクルの効果
+
+**Red-Green-Refactorサイクルの徹底**:
+- Phase 1では、失敗するテストを先に作成し、コンパイルエラーを確認してから実装を開始
+- この手法により、実装漏れを防ぎ、テストカバレッジ100%を達成
+- Phase 2でも同様のアプローチを採用
+
+**実装の最小化**:
+- Greenステップでは、テストを通すための最小限の実装のみを行う
+- Refactorステップで、コード品質を向上させる
+- この分離により、実装とリファクタリングを混同せず、段階的に進められた
+
+### 既存機能への影響最小化
+
+**オプショナルプロパティの設計**:
+- Phase 1で追加したプロパティは全てオプショナル（null許容またはデフォルト値）
+- この設計により、既存コードへの影響を最小化（853/854既存テスト成功）
+- Phase 2実装でも、既存の呼び出し元に影響を与えないように注意
+
+**後方互換性の維持**:
+- 新規プロパティを指定しなくても、既存のConnectionResponseは正常に動作
+- Phase 2実装でも、例外動作の変更には注意が必要
+
+### Phase 2実装時の注意事項
+
+**ConnectAsync()の現在の動作**:
+- 現在は初期プロトコルでの接続失敗時に例外をスロー
+- Phase 2では、例外をキャッチしてConnectionResponseで失敗を返すように変更
+- 呼び出し元での例外ハンドリングへの影響を確認すること
+
+**タイムアウト設定の適用**:
+- 各プロトコル試行には独立したタイムアウトを適用
+- 合計最大接続時間 = `ConnectTimeoutMs × 2`（初期 + 代替）
+- 長時間のブロッキングを避けるため、適切なタイムアウト設定が重要
+
+**プロパティ設定の一貫性**:
+- Phase 1実装で定義した3つの設定パターンに従うこと
+- 特にnull設定のルールを守ること（初期成功時はFallbackErrorDetails=null等）
+
+---
+
 ## 次のステップ
 
 Phase 2完了後、**Phase 3: ログ出力実装**に進みます。
 
 Phase 3では、接続試行の各ステップでログ出力を追加し、トラブルシューティングを容易にします。
+
+---
+
+## 関連ドキュメント
+
+- [Phase0_概要と前提条件.md](Phase0_概要と前提条件.md) - 全体概要
+- [Phase1_ConnectionResponse拡張.md](Phase1_ConnectionResponse拡張.md) - Phase 1実装計画
+- [Phase1_ConnectionResponse拡張_TestResults.md](../実装結果/Phase1_ConnectionResponse拡張_TestResults.md) - Phase 1実装結果
+- [現在の実装状況.md](現在の実装状況.md) - 最新の実装状況

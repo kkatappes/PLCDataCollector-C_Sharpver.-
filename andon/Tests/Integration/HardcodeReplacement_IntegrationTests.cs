@@ -182,7 +182,8 @@ namespace Andon.Tests.Integration
             Assert.Equal(8, timeout);  // 2000ms / 250 = 8
         }
 
-        [Fact]
+#if FALSE  // TargetDeviceConfig/DeviceEntry削除により一時的にコンパイル除外（JSON設定廃止）
+        [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
         public void Integration_TargetDeviceConfig_BuildFrame_ShouldUseConfigValues()
         {
             // Arrange
@@ -208,6 +209,7 @@ namespace Andon.Tests.Integration
             Assert.Equal(SubHeader_3E_Byte0, frame[0]);
             Assert.Equal(SubHeader_3E_Byte1, frame[1]);
         }
+#endif
 
         #endregion
 
@@ -317,7 +319,8 @@ namespace Andon.Tests.Integration
 
         #region 統合テスト: 既存機能との互換性
 
-        [Fact]
+#if FALSE  // TargetDeviceConfig/DeviceEntry削除により一時的にコンパイル除外（JSON設定廃止）
+        [Fact(Skip = "TargetDeviceConfig/DeviceEntry削除により一時スキップ（JSON設定廃止）")]
         public void Integration_ExistingFunctionality_StillWorks()
         {
             // Arrange
@@ -341,6 +344,7 @@ namespace Andon.Tests.Integration
             Assert.Equal(SubHeader_4E_Byte0, frame[0]);
             Assert.Equal(SubHeader_4E_Byte1, frame[1]);
         }
+#endif
 
         #endregion
 

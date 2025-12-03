@@ -448,7 +448,8 @@ public class ConfigurationLoaderExcelTests : IDisposable
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() => loader.LoadAllPlcConnectionConfigs());
-        Assert.Contains("IPアドレスの形式が不正です", ex.Message);
+        // Phase 2-5: SettingsValidator統合によりエラーメッセージ変更
+        Assert.Contains("IPAddressの形式が不正です", ex.Message);
     }
 
     [Fact]
@@ -463,7 +464,8 @@ public class ConfigurationLoaderExcelTests : IDisposable
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() => loader.LoadAllPlcConnectionConfigs());
-        Assert.Contains("ポート番号が範囲外です", ex.Message);
+        // Phase 2-5: SettingsValidator統合によりエラーメッセージ変更
+        Assert.Contains("Portの値が範囲外です", ex.Message);
         Assert.Contains("1～65535", ex.Message);
     }
 
@@ -479,7 +481,8 @@ public class ConfigurationLoaderExcelTests : IDisposable
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() => loader.LoadAllPlcConnectionConfigs());
-        Assert.Contains("ポート番号が範囲外です", ex.Message);
+        // Phase 2-5: SettingsValidator統合によりエラーメッセージ変更
+        Assert.Contains("Portの値が範囲外です", ex.Message);
         Assert.Contains("1～65535", ex.Message);
     }
 
@@ -495,8 +498,9 @@ public class ConfigurationLoaderExcelTests : IDisposable
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() => loader.LoadAllPlcConnectionConfigs());
-        Assert.Contains("データ取得周期が範囲外です", ex.Message);
-        Assert.Contains("1～86400000", ex.Message);
+        // Phase 2-5: SettingsValidator統合によりエラーメッセージと範囲変更（推奨範囲: 100～60000ms）
+        Assert.Contains("MonitoringIntervalMsの値が範囲外です", ex.Message);
+        Assert.Contains("100～60000", ex.Message);
     }
 
     [Fact]
@@ -511,8 +515,9 @@ public class ConfigurationLoaderExcelTests : IDisposable
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() => loader.LoadAllPlcConnectionConfigs());
-        Assert.Contains("データ取得周期が範囲外です", ex.Message);
-        Assert.Contains("1～86400000", ex.Message);
+        // Phase 2-5: SettingsValidator統合によりエラーメッセージと範囲変更（推奨範囲: 100～60000ms）
+        Assert.Contains("MonitoringIntervalMsの値が範囲外です", ex.Message);
+        Assert.Contains("100～60000", ex.Message);
     }
 
     [Fact]

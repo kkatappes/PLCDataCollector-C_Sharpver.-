@@ -31,15 +31,10 @@ public class DependencyInjectionConfiguratorTests
         mockPlcSection.Setup(x => x.Key).Returns("PlcCommunication");
         mockPlcSection.Setup(x => x.Value).Returns((string?)null);
 
-        // LoggingConfigセクションのモック
-        var mockLoggingSection = new Mock<IConfigurationSection>();
-        mockLoggingSection.Setup(x => x.Path).Returns("LoggingConfig");
-        mockLoggingSection.Setup(x => x.Key).Returns("LoggingConfig");
-        mockLoggingSection.Setup(x => x.Value).Returns((string?)null);
+        // Phase 2-1完了: LoggingConfigセクションのモックは不要（ハードコード化されたため）
 
         // GetSectionのセットアップ
         mockConfiguration.Setup(x => x.GetSection("PlcCommunication")).Returns(mockPlcSection.Object);
-        mockConfiguration.Setup(x => x.GetSection("LoggingConfig")).Returns(mockLoggingSection.Object);
 
         return mockConfiguration;
     }
@@ -94,8 +89,8 @@ public class DependencyInjectionConfiguratorTests
         var multiConfigManager = provider.GetService<MultiPlcConfigManager>();
         Assert.NotNull(multiConfigManager);
 
-        var multiCoordinator = provider.GetService<MultiPlcCoordinator>();
-        Assert.NotNull(multiCoordinator);
+        // var multiCoordinator = provider.GetService<MultiPlcCoordinator>();  // MultiPlcCoordinator削除により一時コメントアウト（JSON設定廃止）
+        // Assert.NotNull(multiCoordinator);
     }
 
     [Fact]
@@ -119,7 +114,7 @@ public class DependencyInjectionConfiguratorTests
         Assert.NotNull(provider.GetService<IErrorHandler>()); // Part8修正: インターフェース経由で解決
         Assert.NotNull(provider.GetService<ITimerService>());
         Assert.NotNull(provider.GetService<MultiPlcConfigManager>());
-        Assert.NotNull(provider.GetService<MultiPlcCoordinator>());
+        // Assert.NotNull(provider.GetService<MultiPlcCoordinator>());  // MultiPlcCoordinator削除により一時コメントアウト（JSON設定廃止）
     }
 
     [Fact]
@@ -235,28 +230,29 @@ public class DependencyInjectionConfiguratorTests
         Assert.Same(watcher1, watcher2);
     }
 
-    [Fact]
-    [Trait("Category", "DI")]
-    [Trait("Phase", "Part8")]
-    public void Configure_LoggingConfigが登録される()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        var mockConfiguration = CreateMockConfiguration();
-
-        // Act
-        DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
-        using var provider = services.BuildServiceProvider();
-
-        // Assert
-        var config = provider.GetService<IOptions<LoggingConfig>>();
-        Assert.NotNull(config);
-        Assert.NotNull(config.Value);
-        Assert.Equal("Information", config.Value.LogLevel);
-        Assert.True(config.Value.EnableFileOutput);
-        Assert.Equal("logs/andon.log", config.Value.LogFilePath);
-        Assert.Equal(10, config.Value.MaxLogFileSizeMb);
-    }
+    // Phase 2-1完了: LoggingConfigはハードコード化されたため、このテストは不要
+    // [Fact]
+    // [Trait("Category", "DI")]
+    // [Trait("Phase", "Part8")]
+    // public void Configure_LoggingConfigが登録される()
+    // {
+    //     // Arrange
+    //     var services = new ServiceCollection();
+    //     var mockConfiguration = CreateMockConfiguration();
+    //
+    //     // Act
+    //     DependencyInjectionConfigurator.Configure(services, mockConfiguration.Object);
+    //     using var provider = services.BuildServiceProvider();
+    //
+    //     // Assert
+    //     var config = provider.GetService<IOptions<LoggingConfig>>();
+    //     Assert.NotNull(config);
+    //     Assert.NotNull(config.Value);
+    //     Assert.Equal("Information", config.Value.LogLevel);
+    //     Assert.True(config.Value.EnableFileOutput);
+    //     Assert.Equal("logs/andon.log", config.Value.LogFilePath);
+    //     Assert.Equal(10, config.Value.MaxLogFileSizeMb);
+    // }
 
     [Fact]
     [Trait("Category", "DI")]

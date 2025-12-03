@@ -3,7 +3,53 @@
 **フェーズ**: Phase 2-2
 **影響度**: 中（タイマー間隔に影響）
 **工数**: **小**（Phase 1-5完了により大幅削減）
-**前提条件**: Phase 0, Phase 1, Phase 2-1完了
+**前提条件**: Phase 0完了（✅ 2025-12-02）, Phase 1完了（✅ 2025-12-02）, Phase 2-1完了（✅ 2025-12-03）
+**状態**: ✅ **完了**（2025-12-03）
+**実装結果**: [Phase2_2_MonitoringInterval_Excel移行_TestResults.md](../実装結果/Phase2_2_MonitoringInterval_Excel移行_TestResults.md)
+
+---
+
+## 🔄 Phase 2-1からの引き継ぎ事項
+
+### Phase 2-1完了状況（2025-12-03完了）
+
+**実装完了日**: 2025-12-03
+**実装方式**: TDD (Red→Green→Refactor)
+**最終テスト結果**:
+- Phase2-1専用テスト: 100% (5/5合格)
+- 全体テスト: 98.6% (818/821合格)
+- **Phase2-1関連エラー**: 0件（完全解決）
+
+#### Phase 2-1完了事項
+✅ **LoggingConfig全7項目のハードコード化完了**
+✅ **appsettings.json削減**: 14行 → 5行（9行削減）
+✅ **LoggingConfig.cs削除**: クラスファイル完全削除
+✅ **IOptions<LoggingConfig>依存削除**: LoggingManager.csから削除完了
+✅ **DI設定更新**: LoggingConfig DI登録削除完了
+✅ **ファイルアクセス問題完全解決**:
+  - LoggingManager.cs: `FileShare.Read` → `FileShare.ReadWrite` に修正
+  - テストクラスに`Collection`属性追加（並行実行防止）
+  - `ReadFileWithSharedAccessAsync()`ヘルパーメソッド追加（10箇所修正）
+  - ファイルアクセスエラー: 31件 → 0件（完全解決）
+
+### 現在のappsettings.json状態（Phase 2-1完了後）
+
+```json
+{
+  "PlcCommunication": {
+    "MonitoringIntervalMs": 1000    // ← Phase 2-2で対応（このPhase）
+  }
+}
+```
+
+**現在の行数**: 5行（Phase 0開始前: 101行、Phase 0完了後: 19行、Phase 1完了後: 14行、Phase 2-1完了後: 5行）
+
+### Phase 2-2での対応範囲
+
+⏳ **PlcCommunication.MonitoringIntervalMs**: このPhaseでExcel設定利用に移行
+⏳ **appsettings.json行数**: 5行 → 0行（5行削減、appsettings.json完全空化）
+⏳ **IOptions<DataProcessingConfig>依存削除**: ExecutionOrchestrator.csから削除
+⏳ **DataProcessingConfig.cs削除**: クラスファイルの削除
 
 ---
 
@@ -43,7 +89,7 @@ MonitoringIntervalMsをappsettings.jsonからExcel設定へ移行します。
 
 | 項目 | 移行前 | 移行後 | 理由 |
 |------|--------|--------|------|
-| MonitoringIntervalMs | appsettings.json<br>`PlcCommunication.MonitoringIntervalMs`<br>（デフォルト: 5000ms） | Excel設定<br>settingsシート B11セル<br>（既定値: 1000ms） | ✅ Excel読み込み実装完了、各PLC個別設定可能 |
+| MonitoringIntervalMs | appsettings.json<br>`PlcCommunication.MonitoringIntervalMs`<br>（**現在値: 1000ms**） | Excel設定<br>settingsシート B11セル<br>（既定値: 1000ms） | ✅ Excel読み込み実装完了、各PLC個別設定可能、既定値が一致 |
 
 ---
 
@@ -352,24 +398,26 @@ public static IServiceCollection ConfigureServices(
 rm andon/Core/Models/ConfigModels/DataProcessingConfig.cs
 ```
 
-##### 4. appsettings.jsonから PlcCommunication.MonitoringIntervalMs を削除
+##### 4. appsettings.jsonから PlcCommunication セクション全体を削除
 
 ```json
-// 削除前
+// 削除前（Phase 2-1完了後、5行）
 {
   "PlcCommunication": {
-    "MonitoringIntervalMs": 5000  // ← 削除
+    "MonitoringIntervalMs": 1000  // ← 削除
   }
 }
 ```
 
 ```json
-// 削除後
+// 削除後（Phase 2-2完了後、0行 = 空ファイル）
 {
-  // PlcCommunicationセクション全体が空になる
-  // または、他のPlcCommunication関連項目があれば、MonitoringIntervalMsのみ削除
+  // appsettings.json完全空化
+  // Phase 3でファイル自体を削除予定
 }
 ```
+
+**重要**: Phase 2-2完了により、appsettings.jsonは完全に空になります（`{}`のみ）。Phase 3でファイル自体を削除します。
 
 ##### 5. テスト実行 → 全テストがパス
 
@@ -500,14 +548,14 @@ dotnet build
 - 既定値: 1000ms（1秒）
 - Excel設定（settingsシート B11セル）が空の場合、自動的に1000msが使用される
 
-**従来のappsettings.json設定**:
-- デフォルト値: 5000ms（5秒）
+**Phase 2-1完了後のappsettings.json設定**:
+- 現在値: 1000ms（Phase 2-1完了時点で既に1000ms）
 
-**⚠️ 重要**: 既定値が5000ms → 1000msに変更されるため、Excel設定が空の場合は動作が変わります。
+**✅ 重要**: appsettings.json現在値（1000ms）とExcel既定値（1000ms）が一致しているため、動作変更はありません。
 
-**対応策**:
-- Excel設定シートに明示的に値を記載（推奨: 5000ms）
-- または、既定値を5000msに変更（ConfigurationLoaderExcel.cs:115を修正）
+**推奨事項**:
+- Excel設定シートに明示的に値を記載（推奨: 1000ms、または運用に合わせた値）
+- 既定値1000msは一般的な設定として適切
 
 ### 2. 各PLCごとに異なる監視間隔の設定
 

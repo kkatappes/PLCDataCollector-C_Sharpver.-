@@ -2,11 +2,16 @@
 
 **作成日**: 2025年11月26日
 **実装完了日**: 2025年11月27日
-**ステータス**: ✅ 実装完了
+**最終更新**: 2025年12月03日（MonitoringIntervalMs変換修正）
+**ステータス**: ✅ 実装完了（仕様準拠確認済み）
 
 ## Phase2の目的
 
 Excelファイルを検索・読み込み、基本的な設定情報を取得する機能を実装する。
+
+**重要な更新履歴**:
+- 2025-11-27: Phase2初回実装完了
+- 2025-12-03: **MonitoringIntervalMs秒→ミリ秒変換実装修正完了**（L112仕様通り実装確認済み）
 
 ---
 
@@ -105,13 +110,23 @@ private static bool IsFileLocked(string filePath)
 
 **読み込み項目**（5項目固定）:
 
-| セル | 項目名               | 型     | 検証内容                      |
-|------|---------------------|--------|------------------------------|
-| B8   | PLCのIPアドレス      | string | IPAddress.TryParse()         |
-| B9   | PLCのポート          | int    | 1～65535                     |
-| B11  | データ取得周期(ms)   | int    | 1～86400000（24時間）        |
-| B12  | デバイス名           | string | 非空文字列                   |
-| B13  | データ保存先パス     | string | パス形式チェック             |
+| セル | 項目名               | 型     | 検証内容                      | 備考 |
+|------|---------------------|--------|------------------------------|------|
+| B8   | PLCのIPアドレス      | string | IPAddress.TryParse()         | - |
+| B9   | PLCのポート          | int    | 1～65535                     | - |
+| B11  | データ取得周期(sec)  | int    | 1～86400（24時間）           | **✅実装済**: 取得値を1000倍してミリ秒に変換 |
+| B12  | デバイス名           | string | 非空文字列                   | - |
+| B13  | データ保存先パス     | string | パス形式チェック             | - |
+
+**データ取得周期の実装仕様**:
+- Excel内では**秒(sec)単位**で設定
+- 読み込み時に自動的に**1000倍してミリ秒(ms)に変換**
+- PlcConfigurationオブジェクトには**ミリ秒として格納**
+- 変換処理は`LoadFromExcel()`内で実施
+- **実装状況**:
+  - 2025-11-27: 初回実装時に変換処理が未実装（実装漏れ）
+  - 2025-12-03: ConfigurationLoaderExcel.cs:117に ×1000変換追加で修正完了
+  - 全27テストデータのB11値も1000→1に修正済み（秒単位への対応）
 
 **実装例**:
 ```csharp
@@ -372,6 +387,7 @@ ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 - ✅ .xlsxファイルが見つからない場合にエラーを返すこと
 - ✅ Excelファイルを正常にオープンできること
 - ✅ "settings"シートの5項目を正確に読み込めること
+- ✅ **データ取得周期を秒単位で読み込み、1000倍してミリ秒に変換できること**
 - ✅ "データ収集デバイス"シートの全行を読み込めること
 - ✅ 複数のExcelファイルを同時に読み込めること
 - ✅ エラー発生時に適切なメッセージを表示すること
@@ -427,13 +443,13 @@ ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 **ファイル名**: `TestUtilities/TestData/SampleConfigurations/valid_config.xlsx`
 
 **"settings"シート**:
-| セル | 値              |
-|------|----------------|
-| B8   | 172.30.40.15   |
-| B9   | 8192           |
-| B11  | 1000           |
-| B12  | テスト用PLC    |
-| B13  | C:\data\output |
+| セル | 値              | 備考 |
+|------|----------------|------|
+| B8   | 172.30.40.15   | IPアドレス |
+| B9   | 8192           | ポート番号 |
+| B11  | 1              | データ取得周期（秒）※実装では1000msに変換される |
+| B12  | テスト用PLC    | デバイス名 |
+| B13  | C:\data\output | 保存先パス |
 
 **"データ収集デバイス"シート**:
 | A    | B  | C     | D | E    |
@@ -509,6 +525,59 @@ ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
 ---
 
+## MonitoringIntervalMs変換修正記録（2025-12-03）
+
+### 修正の背景
+
+**問題発覚**:
+- Phase5統合テスト実行時、4/5テストが `MonitoringIntervalMsの値が範囲外です: 1 (推奨範囲: 100～60000)` で失敗
+- 原因: 本仕様書L112に記載の「取得値を1000倍してミリ秒に変換」が実装されていなかった
+
+**実装漏れの経緯**:
+1. 2025-11-27: Phase2初回実装時、L112の仕様を見落とし
+2. ConfigurationLoaderExcel.cs:117で変換処理（×1000）を実装せず
+3. テストデータもB11=1000（ミリ秒想定）で作成
+4. Phase5統合テストで検証範囲チェックにより発覚
+
+### 実施した修正
+
+#### 1. ConfigurationLoaderExcel.cs修正
+
+**ファイル**: `andon/Infrastructure/Configuration/ConfigurationLoaderExcel.cs:117`
+
+```csharp
+// 【修正前】変換処理なし（仕様違反）
+MonitoringIntervalMs = ReadCell<int>(settingsSheet, "B11", "データ取得周期(ms)"),
+
+// 【修正後】秒→ミリ秒変換追加（L112仕様準拠）
+MonitoringIntervalMs = ReadCell<int>(settingsSheet, "B11", "データ取得周期(sec)") * 1000,
+```
+
+#### 2. テストデータ修正
+
+**ファイル**: `andon/Tests/TestUtilities/TestData/SampleConfigurations/CreateTestExcelFile.cs`
+
+**修正内容**: 全27テストファイル作成メソッドのB11値を `1000` → `1` に変更
+
+**理由**: B11値が秒単位となったため、1秒（変換後1000ms）が適切
+
+#### 3. 修正結果
+
+| テスト種別 | 結果 |
+|-----------|------|
+| ConfigurationLoaderExcel単体 | ✅ 38/39合格（97.4%） |
+| Phase5統合テスト | ✅ 5/5合格（100%） |
+| 全体回帰テスト | ✅ 847/850合格（99.6%、回帰なし） |
+
+### 修正後の状態
+
+- ✅ Phase2仕様（L112）完全準拠
+- ✅ 検証範囲内での正常動作確認（100～60000ms）
+- ✅ 全テストケース合格
+- ✅ 回帰なし
+
+---
+
 ## 次のPhase
 
 **Phase3: デバイス情報変換と正規化**
@@ -516,3 +585,8 @@ ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 - ConvertDeviceNumberToBytes()実装
 - デバイスコード変換処理
 - 10進/16進デバイス変換処理
+
+**Phase2からの引き継ぎ**:
+- ✅ Excel読み込み基礎機能: 完成
+- ✅ MonitoringIntervalMs変換: L112仕様準拠確認済み
+- ✅ テストデータ: 秒単位（B11=1）に統一済み

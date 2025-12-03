@@ -26,9 +26,8 @@ public static class DependencyInjectionConfigurator
             builder.SetMinimumLevel(LogLevel.Information);
         });
 
-        // appsettings.jsonから設定をバインド
-        services.Configure<DataProcessingConfig>(configuration.GetSection("PlcCommunication"));
-        services.Configure<LoggingConfig>(configuration.GetSection("LoggingConfig"));
+        // Phase 2-1完了: LoggingConfigはハードコード化されたため、DI登録不要
+        // Phase 2-2完了: DataProcessingConfig（MonitoringIntervalMs）は各PlcConfigurationから取得するため、DI登録不要
 
         // Singleton登録 - アプリケーション全体で1つのインスタンスを共有
         services.AddSingleton<IApplicationController, ApplicationController>();
@@ -44,20 +43,18 @@ public static class DependencyInjectionConfigurator
 
         // MultiConfig関連 - Singleton登録（重要：設定を複数のクラスで共有するため）
         services.AddSingleton<MultiPlcConfigManager>();
-        services.AddSingleton<MultiPlcCoordinator>();
 
         // Transient登録 - 要求ごとに新しいインスタンスを生成
+        // Phase 2-2: IOptions<DataProcessingConfig>依存を削除
         services.AddTransient<IExecutionOrchestrator>(provider =>
         {
             var timerService = provider.GetRequiredService<ITimerService>();
-            var dataProcessingConfig = provider.GetRequiredService<IOptions<DataProcessingConfig>>();
             var configToFrameManager = provider.GetRequiredService<IConfigToFrameManager>();
             var dataOutputManager = provider.GetRequiredService<IDataOutputManager>();
             var loggingManager = provider.GetRequiredService<ILoggingManager>();
 
             return new ExecutionOrchestrator(
                 timerService,
-                dataProcessingConfig,
                 configToFrameManager,
                 dataOutputManager,
                 loggingManager);

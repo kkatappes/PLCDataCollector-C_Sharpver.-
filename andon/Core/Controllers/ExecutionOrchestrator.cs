@@ -2,7 +2,6 @@ using Andon.Core.Managers;
 using Andon.Core.Models;
 using Andon.Core.Models.ConfigModels;
 using Andon.Utilities;
-using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,11 +11,15 @@ using System.Threading.Tasks;
 namespace Andon.Core.Controllers;
 
 /// <summary>
-/// Step2-7データ処理サイクル実行制御
+/// Step2-7データ処理サイクル実行制御（Excel設定ベース）
+/// PlcConfigurationモデルを使用した統一設計
+/// ⚠️ 注意: PlcConnectionConfig、MultiPlcConfig、DeviceEntryは削除済み（JSON設定廃止により不要）
+/// Phase 2-2完了: IOptions&lt;DataProcessingConfig&gt;依存を削除し、各PlcConfiguration.MonitoringIntervalMsから直接監視間隔を取得
 /// </summary>
 public class ExecutionOrchestrator : Interfaces.IExecutionOrchestrator
 {
-    private readonly IOptions<DataProcessingConfig> _dataProcessingConfig;
+    // Phase 2-2: IOptions<DataProcessingConfig> _dataProcessingConfig フィールド削除
+    // MonitoringIntervalMsは各PlcConfigurationから直接取得
     private readonly Interfaces.ITimerService? _timerService;
     private readonly Interfaces.IConfigToFrameManager? _configToFrameManager;
     private readonly Interfaces.IDataOutputManager? _dataOutputManager;
@@ -24,41 +27,32 @@ public class ExecutionOrchestrator : Interfaces.IExecutionOrchestrator
 
     /// <summary>
     /// コンストラクタ（Phase 1 Step 1-2対応）
+    /// Phase 2-2: IOptions<DataProcessingConfig>依存を削除
     /// </summary>
     public ExecutionOrchestrator()
     {
         // デフォルトコンストラクタ（既存のテストとの互換性維持）
-        _dataProcessingConfig = Options.Create(new DataProcessingConfig());
+        // Phase 2-2: _dataProcessingConfig初期化削除
     }
 
     /// <summary>
-    /// コンストラクタ（DIコンテナ対応、Phase 1 Step 1-2対応）
+    /// コンストラクタ（DIコンテナ対応、TimerService対応）
+    /// Phase 2-2: IOptions<DataProcessingConfig>依存を削除
     /// </summary>
-    public ExecutionOrchestrator(IOptions<DataProcessingConfig> dataProcessingConfig)
-    {
-        _dataProcessingConfig = dataProcessingConfig;
-    }
-
-    /// <summary>
-    /// コンストラクタ（DIコンテナ対応、Phase 1 Step 1-2対応、TimerService対応）
-    /// </summary>
-    public ExecutionOrchestrator(
-        Interfaces.ITimerService timerService,
-        IOptions<DataProcessingConfig> dataProcessingConfig)
+    public ExecutionOrchestrator(Interfaces.ITimerService timerService)
     {
         _timerService = timerService;
-        _dataProcessingConfig = dataProcessingConfig;
     }
 
     /// <summary>
     /// コンストラクタ（Phase12テスト用、TimerService不要）
+    /// Phase 2-2: IOptions<DataProcessingConfig>依存を削除
     /// </summary>
     public ExecutionOrchestrator(
         Interfaces.IConfigToFrameManager configToFrameManager,
         Interfaces.IDataOutputManager dataOutputManager,
         Interfaces.ILoggingManager loggingManager)
     {
-        _dataProcessingConfig = Options.Create(new DataProcessingConfig());
         _configToFrameManager = configToFrameManager;
         _dataOutputManager = dataOutputManager;
         _loggingManager = loggingManager;
@@ -66,29 +60,22 @@ public class ExecutionOrchestrator : Interfaces.IExecutionOrchestrator
 
     /// <summary>
     /// コンストラクタ（Phase 継続実行モード対応、完全依存性注入）
+    /// Phase 2-2: IOptions<DataProcessingConfig>依存を削除
     /// </summary>
     public ExecutionOrchestrator(
         Interfaces.ITimerService timerService,
-        IOptions<DataProcessingConfig> dataProcessingConfig,
         Interfaces.IConfigToFrameManager configToFrameManager,
         Interfaces.IDataOutputManager dataOutputManager,
         Interfaces.ILoggingManager loggingManager)
     {
         _timerService = timerService;
-        _dataProcessingConfig = dataProcessingConfig;
         _configToFrameManager = configToFrameManager;
         _dataOutputManager = dataOutputManager;
         _loggingManager = loggingManager;
     }
 
-    /// <summary>
-    /// 監視間隔取得（Phase 1 Step 1-2 TDDサイクル1）
-    /// </summary>
-    public TimeSpan GetMonitoringInterval()
-    {
-        var intervalMs = _dataProcessingConfig.Value.MonitoringIntervalMs;
-        return TimeSpan.FromMilliseconds(intervalMs);
-    }
+    // Phase 2-2: GetMonitoringInterval()メソッド削除
+    // MonitoringIntervalMsは各PlcConfigurationから直接取得するため不要
 
     /// <summary>
     /// 継続データサイクル実行（Phase 1 Step 1-2 TDDサイクル2）
@@ -109,7 +96,10 @@ public class ExecutionOrchestrator : Interfaces.IExecutionOrchestrator
             throw new InvalidOperationException("TimerServiceが設定されていません");
         }
 
-        var interval = GetMonitoringInterval();
+        // Phase 2-2: Excel設定から直接MonitoringIntervalMsを取得
+        var interval = plcConfigs.Count > 0
+            ? TimeSpan.FromMilliseconds(plcConfigs[0].MonitoringIntervalMs)
+            : TimeSpan.FromMilliseconds(1000);  // デフォルト1秒
         await (_loggingManager?.LogInfo($"[INFO] Starting timer with interval: {interval.TotalMilliseconds}ms") ?? Task.CompletedTask);
         Console.WriteLine($"[INFO] Starting timer with interval: {interval.TotalMilliseconds}ms");
 
@@ -195,20 +185,9 @@ public class ExecutionOrchestrator : Interfaces.IExecutionOrchestrator
                 await (_loggingManager?.LogDebug($"[DEBUG] Step2: Frame built successfully, size={frame.Length} bytes") ?? Task.CompletedTask);
 
                 // Step3-6: 完全サイクル実行
-                var connectionConfig = new ConnectionConfig
-                {
-                    IpAddress = config.IpAddress,
-                    Port = config.Port,
-                    UseTcp = config.ConnectionMethod == "TCP",
-                    IsBinary = config.IsBinary  // Binary/ASCII形式を設定から適用
-                };
-
-                var timeoutConfig = new TimeoutConfig
-                {
-                    ConnectTimeoutMs = config.Timeout,
-                    SendTimeoutMs = config.Timeout,
-                    ReceiveTimeoutMs = config.Timeout
-                };
+                // Phase 3-4: 拡張メソッド使用（重複コード削減）
+                var connectionConfig = config.ToConnectionConfig();
+                var timeoutConfig = config.ToTimeoutConfig();
 
                 // Phase12恒久対策: ReadRandomRequestInfo生成（ReadRandom(0x0403)専用）
                 var readRandomRequestInfo = new ReadRandomRequestInfo
@@ -246,8 +225,16 @@ public class ExecutionOrchestrator : Interfaces.IExecutionOrchestrator
                 // Step7: データ出力（Phase 1-4実装）
                 if (result.IsSuccess && result.ProcessedData != null)
                 {
-                    // TODO: Phase 1-4 Refactor - outputDirectoryを設定から取得
-                    var outputDirectory = "C:/Users/PPESAdmin/Desktop/x/output";  // 実機環境の出力先パス
+                    // Phase 2-4: Excel設定のSavePathを使用
+                    var outputDirectory = string.IsNullOrWhiteSpace(config.SavePath)
+                        ? "./output"
+                        : config.SavePath;
+
+                    // ディレクトリが存在しない場合は作成
+                    if (!Directory.Exists(outputDirectory))
+                    {
+                        Directory.CreateDirectory(outputDirectory);
+                    }
 
                     // TODO: Phase 1-4 Refactor - deviceConfigをPlcConfiguration.Devicesから構築
                     var deviceConfig = new Dictionary<string, DeviceEntryInfo>();  // 仮実装
@@ -257,6 +244,7 @@ public class ExecutionOrchestrator : Interfaces.IExecutionOrchestrator
                         outputDirectory,
                         config.IpAddress,
                         config.Port,
+                        config.PlcModel,  // Phase 2-3: PlcModelをJSON出力に追加
                         deviceConfig);
                 }
             }
@@ -276,122 +264,5 @@ public class ExecutionOrchestrator : Interfaces.IExecutionOrchestrator
                 Console.WriteLine($"[ERROR] StackTrace: {ex.StackTrace}");
             }
         }
-    }
-    /// <summary>
-    /// 複数PLCサイクル実行（並列/順次）
-    /// </summary>
-    /// <param name="config">複数PLC設定</param>
-    /// <param name="cancellationToken">キャンセルトークン</param>
-    /// <returns>複数PLC実行結果</returns>
-    public async Task<MultiPlcExecutionResult> ExecuteMultiPlcCycleAsync(
-        MultiPlcConfig config,
-        CancellationToken cancellationToken = default)
-    {
-        var overallStartTime = DateTime.UtcNow;
-        List<PlcExecutionResult> plcResults;
-
-        // 並列 vs 順次処理の振り分け
-        if (config.ParallelConfig.EnableParallel)
-        {
-            plcResults = await MultiPlcCoordinator.ExecuteParallelAsync(
-                config.PlcConnections,
-                config.ParallelConfig,
-                ExecuteSinglePlcAsync,
-                cancellationToken
-            );
-        }
-        else
-        {
-            plcResults = await MultiPlcCoordinator.ExecuteSequentialAsync(
-                config.PlcConnections,
-                ExecuteSinglePlcAsync,
-                cancellationToken
-            );
-        }
-
-        // 結果集計
-        var result = new MultiPlcExecutionResult
-        {
-            StartTime = overallStartTime,
-            EndTime = DateTime.UtcNow,
-            PlcResults = plcResults.ToDictionary(r => r.PlcId, r => r),
-            SuccessCount = plcResults.Count(r => r.IsSuccess),
-            FailureCount = plcResults.Count(r => !r.IsSuccess),
-            IsSuccess = plcResults.All(r => r.IsSuccess)
-        };
-
-        result.TotalDuration = result.EndTime - result.StartTime;
-        return result;
-    }
-
-    /// <summary>
-    /// 単一PLC処理（PlcCommunicationManagerを活用）
-    /// </summary>
-    private async Task<PlcExecutionResult> ExecuteSinglePlcAsync(
-        PlcConnectionConfig plcConfig,
-        CancellationToken cancellationToken)
-    {
-        var result = new PlcExecutionResult
-        {
-            PlcId = plcConfig.PlcId,
-            PlcName = plcConfig.PlcName,
-            StartTime = DateTime.UtcNow
-        };
-
-        try
-        {
-            var connectionConfig = new ConnectionConfig
-            {
-                IpAddress = plcConfig.IPAddress,
-                Port = plcConfig.Port,
-                UseTcp = plcConfig.ConnectionMethod == "TCP",
-                IsBinary = plcConfig.IsBinary  // Binary/ASCII形式を設定から適用
-            };
-
-            var timeoutConfig = new TimeoutConfig
-            {
-                ConnectTimeoutMs = plcConfig.Timeout,
-                SendTimeoutMs = plcConfig.Timeout,
-                ReceiveTimeoutMs = plcConfig.Timeout
-            };
-
-            // 既存のPlcCommunicationManagerを使用（コンストラクタに設定を渡す）
-            var manager = new PlcCommunicationManager(
-                connectionConfig,
-                timeoutConfig
-            );
-
-            // フレーム構築（既存ユーティリティ使用）
-            var devices = plcConfig.Devices.Select(d => d.ToDeviceSpecification()).ToList();
-            var frame = SlmpFrameBuilder.BuildReadRandomRequest(
-                devices,
-                plcConfig.FrameVersion,  // "3E" or "4E"
-                (ushort)(plcConfig.Timeout / 250)
-            );
-
-            // 通信実行（既存メソッド活用）
-            var cycleResult = await manager.ExecuteStep3to5CycleAsync(
-                connectionConfig,
-                timeoutConfig,
-                frame,
-                cancellationToken
-            );
-
-            result.IsSuccess = cycleResult.IsSuccess;
-            result.EndTime = DateTime.UtcNow;
-            result.Duration = result.EndTime - result.StartTime;
-            result.DeviceData = cycleResult.ReceiveResult?.ResponseData;  // RawDataではなくResponseData
-            result.ErrorMessage = cycleResult.ErrorMessage;
-        }
-        catch (Exception ex)
-        {
-            result.IsSuccess = false;
-            result.ErrorMessage = $"エラー: {ex.Message}";
-            result.Exception = ex;
-            result.EndTime = DateTime.UtcNow;
-            result.Duration = result.EndTime - result.StartTime;
-        }
-
-        return result;
     }
 }

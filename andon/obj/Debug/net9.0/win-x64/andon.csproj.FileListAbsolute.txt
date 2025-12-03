@@ -1,4 +1,3 @@
-C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\win-x64\appsettings.json
 C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\win-x64\andon.exe
 C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\win-x64\andon.deps.json
 C:\Users\1010821\Desktop\python\andon\andon\bin\Debug\net9.0\win-x64\andon.runtimeconfig.json

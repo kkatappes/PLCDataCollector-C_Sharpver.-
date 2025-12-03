@@ -43,28 +43,16 @@ namespace Andon.Tests.Integration.Core.Managers
             // 初期システム状態を記録
             var initialConnectionStats = manager.GetConnectionStats();
 
-            // エラー発生後の期待状態を定義
-            Exception caughtException = null;
-
             // Act（実行）
-            try
-            {
-                // Step3: Connect（エラー発生）
-                var connectResponse = await manager.ConnectAsync();
-
-                // 以降の処理は実行されない予定
-                Assert.True(false, "Step3エラー時は例外がスローされるべき");
-            }
-            catch (Exception ex)
-            {
-                caughtException = ex;
-            }
+            // Phase 2修正: ConnectAsyncは例外をスローせず、ConnectionResponseで失敗を返す
+            var connectResponse = await manager.ConnectAsync();
 
             // Assert（検証）
 
-            // エラーハンドリング検証
-            Assert.NotNull(caughtException);
-            Assert.IsType<PlcConnectionException>(caughtException);
+            // Phase 2修正: ConnectionResponse検証
+            Assert.NotEqual(ConnectionStatus.Connected, connectResponse.Status);
+            Assert.Null(connectResponse.Socket);
+            Assert.NotNull(connectResponse.ErrorMessage);
 
             // 統計情報にエラーが正しく記録されていることを確認
             var finalStats = manager.GetConnectionStats();

@@ -387,10 +387,106 @@ public class ContinuousMode_IntegrationTests
     /// - MonitoringIntervalMs設定値通りの実行間隔
     /// - 約5秒間で4-6回実行されること
     /// </summary>
-    [Fact(Skip = "Phase 3 統合テスト4: 実装予定")]
+    [Fact]
     public async Task TC131_ContinuousMode_MonitoringInterval_ExecutesAtCorrectRate()
     {
-        // Phase 3 統合テスト4実装予定
-        Assert.True(true); // プレースホルダー
+        // ============================================================
+        // Phase 3 TDD Red: TC131実装
+        // 目的: 周期実行間隔の検証（MonitoringIntervalMs設定値通り）
+        // ============================================================
+
+        // Arrange
+        // PlcConfiguration設定（MonitoringIntervalMs = 1000ms = 1秒間隔）
+        var config1 = new PlcConfiguration
+        {
+            SourceExcelFile = "PLC1.xlsx",
+            IpAddress = "192.168.1.1",
+            Port = 5000,
+            ConnectionMethod = "TCP",
+            Timeout = 3000,
+            MonitoringIntervalMs = 1000,  // 1秒間隔
+            IsBinary = true,
+            FrameVersion = "3E",
+            Devices = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100)
+            }
+        };
+        var plcConfigs = new List<PlcConfiguration> { config1 };
+
+        // モックの準備
+        var mockLogger = new Mock<ILoggingManager>();
+        var mockConfigToFrameManager = new Mock<IConfigToFrameManager>();
+        var mockDataOutputManager = new Mock<IDataOutputManager>();
+        var mockPlcManager = new Mock<IPlcCommunicationManager>();
+
+        // 実行回数をカウント
+        var executionCount = 0;
+        mockConfigToFrameManager
+            .Setup(m => m.BuildReadRandomFrameFromConfig(
+                It.IsAny<PlcConfiguration>()))
+            .Callback(() => executionCount++)
+            .Returns(new byte[] { 0x50, 0x00 });  // ダミーフレーム
+
+        // PlcCommunicationManagerのモック設定（高速完了）
+        mockPlcManager
+            .Setup(m => m.ExecuteFullCycleAsync(
+                It.IsAny<ConnectionConfig>(),
+                It.IsAny<TimeoutConfig>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<ReadRandomRequestInfo>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FullCycleExecutionResult
+            {
+                IsSuccess = true,
+                ProcessedData = new ProcessedResponseData
+                {
+                    ProcessedData = new Dictionary<string, DeviceData>()
+                }
+            });
+
+        var plcManagers = new List<IPlcCommunicationManager> { mockPlcManager.Object };
+
+        // 実際のTimerServiceとExecutionOrchestratorを使用
+        var timerService = new Andon.Services.TimerService(mockLogger.Object);
+        var orchestrator = new ExecutionOrchestrator(
+            timerService,
+            mockConfigToFrameManager.Object,
+            mockDataOutputManager.Object,
+            mockLogger.Object);
+
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var cycleTask = orchestrator.RunContinuousDataCycleAsync(plcConfigs, plcManagers, cts.Token);
+
+        // 5秒間待機（1秒間隔なので約5回実行されるはず）
+        await Task.Delay(5000);
+
+        // キャンセル
+        cts.Cancel();
+
+        try
+        {
+            await cycleTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // キャンセル例外は期待通り
+        }
+
+        // Assert
+        // 約5秒間で4-6回実行されること（誤差を考慮）
+        // 1秒間隔なので、理論上は5回だが、タイミングにより4-6回の範囲を許容
+        Assert.InRange(executionCount, 4, 6);
+
+        // 少なくとも1回は実行されたことを確認
+        Assert.True(executionCount >= 1, $"Expected at least 1 execution, but got {executionCount}");
+
+        // BuildReadRandomFrameFromConfigが呼ばれたことを確認
+        mockConfigToFrameManager.Verify(
+            m => m.BuildReadRandomFrameFromConfig(
+                It.IsAny<PlcConfiguration>()),
+            Times.AtLeast(4));
     }
 }

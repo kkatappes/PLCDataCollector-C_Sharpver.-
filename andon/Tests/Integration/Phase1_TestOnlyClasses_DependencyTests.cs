@@ -81,24 +81,7 @@ public class Phase1_TestOnlyClasses_DependencyTests
         Assert.Null(systemResourcesConfigType);
     }
 
-    /// <summary>
-    /// TC005: appsettings.jsonからSystemResourcesセクションが削除されたことを確認
-    /// </summary>
-    [Fact]
-    public void Test_SystemResourcesセクション_削除完了()
-    {
-        // Arrange
-        var appSettingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
-
-        // Act
-        var appSettingsExists = File.Exists(appSettingsPath);
-        var content = File.ReadAllText(appSettingsPath);
-
-        // Assert
-        // appsettings.jsonが存在することを確認
-        Assert.True(appSettingsExists, "appsettings.jsonが存在するべき");
-
-        // SystemResourcesセクションが存在しないことを確認
-        Assert.DoesNotContain("SystemResources", content);
-    }
+    // Phase 3完了: appsettings.json完全廃止により、appsettings.jsonファイル確認テストは不要となったため削除
+    // 削除されたテスト:
+    // - Test_SystemResourcesセクション_削除完了
 }
