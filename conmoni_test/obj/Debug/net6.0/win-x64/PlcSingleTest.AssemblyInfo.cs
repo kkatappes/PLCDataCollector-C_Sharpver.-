@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PlcSingleTest")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+77614d83e1de18a9c810ea9ce9651d70a3f196f9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c69fed3ce87efec693899eaa1d35ad782f397aed")]
 [assembly: System.Reflection.AssemblyProductAttribute("PlcSingleTest")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PlcSingleTest")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

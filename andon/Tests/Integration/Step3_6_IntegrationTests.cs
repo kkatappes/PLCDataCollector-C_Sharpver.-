@@ -5,9 +5,11 @@ using Andon.Core.Models;
 using Andon.Core.Models.ConfigModels;
 using Andon.Core.Constants;
 using Andon.Core.Exceptions;
+using Andon.Core.Interfaces;
 using Andon.Tests.TestUtilities.Mocks;
 using Andon.Tests.TestUtilities.DataSources;
 using Andon.Tests.TestUtilities.Assertions;
+using Moq;
 
 namespace Andon.Tests.Integration;
 
@@ -326,6 +328,7 @@ public class Step3_6_IntegrationTests : IDisposable
         byte[] rawResponseData = SampleSLMPResponses.M000_M999_ResponseBytes;
 
         // 2. ProcessedDeviceRequestInfo準備
+        // Phase13修正: DeviceSpecificationsを明示的に設定（ReadRandom形式）
         var deviceRequestInfo = new ProcessedDeviceRequestInfo
         {
             DeviceType = "M",
@@ -333,7 +336,8 @@ public class Step3_6_IntegrationTests : IDisposable
             Count = 1000,
             FrameType = FrameType.Frame4E,
             RequestedAt = DateTime.UtcNow,
-            ParseConfiguration = null // ReadRandomでは不要
+            ParseConfiguration = null, // ReadRandomでは不要
+            DeviceSpecifications = GenerateDeviceSpecifications(DeviceCode.M, 0, 1000)
             // Phase3.5: DWordCombineTargetsプロパティ削除
         };
 
@@ -375,8 +379,8 @@ public class Step3_6_IntegrationTests : IDisposable
         // Stage 1 検証
         Assert.NotNull(basicProcessedData);
         Assert.True(basicProcessedData.IsSuccess, "Stage 1は成功すべき");
-        Assert.Equal(1000, basicProcessedData.ProcessedDeviceCount);
-        Assert.Equal(1000, basicProcessedData.ProcessedDevices.Count);
+        Assert.Equal(1000, basicProcessedData.TotalProcessedDevices);
+        Assert.Equal(1000, basicProcessedData.ProcessedData.Count);
         Assert.Empty(basicProcessedData.Errors);
 
         // タイムスタンプ整合性検証
@@ -386,7 +390,7 @@ public class Step3_6_IntegrationTests : IDisposable
         for (int i = 0; i < 10; i++)
         {
             string expectedName = $"M{i}";
-            Assert.Contains(basicProcessedData.ProcessedDevices, d => d.DeviceName == expectedName);
+            Assert.True(basicProcessedData.ProcessedData.ContainsKey(expectedName), $"デバイス{expectedName}が存在すべき");
         }
     }
 
@@ -408,6 +412,7 @@ public class Step3_6_IntegrationTests : IDisposable
         byte[] rawResponseData = SampleSLMPResponses.D000_D999_ResponseBytes;
 
         // 2. ProcessedDeviceRequestInfo準備（DWord結合なし）
+        // Phase13修正: DeviceSpecificationsを明示的に設定（ReadRandom形式）
         var deviceRequestInfo = new ProcessedDeviceRequestInfo
         {
             DeviceType = "D",
@@ -415,7 +420,8 @@ public class Step3_6_IntegrationTests : IDisposable
             Count = 1000,
             FrameType = FrameType.Frame4E,
             RequestedAt = DateTime.UtcNow,
-            ParseConfiguration = null // ReadRandomでは不要
+            ParseConfiguration = null, // ReadRandomでは不要
+            DeviceSpecifications = GenerateDeviceSpecifications(DeviceCode.D, 0, 1000)
             // Phase3.5: DWordCombineTargetsプロパティ削除
         };
 
@@ -457,8 +463,8 @@ public class Step3_6_IntegrationTests : IDisposable
         // Stage 1 検証
         Assert.NotNull(basicProcessedData);
         Assert.True(basicProcessedData.IsSuccess, "Stage 1は成功すべき");
-        Assert.Equal(1000, basicProcessedData.ProcessedDeviceCount);
-        Assert.Equal(1000, basicProcessedData.ProcessedDevices.Count);
+        Assert.Equal(1000, basicProcessedData.TotalProcessedDevices);
+        Assert.Equal(1000, basicProcessedData.ProcessedData.Count);
         Assert.Empty(basicProcessedData.Errors);
 
         // タイムスタンプ整合性検証
@@ -468,9 +474,9 @@ public class Step3_6_IntegrationTests : IDisposable
         for (int i = 0; i < 10; i++)
         {
             string expectedName = $"D{i}";
-            var device = basicProcessedData.ProcessedDevices.FirstOrDefault(d => d.DeviceName == expectedName);
+            Assert.True(basicProcessedData.ProcessedData.ContainsKey(expectedName), $"デバイス{expectedName}が存在すべき");
+            var device = basicProcessedData.ProcessedData[expectedName];
             Assert.NotNull(device);
-            Assert.NotNull(device.Value);
 
             // device.Valueの型に応じて検証
             // SampleSLMPResponsesで生成されるデータ型を確認
@@ -520,6 +526,7 @@ public class Step3_6_IntegrationTests : IDisposable
         var mockSocketFactory = new MockSocketFactory(mockSocket, shouldSucceed: true, simulatedDelayMs: 10);
 
         // Step2からのリクエスト情報（完全サイクル用）
+        // Phase13修正: DeviceSpecificationsを明示的に設定（ReadRandom形式）
         var processedRequestInfo = new ProcessedDeviceRequestInfo
         {
             DeviceType = "D",
@@ -545,7 +552,8 @@ public class Step3_6_IntegrationTests : IDisposable
                         }
                     }
                 }
-            }
+            },
+            DeviceSpecifications = GenerateDeviceSpecifications(DeviceCode.D, 100, 10)
         };
 
         // PlcCommunicationManagerインスタンス
@@ -593,13 +601,14 @@ public class Step3_6_IntegrationTests : IDisposable
         // Step6-1 基本処理検証
         Assert.NotNull(fullCycleResult.BasicProcessedData);
         Assert.True(fullCycleResult.BasicProcessedData.IsSuccess);
-        Assert.True(fullCycleResult.BasicProcessedData.ProcessedDevices.Count >= 10);
+        Assert.True(fullCycleResult.BasicProcessedData.ProcessedData.Count >= 10);
 
         // Step6-2 DWord結合検証（ReadRandomでは不要だが、テストでは確認）
         Assert.NotNull(fullCycleResult.ProcessedData);
         Assert.True(fullCycleResult.ProcessedData.IsSuccess);
         // ReadRandomではDWord結合は通常使用されないため、基本デバイスのみ検証
-        Assert.True(fullCycleResult.ProcessedData.BasicProcessedDevices.Count >= 10);
+        // Phase13修正: ProcessedDataを使用
+        Assert.True(fullCycleResult.ProcessedData.ProcessedData.Count >= 10);
 
         // Step6-3 構造化検証（最終出力）- ReadRandomでは通常不要だが、テストでは確認
         Assert.NotNull(fullCycleResult.StructuredData);
@@ -1600,6 +1609,742 @@ public class Step3_6_IntegrationTests : IDisposable
         Console.WriteLine($"\n✅ TC124-3完了: 不正IP時のエラー伝播検証成功");
         Console.WriteLine($"   - Exception: {caughtException.GetType().Name}");
         Console.WriteLine($"   - ErrorMessage: {caughtException.Message}");
+    }
+
+    // ===============================
+    // Phase 4: 統合テスト（通信プロトコル自動切り替え機能）
+    // ===============================
+
+    /// <summary>
+    /// TC_P4_001: Integration_TCPからUDPへの自動切り替え_正常にデータ送受信
+    /// Phase 4-Red: 失敗する統合テスト（初期状態）
+    /// </summary>
+    [Fact]
+    public async Task TC_P4_001_Integration_TCPからUDPへの自動切り替え_正常にデータ送受信()
+    {
+        // ===============================
+        // Arrange: TCP接続不可、UDP接続可能な環境を模擬
+        // ===============================
+
+        // MockLoggingManager作成（Phase 3追加: ログ検証用）
+        var mockLogger = new Mock<ILoggingManager>();
+
+        // MockSocketFactory作成（TCP失敗、UDP成功）
+        var mockSocketFactory = new MockSocketFactory(
+            tcpShouldSucceed: false,
+            udpShouldSucceed: true,
+            simulatedDelayMs: 10
+        );
+
+        // ConnectionConfig作成（初期プロトコル: TCP）
+        var connectionConfig = new ConnectionConfig
+        {
+            IpAddress = "127.0.0.1",
+            Port = 5000,
+            UseTcp = true,  // 初期プロトコルはTCP
+            IsBinary = true,
+            FrameVersion = FrameVersion.Frame4E
+        };
+
+        // TimeoutConfig作成
+        var timeoutConfig = new TimeoutConfig
+        {
+            ConnectTimeoutMs = 5000,
+            SendTimeoutMs = 3000,
+            ReceiveTimeoutMs = 3000
+        };
+
+        // PlcCommunicationManager作成（LoggingManager注入）
+        var manager = new PlcCommunicationManager(
+            connectionConfig,
+            timeoutConfig,
+            connectionResponse: null,
+            socketFactory: mockSocketFactory,
+            loggingManager: mockLogger.Object  // Phase 3: LoggingManager注入
+        );
+
+        // テスト用フレーム作成（ReadRandom 4Eフレーム）
+        var testFrame = "54001234000000010400A800000090E8030000";
+
+        // ===============================
+        // Act: 接続→データ送信→データ受信の一連の流れ
+        // ===============================
+
+        var connectResult = await manager.ConnectAsync();
+
+        // 接続成功後、MockSocketに応答データを追加
+        var mockSocket = (MockSocket)connectResult.Socket!;
+        var testResponseHex = "D4001234000000010401000400000000";  // 正常応答（4バイトデータ）
+        var testResponseBytes = Convert.FromHexString(testResponseHex);
+        mockSocket.EnqueueReceiveData(testResponseBytes);
+
+        // 送受信処理（例外が発生しないことを確認）
+        Exception? sendException = null;
+        RawResponseData? receiveResult = null;
+        try
+        {
+            await manager.SendFrameAsync(testFrame);
+            receiveResult = await manager.ReceiveResponseAsync(timeoutConfig.ReceiveTimeoutMs);
+        }
+        catch (Exception ex)
+        {
+            sendException = ex;
+        }
+
+        // ===============================
+        // Assert: 接続・送受信の検証
+        // ===============================
+
+        // 接続検証: 代替プロトコル（UDP）で成功
+        Assert.True(connectResult.IsFallbackConnection, "代替プロトコルで接続していない");
+        Assert.Equal("UDP", connectResult.UsedProtocol);
+        Assert.Equal(ConnectionStatus.Connected, connectResult.Status);
+
+        // 送信検証: 例外が発生しないこと
+        // ← 統合動作確認（初期は失敗する可能性あり）
+        Assert.Null(sendException);
+
+        // 受信検証: データを受信できること
+        Assert.NotNull(receiveResult);
+        Assert.NotNull(receiveResult.ResponseHex);
+        Assert.NotEmpty(receiveResult.ResponseHex);
+
+        // Assert: ログ出力の検証（Phase 3追加）
+        mockLogger.Verify(x => x.LogInfo(
+            It.Is<string>(s => s.Contains("PLC接続試行開始"))), Times.Once);
+        mockLogger.Verify(x => x.LogWarning(
+            It.Is<string>(s => s.Contains("TCP接続失敗") && s.Contains("UDP"))), Times.Once);
+        mockLogger.Verify(x => x.LogInfo(
+            It.Is<string>(s => s.Contains("代替プロトコル(UDP)で接続成功"))), Times.Once);
+
+        Console.WriteLine($"\n✅ TC_P4_001完了: TCPからUDPへの自動切り替え_正常にデータ送受信");
+        Console.WriteLine($"   - UsedProtocol: {connectResult.UsedProtocol}");
+        Console.WriteLine($"   - IsFallbackConnection: {connectResult.IsFallbackConnection}");
+        Console.WriteLine($"   - ReceivedData: {receiveResult.ResponseHex}");
+    }
+
+    /// <summary>
+    /// TC_P4_002: Integration_UDPからTCPへの自動切り替え_正常にデータ送受信
+    /// Phase 4-Red: 失敗する統合テスト（初期状態）
+    /// </summary>
+    [Fact]
+    public async Task TC_P4_002_Integration_UDPからTCPへの自動切り替え_正常にデータ送受信()
+    {
+        // ===============================
+        // Arrange: UDP接続不可、TCP接続可能な環境を模擬
+        // ===============================
+
+        // MockLoggingManager作成（Phase 3追加: ログ検証用）
+        var mockLogger = new Mock<ILoggingManager>();
+
+        // MockSocketFactory作成（UDP失敗、TCP成功）
+        var mockSocketFactory = new MockSocketFactory(
+            tcpShouldSucceed: true,
+            udpShouldSucceed: false,
+            simulatedDelayMs: 10
+        );
+
+        // ConnectionConfig作成（初期プロトコル: UDP）
+        var connectionConfig = new ConnectionConfig
+        {
+            IpAddress = "127.0.0.1",
+            Port = 5000,
+            UseTcp = false,  // 初期プロトコルはUDP
+            IsBinary = true,
+            FrameVersion = FrameVersion.Frame4E
+        };
+
+        // TimeoutConfig作成
+        var timeoutConfig = new TimeoutConfig
+        {
+            ConnectTimeoutMs = 5000,
+            SendTimeoutMs = 3000,
+            ReceiveTimeoutMs = 3000
+        };
+
+        // PlcCommunicationManager作成（LoggingManager注入）
+        var manager = new PlcCommunicationManager(
+            connectionConfig,
+            timeoutConfig,
+            connectionResponse: null,
+            socketFactory: mockSocketFactory,
+            loggingManager: mockLogger.Object  // Phase 3: LoggingManager注入
+        );
+
+        // テスト用フレーム作成（ReadRandom 4Eフレーム）
+        var testFrame = "54001234000000010400A800000090E8030000";
+
+        // ===============================
+        // Act: 接続→データ送信→データ受信の一連の流れ
+        // ===============================
+
+        var connectResult = await manager.ConnectAsync();
+
+        // 接続成功後、MockSocketに応答データを追加
+        var mockSocket = (MockSocket)connectResult.Socket!;
+        var testResponseHex = "D4001234000000010401000400000000";  // 正常応答（4バイトデータ）
+        var testResponseBytes = Convert.FromHexString(testResponseHex);
+        mockSocket.EnqueueReceiveData(testResponseBytes);
+
+        // 送受信処理（例外が発生しないことを確認）
+        Exception? sendException = null;
+        RawResponseData? receiveResult = null;
+        try
+        {
+            await manager.SendFrameAsync(testFrame);
+            receiveResult = await manager.ReceiveResponseAsync(timeoutConfig.ReceiveTimeoutMs);
+        }
+        catch (Exception ex)
+        {
+            sendException = ex;
+        }
+
+        // ===============================
+        // Assert: 接続・送受信の検証
+        // ===============================
+
+        // 接続検証: 代替プロトコル（TCP）で成功
+        Assert.True(connectResult.IsFallbackConnection, "代替プロトコルで接続していない");
+        Assert.Equal("TCP", connectResult.UsedProtocol);
+        Assert.Equal(ConnectionStatus.Connected, connectResult.Status);
+
+        // 送信検証: 例外が発生しないこと
+        Assert.Null(sendException);
+
+        // 受信検証: データを受信できること
+        Assert.NotNull(receiveResult);
+        Assert.NotNull(receiveResult.ResponseHex);
+        Assert.NotEmpty(receiveResult.ResponseHex);
+
+        // Assert: ログ出力の検証（Phase 3追加）
+        mockLogger.Verify(x => x.LogInfo(
+            It.Is<string>(s => s.Contains("PLC接続試行開始"))), Times.Once);
+        mockLogger.Verify(x => x.LogWarning(
+            It.Is<string>(s => s.Contains("UDP接続失敗") && s.Contains("TCP"))), Times.Once);
+        mockLogger.Verify(x => x.LogInfo(
+            It.Is<string>(s => s.Contains("代替プロトコル(TCP)で接続成功"))), Times.Once);
+
+        Console.WriteLine($"\n✅ TC_P4_002完了: UDPからTCPへの自動切り替え_正常にデータ送受信");
+        Console.WriteLine($"   - UsedProtocol: {connectResult.UsedProtocol}");
+        Console.WriteLine($"   - IsFallbackConnection: {connectResult.IsFallbackConnection}");
+        Console.WriteLine($"   - ReceivedData: {receiveResult.ResponseHex}");
+    }
+
+    /// <summary>
+    /// TC_P4_003: Integration_両プロトコル失敗_適切なエラーハンドリング
+    /// Phase 4-Red: 失敗する統合テスト（初期状態）
+    /// </summary>
+    [Fact]
+    public async Task TC_P4_003_Integration_両プロトコル失敗_適切なエラーハンドリング()
+    {
+        // ===============================
+        // Arrange: TCP/UDP両方失敗する環境を模擬
+        // ===============================
+
+        // MockLoggingManager作成（Phase 3追加: ログ検証用）
+        var mockLogger = new Mock<ILoggingManager>();
+
+        // MockSocketFactory作成（TCP失敗、UDP失敗）
+        var mockSocketFactory = new MockSocketFactory(
+            tcpShouldSucceed: false,
+            udpShouldSucceed: false,
+            simulatedDelayMs: 10
+        );
+
+        // ConnectionConfig作成（初期プロトコル: TCP）
+        var connectionConfig = new ConnectionConfig
+        {
+            IpAddress = "127.0.0.1",
+            Port = 5000,
+            UseTcp = true,  // 初期プロトコルはTCP
+            IsBinary = true,
+            FrameVersion = FrameVersion.Frame4E
+        };
+
+        // TimeoutConfig作成
+        var timeoutConfig = new TimeoutConfig
+        {
+            ConnectTimeoutMs = 5000,
+            SendTimeoutMs = 3000,
+            ReceiveTimeoutMs = 3000
+        };
+
+        // PlcCommunicationManager作成（LoggingManager注入）
+        var manager = new PlcCommunicationManager(
+            connectionConfig,
+            timeoutConfig,
+            connectionResponse: null,
+            socketFactory: mockSocketFactory,
+            loggingManager: mockLogger.Object  // Phase 3: LoggingManager注入
+        );
+
+        // ===============================
+        // Act: 接続試行（両プロトコル失敗予定）
+        // ===============================
+
+        var connectResult = await manager.ConnectAsync();
+
+        // ===============================
+        // Assert: 接続失敗の検証
+        // ===============================
+
+        // 接続失敗検証
+        Assert.NotEqual(ConnectionStatus.Connected, connectResult.Status);
+        Assert.True(
+            connectResult.Status == ConnectionStatus.Failed ||
+            connectResult.Status == ConnectionStatus.Timeout,
+            $"Status should be Failed or Timeout, but was {connectResult.Status}");
+
+        // エラーメッセージにTCP/UDP両方のエラーが含まれることを確認
+        Assert.NotNull(connectResult.ErrorMessage);
+        Assert.Contains("TCP", connectResult.ErrorMessage);
+        Assert.Contains("UDP", connectResult.ErrorMessage);
+
+        // 送信は試行されない（接続失敗のため）
+        // 例外が発生せず、適切にエラーが返却されることを確認
+
+        // Assert: ログ出力の検証（Phase 3追加）
+        mockLogger.Verify(x => x.LogInfo(
+            It.Is<string>(s => s.Contains("PLC接続試行開始"))), Times.Once);
+        mockLogger.Verify(x => x.LogWarning(
+            It.Is<string>(s => s.Contains("接続失敗") && s.Contains("再試行"))), Times.Once);
+        mockLogger.Verify(x => x.LogError(null,
+            It.Is<string>(s => s.Contains("TCP/UDP両プロトコルで接続に失敗"))), Times.Once);
+
+        Console.WriteLine($"\n✅ TC_P4_003完了: 両プロトコル失敗_適切なエラーハンドリング");
+        Console.WriteLine($"   - Status: {connectResult.Status}");
+        Console.WriteLine($"   - ErrorMessage: {connectResult.ErrorMessage}");
+    }
+
+    /// <summary>
+    /// TC_P4_004: Integration_初期プロトコル成功_通常フロー
+    /// Phase 4-Refactor: 初期プロトコルで成功する正常系テスト
+    /// </summary>
+    [Fact]
+    public async Task TC_P4_004_Integration_初期プロトコル成功_通常フロー()
+    {
+        // ===============================
+        // Arrange: 初期TCP接続が成功する環境
+        // ===============================
+
+        // MockLoggingManager作成（Phase 3追加: ログ検証用）
+        var mockLogger = new Mock<ILoggingManager>();
+
+        // MockSocketFactory作成（TCP成功）
+        var mockSocketFactory = new MockSocketFactory(
+            tcpShouldSucceed: true,
+            udpShouldSucceed: false,  // 代替プロトコルは使用されない
+            simulatedDelayMs: 10
+        );
+
+        // ConnectionConfig作成（初期プロトコル: TCP）
+        var connectionConfig = new ConnectionConfig
+        {
+            IpAddress = "127.0.0.1",
+            Port = 5000,
+            UseTcp = true,  // 初期プロトコルはTCP
+            IsBinary = true,
+            FrameVersion = FrameVersion.Frame4E
+        };
+
+        // TimeoutConfig作成
+        var timeoutConfig = new TimeoutConfig
+        {
+            ConnectTimeoutMs = 5000,
+            SendTimeoutMs = 3000,
+            ReceiveTimeoutMs = 3000
+        };
+
+        // PlcCommunicationManager作成（LoggingManager注入）
+        var manager = new PlcCommunicationManager(
+            connectionConfig,
+            timeoutConfig,
+            connectionResponse: null,
+            socketFactory: mockSocketFactory,
+            loggingManager: mockLogger.Object
+        );
+
+        // テスト用フレーム作成（ReadRandom 4Eフレーム）
+        var testFrame = "54001234000000010400A800000090E8030000";
+
+        // ===============================
+        // Act: 接続→データ送信→データ受信の一連の流れ
+        // ===============================
+
+        var connectResult = await manager.ConnectAsync();
+
+        // 接続成功後、MockSocketに応答データを追加
+        var mockSocket = (MockSocket)connectResult.Socket!;
+        var testResponseHex = "D4001234000000010401000400000000";
+        var testResponseBytes = Convert.FromHexString(testResponseHex);
+        mockSocket.EnqueueReceiveData(testResponseBytes);
+
+        // 送受信処理
+        Exception? sendException = null;
+        RawResponseData? receiveResult = null;
+        try
+        {
+            await manager.SendFrameAsync(testFrame);
+            receiveResult = await manager.ReceiveResponseAsync(timeoutConfig.ReceiveTimeoutMs);
+        }
+        catch (Exception ex)
+        {
+            sendException = ex;
+        }
+
+        // ===============================
+        // Assert: 接続・送受信の検証
+        // ===============================
+
+        // 接続検証: 初期プロトコルで成功
+        Assert.False(connectResult.IsFallbackConnection, "初期プロトコルで接続したはず");
+        Assert.Equal("TCP", connectResult.UsedProtocol);
+        Assert.Equal(ConnectionStatus.Connected, connectResult.Status);
+
+        // 送信検証: 例外が発生しないこと
+        Assert.Null(sendException);
+
+        // 受信検証: データを受信できること
+        Assert.NotNull(receiveResult);
+        Assert.NotNull(receiveResult.ResponseHex);
+        Assert.NotEmpty(receiveResult.ResponseHex);
+
+        // Assert: ログ出力の検証（Phase 3追加）
+        mockLogger.Verify(x => x.LogInfo(
+            It.Is<string>(s => s.Contains("PLC接続試行開始"))), Times.Once);
+        // 初期プロトコル成功時は警告・エラーログなし
+        mockLogger.Verify(x => x.LogWarning(It.IsAny<string>()), Times.Never);
+        mockLogger.Verify(x => x.LogError(It.IsAny<Exception>(), It.IsAny<string>()), Times.Never);
+
+        Console.WriteLine($"\n✅ TC_P4_004完了: 初期プロトコル成功_通常フロー");
+        Console.WriteLine($"   - UsedProtocol: {connectResult.UsedProtocol}");
+        Console.WriteLine($"   - IsFallbackConnection: {connectResult.IsFallbackConnection}");
+        Console.WriteLine($"   - ReceivedData: {receiveResult.ResponseHex}");
+    }
+
+    /// <summary>
+    /// TC_P4_005: Integration_複数回の送受信_代替プロトコルで安定動作
+    /// Phase 4-Refactor: 代替プロトコルでの連続送受信安定性テスト
+    /// </summary>
+    [Fact]
+    public async Task TC_P4_005_Integration_複数回の送受信_代替プロトコルで安定動作()
+    {
+        // ===============================
+        // Arrange: TCP失敗、UDP成功
+        // ===============================
+
+        // MockLoggingManager作成（Phase 3追加: ログ検証用）
+        var mockLogger = new Mock<ILoggingManager>();
+
+        // MockSocketFactory作成（TCP失敗、UDP成功）
+        var mockSocketFactory = new MockSocketFactory(
+            tcpShouldSucceed: false,
+            udpShouldSucceed: true,
+            simulatedDelayMs: 10
+        );
+
+        // ConnectionConfig作成（初期プロトコル: TCP）
+        var connectionConfig = new ConnectionConfig
+        {
+            IpAddress = "127.0.0.1",
+            Port = 5000,
+            UseTcp = true,
+            IsBinary = true,
+            FrameVersion = FrameVersion.Frame4E
+        };
+
+        // TimeoutConfig作成
+        var timeoutConfig = new TimeoutConfig
+        {
+            ConnectTimeoutMs = 5000,
+            SendTimeoutMs = 3000,
+            ReceiveTimeoutMs = 3000
+        };
+
+        // PlcCommunicationManager作成（LoggingManager注入）
+        var manager = new PlcCommunicationManager(
+            connectionConfig,
+            timeoutConfig,
+            connectionResponse: null,
+            socketFactory: mockSocketFactory,
+            loggingManager: mockLogger.Object
+        );
+
+        // テスト用フレーム作成
+        var testFrame = "54001234000000010400A800000090E8030000";
+
+        // ===============================
+        // Act: 接続後、複数回の送受信
+        // ===============================
+
+        var connectResult = await manager.ConnectAsync();
+
+        // 接続成功後、MockSocketに複数回分の応答データを追加
+        var mockSocket = (MockSocket)connectResult.Socket!;
+        var testResponseHex = "D4001234000000010401000400000000";
+        var testResponseBytes = Convert.FromHexString(testResponseHex);
+
+        // 2回分の応答データを追加
+        mockSocket.EnqueueReceiveData(testResponseBytes);
+        mockSocket.EnqueueReceiveData(testResponseBytes);
+
+        // 1回目の送受信
+        Exception? sendException1 = null;
+        RawResponseData? receiveResult1 = null;
+        try
+        {
+            await manager.SendFrameAsync(testFrame);
+            receiveResult1 = await manager.ReceiveResponseAsync(timeoutConfig.ReceiveTimeoutMs);
+        }
+        catch (Exception ex)
+        {
+            sendException1 = ex;
+        }
+
+        // 2回目の送受信
+        Exception? sendException2 = null;
+        RawResponseData? receiveResult2 = null;
+        try
+        {
+            await manager.SendFrameAsync(testFrame);
+            receiveResult2 = await manager.ReceiveResponseAsync(timeoutConfig.ReceiveTimeoutMs);
+        }
+        catch (Exception ex)
+        {
+            sendException2 = ex;
+        }
+
+        // ===============================
+        // Assert: 接続・送受信の検証
+        // ===============================
+
+        // 接続検証: 代替プロトコル（UDP）で成功
+        Assert.Equal("UDP", connectResult.UsedProtocol);
+        Assert.True(connectResult.IsFallbackConnection);
+
+        // 1回目の送受信検証
+        Assert.Null(sendException1);
+        Assert.NotNull(receiveResult1);
+        Assert.NotNull(receiveResult1.ResponseHex);
+        Assert.NotEmpty(receiveResult1.ResponseHex);
+
+        // 2回目の送受信検証
+        Assert.Null(sendException2);
+        Assert.NotNull(receiveResult2);
+        Assert.NotNull(receiveResult2.ResponseHex);
+        Assert.NotEmpty(receiveResult2.ResponseHex);
+
+        // Assert: ログ出力の検証（Phase 3追加）
+        mockLogger.Verify(x => x.LogInfo(
+            It.Is<string>(s => s.Contains("代替プロトコル(UDP)で接続成功"))), Times.Once);
+
+        Console.WriteLine($"\n✅ TC_P4_005完了: 複数回の送受信_代替プロトコルで安定動作");
+        Console.WriteLine($"   - UsedProtocol: {connectResult.UsedProtocol}");
+        Console.WriteLine($"   - 1回目受信: {receiveResult1?.ResponseHex}");
+        Console.WriteLine($"   - 2回目受信: {receiveResult2?.ResponseHex}");
+    }
+
+    /// <summary>
+    /// TC_P4_006: Integration_タイムアウト発生_適切なエラー処理
+    /// Phase 4-Refactor: 接続成功後の送信タイムアウトエラー処理テスト
+    /// </summary>
+    [Fact]
+    public async Task TC_P4_006_Integration_タイムアウト発生_適切なエラー処理()
+    {
+        // ===============================
+        // Arrange: 接続は成功するがタイムアウトするソケット
+        // ===============================
+
+        // MockLoggingManager作成（Phase 3追加: ログ検証用）
+        var mockLogger = new Mock<ILoggingManager>();
+
+        // MockSocket作成（接続成功、受信タイムアウト用）
+        var mockSocket = new MockSocket(useTcp: true);
+        mockSocket.SetupConnected(true);
+        // 応答データを追加しない → 受信タイムアウト発生
+
+        // MockSocketFactory作成
+        var mockSocketFactory = new MockSocketFactory(mockSocket, shouldSucceed: true, simulatedDelayMs: 10);
+
+        // ConnectionConfig作成
+        var connectionConfig = new ConnectionConfig
+        {
+            IpAddress = "127.0.0.1",
+            Port = 5000,
+            UseTcp = true,
+            IsBinary = true,
+            FrameVersion = FrameVersion.Frame4E
+        };
+
+        // TimeoutConfig作成（短いタイムアウト）
+        var timeoutConfig = new TimeoutConfig
+        {
+            ConnectTimeoutMs = 5000,
+            SendTimeoutMs = 3000,
+            ReceiveTimeoutMs = 100  // 短いタイムアウト設定
+        };
+
+        // PlcCommunicationManager作成（LoggingManager注入）
+        var manager = new PlcCommunicationManager(
+            connectionConfig,
+            timeoutConfig,
+            connectionResponse: null,
+            socketFactory: mockSocketFactory,
+            loggingManager: mockLogger.Object
+        );
+
+        // テスト用フレーム作成
+        var testFrame = "54001234000000010400A800000090E8030000";
+
+        // ===============================
+        // Act: 接続→送信→受信（タイムアウト発生予定）
+        // ===============================
+
+        var connectResult = await manager.ConnectAsync();
+
+        // Assert: 接続は成功
+        Assert.Equal(ConnectionStatus.Connected, connectResult.Status);
+
+        // Act: 送信・受信でタイムアウト発生
+        Exception? caughtException = null;
+        try
+        {
+            await manager.SendFrameAsync(testFrame);
+            await manager.ReceiveResponseAsync(timeoutConfig.ReceiveTimeoutMs);
+        }
+        catch (Exception ex)
+        {
+            caughtException = ex;
+        }
+
+        // ===============================
+        // Assert: データ不足エラー処理の検証
+        // ===============================
+
+        // データ不足エラーが発生すること（MockSocketの制約）
+        Assert.NotNull(caughtException);
+        // ArgumentException（データ不足）またはTimeoutException（タイムアウト）が発生
+        Assert.True(
+            caughtException is ArgumentException ||
+            caughtException is TimeoutException ||
+            (caughtException is SocketException socketEx && socketEx.SocketErrorCode == SocketError.TimedOut),
+            $"Expected ArgumentException, TimeoutException or SocketException(TimedOut), but got {caughtException.GetType().Name}");
+
+        // Assert: ログ出力の検証（Phase 3追加）
+        // 接続成功時のログ出力確認
+        mockLogger.Verify(x => x.LogInfo(
+            It.Is<string>(s => s.Contains("PLC接続試行開始"))), Times.Once);
+
+        Console.WriteLine($"\n✅ TC_P4_006完了: タイムアウト発生_適切なエラー処理");
+        Console.WriteLine($"   - ConnectionStatus: {connectResult.Status}");
+        Console.WriteLine($"   - Exception: {caughtException?.GetType().Name}");
+        Console.WriteLine($"   - ExceptionMessage: {caughtException?.Message}");
+    }
+
+    // ========== Phase 5.0: 本番統合対応 統合テスト ==========
+
+    /// <summary>
+    /// TC_P5_0_002: 代替プロトコル情報のログ出力確認
+    /// Phase 5.0 Step 5.0-Red
+    /// TCP失敗→UDP成功時に、代替プロトコル使用のログが出力されることを確認
+    /// </summary>
+    [Fact]
+    public async Task TC_P5_0_002_代替プロトコル情報のログ出力確認()
+    {
+        // ===============================
+        // Arrange（準備）
+        // ===============================
+
+        var mockLogger = new Mock<ILoggingManager>();
+
+        // TCP接続設定（初期プロトコル）
+        var connectionConfig = new ConnectionConfig
+        {
+            IpAddress = "127.0.0.1",
+            Port = 5000,
+            UseTcp = true,  // TCP指定
+            IsBinary = true,
+            FrameVersion = FrameVersion.Frame4E
+        };
+
+        var timeoutConfig = new TimeoutConfig
+        {
+            ConnectTimeoutMs = 1000,  // 短いタイムアウト
+            SendTimeoutMs = 3000,
+            ReceiveTimeoutMs = 3000
+        };
+
+        // MockSocketFactory準備（TCP失敗→UDP成功シナリオ）
+        var mockSocketFactory = new MockSocketFactory(
+            tcpShouldSucceed: false,
+            udpShouldSucceed: true,
+            simulatedDelayMs: 10
+        );
+
+        // PlcCommunicationManager生成（LoggingManager注入）
+        var manager = new PlcCommunicationManager(
+            connectionConfig,
+            timeoutConfig,
+            bitExpansionSettings: null,
+            connectionResponse: null,
+            socketFactory: mockSocketFactory,
+            loggingManager: mockLogger.Object);  // ← LoggingManager注入
+
+        // ===============================
+        // Act（実行）
+        // ===============================
+
+        var connectionResponse = await manager.ConnectAsync();
+
+        // ===============================
+        // Assert（検証）
+        // ===============================
+
+        // 接続成功検証（代替プロトコル=UDPで成功）
+        Assert.Equal(ConnectionStatus.Connected, connectionResponse.Status);
+        Assert.Equal("UDP", connectionResponse.UsedProtocol);
+        Assert.True(connectionResponse.IsFallbackConnection);
+        Assert.NotNull(connectionResponse.FallbackErrorDetails);
+
+        // ログ出力検証
+        // 1. 接続試行開始ログ
+        mockLogger.Verify(x => x.LogInfo(
+            It.Is<string>(s => s.Contains("PLC接続試行開始") && s.Contains("TCP"))),
+            Times.Once,
+            "接続試行開始ログが出力されていません");
+
+        // 2. 初期プロトコル失敗・再試行警告ログ
+        mockLogger.Verify(x => x.LogWarning(
+            It.Is<string>(s => s.Contains("TCP接続失敗") && s.Contains("UDP"))),
+            Times.Once,
+            "初期プロトコル失敗・再試行警告ログが出力されていません");
+
+        // 3. 代替プロトコル成功ログ
+        mockLogger.Verify(x => x.LogInfo(
+            It.Is<string>(s => s.Contains("代替プロトコル") && s.Contains("UDP"))),
+            Times.Once,
+            "代替プロトコル成功ログが出力されていません");
+
+        Console.WriteLine($"\n✅ TC_P5_0_002完了: 代替プロトコル情報のログ出力確認");
+        Console.WriteLine($"   - UsedProtocol: {connectionResponse.UsedProtocol}");
+        Console.WriteLine($"   - IsFallbackConnection: {connectionResponse.IsFallbackConnection}");
+        Console.WriteLine($"   - FallbackErrorDetails: {connectionResponse.FallbackErrorDetails}");
+    }
+
+
+    /// <summary>
+    /// 連続デバイスからDeviceSpecificationsを生成するヘルパーメソッド
+    /// Phase13: ReadRandom形式への完全統一対応
+    /// </summary>
+    private static List<DeviceSpecification> GenerateDeviceSpecifications(
+        DeviceCode code, int startAddress, int count)
+    {
+        var specs = new List<DeviceSpecification>();
+        for (int i = 0; i < count; i++)
+        {
+            specs.Add(new DeviceSpecification(code, startAddress + i));
+        }
+        return specs;
     }
 
     public void Dispose()

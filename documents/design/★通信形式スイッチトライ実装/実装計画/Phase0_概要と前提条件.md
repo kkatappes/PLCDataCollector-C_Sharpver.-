@@ -145,6 +145,24 @@ public string? FallbackErrorDetails { get; init; }  // 初期プロトコル失�
 - ✅ テスト結果: 45/45テスト成功（新規3テスト+既存42テスト）
 - 📄 実装結果: [Phase3_ログ出力実装_TestResults.md](../実装結果/Phase3_ログ出力実装_TestResults.md)
 
+**統合テスト実装完了（Phase4完了: 2025-12-05）:**
+- ✅ 統合テスト6件実装・成功（TC_P4_001～TC_P4_006）
+- ✅ 代替プロトコル切り替えの統合動作確認完了（TCP→UDP、UDP→TCP）
+- ✅ ログ出力の統合動作確認完了（LoggingManager統合、適切なログレベル）
+- ✅ 送受信処理の統合動作確認完了（SendFrameAsync/ReceiveResponseAsync）
+- ✅ TDDサイクル（Red-Green-Refactor）完全実施
+- ✅ 既存テストへの影響なし（全10テスト成功）
+- ✅ テスト結果: 10/10テスト成功（新規6テスト+既存4テスト）、実行時間589ms
+- 📄 実装結果: [Phase4_統合テスト_TestResults.md](../実装結果/Phase4_統合テスト_TestResults.md)
+
+**JSON出力仕様準拠対応完了（Phase5.0-修正: 2025-12-05）:**
+- ✅ Phase 5.0計画からJSON出力拡張（修正3）を削除
+- ✅ DataOutputManager.OutputToJsonからconnectionパラメータ削除
+- ✅ JSON構造からconnectionオブジェクト削除（出力ファイル設計.mdに準拠）
+- ✅ ExecutionOrchestratorのOutputToJson呼び出し修正（7引数→6引数）
+- ✅ ビルド成功（0エラー、0警告）
+- 📄 実装結果: [Phase5_0_JSON出力仕様準拠_修正結果.md](../実装結果/Phase5_0_JSON出力仕様準拠_修正結果.md)
+
 **成功パターン:**
 1. 初期プロトコルで成功
    - `Status = ConnectionStatus.Connected`
@@ -327,3 +345,84 @@ var timeoutConfig = new TimeoutConfig
     ReceiveTimeoutMs = config.Timeout
 };
 ```
+
+---
+
+## Phase 5: 実機検証とドキュメント
+
+### Phase 5.0: 本番統合対応（✅ 完了: 2025-01-18）
+
+**目的**: Phase 1-4で実装した代替プロトコル機能を本番環境で正しく動作させるため、LoggingManagerの注入と代替プロトコル情報の可視化を実装。
+
+**実装内容:**
+
+1. **ApplicationControllerでのLoggingManager注入**
+   - PlcCommunicationManagerのコンストラクタにLoggingManagerを渡す処理を追加
+   - 実装箇所: `ApplicationController.cs:96-103`
+   - これにより、PlcCommunicationManager内部で接続試行ログが出力可能に
+
+2. **ExecutionOrchestratorでの代替プロトコル情報ログ出力**
+   - ExecuteFullCycleAsync完了後、ConnectionResponseを確認
+   - 代替プロトコル使用時: Info-levelログ出力（プロトコル名、失敗理由含む）
+   - 初期プロトコル成功時: Debug-levelログ出力（プロトコル名のみ）
+   - 実装箇所: `ExecutionOrchestrator.cs:225-246`
+
+3. **DataOutputManagerでのJSON出力拡張**
+   - OutputToJsonメソッドにConnectionResponseパラメータ追加（オプショナル）
+   - JSON出力に`connection`フィールド追加:
+     - `protocol`: 使用されたプロトコル（"TCP"/"UDP"）
+     - `isFallbackConnection`: 代替プロトコル使用フラグ
+     - `fallbackReason`: 初期プロトコル失敗理由
+   - 実装箇所: `DataOutputManager.cs:33-42, 85-105`、`IDataOutputManager.cs:22-30`
+
+4. **ErrorMessages.csリファクタリング**
+   - マジックストリング削除、ログメッセージ生成メソッド追加:
+     - `FallbackConnectionSummary()`: 代替プロトコル接続サマリーログ
+     - `InitialProtocolConnectionSummary()`: 初期プロトコル接続サマリーログ
+   - 実装箇所: `ErrorMessages.cs:119-143`
+
+**テスト結果:**
+- ✅ TC_P5_0_001: ApplicationController LoggingManager統合確認テスト（成功）
+- ✅ TC_P5_0_002: ExecutionOrchestrator 代替プロトコル情報ログ出力確認テスト（成功）
+- ✅ 既存テスト全て成功維持（805/808成功、Phase 5.0無関係の1件のみ失敗）
+- ✅ TDDサイクル（Red-Green-Refactor）完全実施
+- ✅ 実行時間: Phase 5.0テスト 284ms、全体テスト 24秒
+- 📄 実装結果: [Phase5_0_本番統合対応_TestResults.md](../実装結果/Phase5_0_本番統合対応_TestResults.md)
+
+**JSON出力例:**
+```json
+{
+  "source": {
+    "plcModel": "5_JRS_N2",
+    "ipAddress": "192.168.1.1",
+    "port": 8192
+  },
+  "connection": {
+    "protocol": "UDP",
+    "isFallbackConnection": true,
+    "fallbackReason": "初期プロトコル(TCP)で接続失敗: Connection refused"
+  },
+  "timestamp": {
+    "local": "2025-01-18T15:30:45.123+09:00"
+  },
+  "items": [...]
+}
+```
+
+**ログ出力例:**
+```
+[INFO] PLC #1 は代替プロトコル(UDP)で接続されました。 初期プロトコル失敗理由: TCP接続失敗: Connection refused
+```
+
+### Phase 5.1: 実機検証（⏳ 未実施）
+
+**目的**: 実機PLC環境で代替プロトコル機能を検証し、運用ドキュメントを作成。
+
+**検証項目:**
+- 実機PLCでのTCP→UDP自動切り替え動作確認
+- 代替プロトコル使用時のログ出力確認
+- JSON出力ファイルのconnectionフィールド確認
+- 性能オーバーヘッド測定
+- トラブルシューティングガイド作成
+
+**注意**: Phase 5.0完了後に実施予定。

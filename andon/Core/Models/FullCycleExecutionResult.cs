@@ -44,8 +44,9 @@ public class FullCycleExecutionResult
 
     /// <summary>
     /// Step6-1: 基本処理結果（デバイス値抽出）
+    /// Phase13: BasicProcessedResponseDataからProcessedResponseDataに変更
     /// </summary>
-    public BasicProcessedResponseData? BasicProcessedData { get; set; }
+    public ProcessedResponseData? BasicProcessedData { get; set; }
 
     /// <summary>
     /// Step6-2: DWord結合処理結果
@@ -117,11 +118,12 @@ public class FullCycleExecutionResult
 
     /// <summary>
     /// DWord結合が正常に実行されたかチェック
+    /// Phase13修正: ProcessedDataのDictionaryを使用
     /// </summary>
     public bool HasValidDWordData()
     {
         return ProcessedData?.IsSuccess == true &&
-               ProcessedData.CombinedDWordDevices?.Count > 0;
+               ProcessedData.ProcessedData.Values.Any(d => d.IsDWord);
     }
 
     /// <summary>

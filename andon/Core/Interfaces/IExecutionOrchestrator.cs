@@ -1,4 +1,6 @@
+using Andon.Core.Models;
 using Andon.Core.Models.ConfigModels;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,4 +21,14 @@ public interface IExecutionOrchestrator
         List<PlcConfiguration> plcConfigs,
         List<IPlcCommunicationManager> plcManagers,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// 継続データサイクル実行（進捗報告機能付き）
+    /// Phase 4-2: ProgressReporter統合
+    /// </summary>
+    Task RunContinuousDataCycleAsync(
+        List<PlcConfiguration> plcConfigs,
+        List<IPlcCommunicationManager> plcManagers,
+        CancellationToken cancellationToken,
+        IProgress<ProgressInfo>? progress);
 }

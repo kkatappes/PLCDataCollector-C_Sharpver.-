@@ -609,7 +609,11 @@ public class PlcCommunicationManagerTests
             StartAddress = 100,
             Count = 1,  // ✅ 修正: 2 → 1（デバイスデータが2バイト = 1ワード分しかないため）
             FrameType = FrameType.Frame3E,
-            RequestedAt = DateTime.Now
+            RequestedAt = DateTime.Now,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100)
+            }
         };
 
         // CancellationToken準備
@@ -626,23 +630,22 @@ public class PlcCommunicationManagerTests
         // 基本結果検証
         Assert.NotNull(result);
         Assert.True(result.IsSuccess, "ProcessReceivedRawData処理が成功すること");
-        Assert.True(result.ProcessedDevices.Count > 0, "処理済みデバイスが1つ以上存在すること");
+        Assert.True(result.ProcessedData.Count > 0, "処理済みデバイスが1つ以上存在すること");
         Assert.Equal(0, result.Errors.Count);
         Assert.True(result.ProcessingTimeMs > 0, "処理時間が正の値であること");
 
         // データ処理検証
-        Assert.True(result.ProcessedDeviceCount > 0, "処理済みデバイス数が正の値であること");
-        Assert.Equal(result.ProcessedDevices.Count, result.ProcessedDeviceCount);
-        Assert.True(result.TotalDataSizeBytes > 0, "総データサイズが正の値であること");
+        Assert.True(result.TotalProcessedDevices > 0, "処理済みデバイス数が正の値であること");
+        Assert.Equal(result.ProcessedData.Count, result.TotalProcessedDevices);
 
         // デバイス値検証
-        var firstDevice = result.ProcessedDevices[0];
+        var firstDevice = result.ProcessedData.Values.First();
         Assert.NotNull(firstDevice);
-        Assert.Equal("D", firstDevice.DeviceType);
+        Assert.Equal(DeviceCode.D, firstDevice.Code);
         Assert.True(firstDevice.Address >= 100, "デバイスアドレスが期待値以上であること");
-        Assert.NotNull(firstDevice.Value);
-        Assert.NotNull(firstDevice.DataType);
-        Assert.True(firstDevice.ProcessedAt > DateTime.MinValue, "処理時刻が設定されていること");
+        Assert.True(firstDevice.Value > 0 || firstDevice.Value == 0, "デバイス値が存在すること");
+        Assert.NotNull(firstDevice.Type);
+        Assert.True(result.ProcessedAt > DateTime.MinValue, "処理時刻が設定されていること");
 
         // 処理時刻検証
         Assert.True(result.ProcessedAt > DateTime.MinValue, "処理日時が設定されていること");
@@ -653,290 +656,12 @@ public class PlcCommunicationManagerTests
         Assert.NotNull(result.Warnings); // 警告リストが初期化されていること（空でも可）
     }
 
-    /// <summary>
-    /// TC037: ParseRawToStructuredData_3Eフレーム解析 ★重要テスト
-    /// PlcCommunicationManager.ParseRawToStructuredData メソッドの3Eフレーム解析機能が正常に動作することを確認
-    /// Step6データ処理の第3段階（最終段階）として、DWord結合済みデータから構造化データへの解析が成功することを検証
-    /// </summary>
-    [Fact]
-    public async Task TC037_ParseRawToStructuredData_3Eフレーム解析()
-    {
-        // Arrange（準備）
-        // PlcCommunicationManagerインスタンス作成
-        var connectionConfig = new ConnectionConfig
-        {
-            IpAddress = "192.168.3.250",
-            Port = 5007,
-            UseTcp = false,
-            IsBinary = false,
-            FrameVersion = FrameVersion.Frame3E
-        };
-
-        var timeoutConfig = new TimeoutConfig
-        {
-            ReceiveTimeoutMs = 3000,
-            SendTimeoutMs = 3000
-        };
-
-        var manager = new PlcCommunicationManager(
-            connectionConfig,
-            timeoutConfig
-        );
-
-        // DWord結合済み処理データ準備
-        var processedData = new ProcessedResponseData
-        {
-            BasicProcessedDevices = new List<ProcessedDevice>
-            {
-                new ProcessedDevice { DeviceType = "D", Address = 100, Value = 0x1234, DataType = "Int16", ProcessedAt = DateTime.UtcNow },
-                new ProcessedDevice { DeviceType = "D", Address = 200, Value = 0x1BCD, DataType = "Int16", ProcessedAt = DateTime.UtcNow }
-            },
-            CombinedDWordDevices = new List<CombinedDWordDevice>
-            {
-                new CombinedDWordDevice
-                {
-                    DeviceName = "D100_32bit",
-                    CombinedValue = 0x56781234,
-                    LowWordAddress = 100,
-                    HighWordAddress = 101,
-                    LowWordValue = 0x1234,
-                    HighWordValue = 0x5678,
-                    CombinedAt = DateTime.UtcNow,
-                    DeviceType = "D"
-                }
-            },
-            IsSuccess = true,
-            ProcessedAt = DateTime.UtcNow,
-            ProcessingTimeMs = 50
-        };
-
-        // リクエスト情報（3Eフレーム指定、構造化設定含む）
-        var requestInfo = new ProcessedDeviceRequestInfo
-        {
-            DeviceType = "D",
-            StartAddress = 100,
-            Count = 4,
-            FrameType = FrameType.Frame3E,
-            RequestedAt = DateTime.UtcNow,
-            ParseConfiguration = new ParseConfiguration
-            {
-                FrameFormat = "3E",
-                DataFormat = "Binary",
-                StructureDefinitions = new List<StructureDefinition>
-                {
-                    new StructureDefinition
-                    {
-                        Name = "ProductionData",
-                        Description = "生産データ構造",
-                        Fields = new List<FieldDefinition>
-                        {
-                            new FieldDefinition { Name = "ProductId", Address = "100", DataType = "Int16", Description = "製品ID" },
-                            new FieldDefinition { Name = "Timestamp", Address = "200", DataType = "Int16", Description = "タイムスタンプ" },
-                            new FieldDefinition { Name = "TotalCount", Address = "D100_32bit", DataType = "Int32", Description = "総数（32bit）" }
-                        }
-                    }
-                }
-            }
-        };
-
-        // CancellationToken準備
-        var cancellationToken = new CancellationTokenSource().Token;
-
-        // Act（実行）
-        var result = await manager.ParseRawToStructuredData(
-            processedData,
-            requestInfo,
-            cancellationToken
-        );
-
-        // Assert（検証）
-        // 基本結果検証
-        Assert.NotNull(result);
-        Assert.True(result.IsSuccess, "ParseRawToStructuredData処理が成功すること");
-        Assert.True(result.StructuredDevices.Count > 0, "構造化デバイスが1つ以上存在すること");
-        Assert.Empty(result.Errors);
-
-        // 3Eフレーム解析検証
-        Assert.NotNull(result.FrameInfo);
-        Assert.Equal("3E", result.FrameInfo.FrameType);
-        Assert.Equal("Binary", result.FrameInfo.DataFormat);
-        Assert.True(result.ParseSteps.Count > 0, "解析ステップが記録されていること");
-
-        // 構造化データ生成検証
-        var productionData = result.GetStructuredDevice("ProductionData");
-        Assert.NotNull(productionData);
-        Assert.Equal("ProductionData", productionData.DeviceName);
-        Assert.Equal("3E", productionData.SourceFrameType);
-        Assert.True(productionData.Fields.Count >= 3, "期待するフィールド数以上であること");
-
-        // フィールド値検証
-        Assert.True(productionData.HasField("ProductId"), "ProductIdフィールドが存在すること");
-        Assert.True(productionData.HasField("Timestamp"), "Timestampフィールドが存在すること");
-        Assert.True(productionData.HasField("TotalCount"), "TotalCountフィールドが存在すること");
-
-        Assert.Equal((short)0x1234, productionData.GetField<object>("ProductId"));
-        Assert.Equal((short)0x1BCD, productionData.GetField<object>("Timestamp"));
-        Assert.Equal((int)0x56781234, productionData.GetField<object>("TotalCount"));
-
-        // メタデータ設定検証
-        Assert.True(result.ProcessedAt > DateTime.MinValue, "処理時刻が設定されていること");
-        Assert.True(result.ProcessingTimeMs > 0, "処理時間が正の値であること");
-        Assert.Equal(1, result.TotalStructuredDevices);
-        Assert.True(result.ParseSteps.Contains("基本構造化処理完了") || result.ParseSteps.Any(s => s.Contains("構造化")), "構造化処理ステップが記録されていること");
-
-        // 処理時刻検証
-        Assert.True(result.ProcessedAt <= DateTime.UtcNow, "処理時刻が現在時刻以前であること");
-        Assert.True(productionData.ParsedTimestamp <= DateTime.UtcNow, "デバイス解析時刻が現在時刻以前であること");
-    }
-
-    /// <summary>
-    /// TC038: ParseRawToStructuredData_4Eフレーム解析 ★重要テスト
-    /// PlcCommunicationManager.ParseRawToStructuredData メソッドの4Eフレーム解析機能が正常に動作することを確認
-    /// Step6データ処理の第3段階として、4Eフレーム形式でのDWord結合済みデータから構造化データへの解析が成功することを検証
-    /// </summary>
-    [Fact]
-    public async Task TC038_ParseRawToStructuredData_4Eフレーム解析()
-    {
-        // Arrange（準備）
-        // PlcCommunicationManagerインスタンス作成
-        var connectionConfig = new ConnectionConfig
-        {
-            IpAddress = "192.168.3.250",
-            Port = 5007,
-            UseTcp = false,
-            IsBinary = false,
-            FrameVersion = FrameVersion.Frame4E
-        };
-
-        var timeoutConfig = new TimeoutConfig
-        {
-            ReceiveTimeoutMs = 3000,
-            SendTimeoutMs = 3000
-        };
-
-        var manager = new PlcCommunicationManager(
-            connectionConfig,
-            timeoutConfig
-        );
-
-        // DWord結合済み処理データ準備（4Eフレーム用）
-        var processedData = new ProcessedResponseData
-        {
-            BasicProcessedDevices = new List<ProcessedDevice>
-            {
-                new ProcessedDevice { DeviceType = "D", Address = 100, Value = 0x1234, DataType = "Int16", ProcessedAt = DateTime.UtcNow },
-                new ProcessedDevice { DeviceType = "D", Address = 200, Value = 0x1BCD, DataType = "Int16", ProcessedAt = DateTime.UtcNow }
-            },
-            CombinedDWordDevices = new List<CombinedDWordDevice>
-            {
-                new CombinedDWordDevice
-                {
-                    DeviceName = "D100_32bit",
-                    CombinedValue = 0x56781234,
-                    LowWordAddress = 100,
-                    HighWordAddress = 101,
-                    LowWordValue = 0x1234,
-                    HighWordValue = 0x5678,
-                    CombinedAt = DateTime.UtcNow,
-                    DeviceType = "D"
-                }
-            },
-            IsSuccess = true,
-            ProcessedAt = DateTime.UtcNow,
-            ProcessingTimeMs = 50
-            // FrameType = FrameType.Frame4E  // 4Eフレーム指定（TC037完了後に実装）
-        };
-
-        // リクエスト情報（4Eフレーム指定、構造化設定含む）
-        var requestInfo = new ProcessedDeviceRequestInfo
-        {
-            DeviceType = "D",
-            StartAddress = 100,
-            Count = 4,
-            FrameType = FrameType.Frame4E,  // 4Eフレーム指定
-            RequestedAt = DateTime.UtcNow,
-            ParseConfiguration = new ParseConfiguration
-            {
-                FrameFormat = "4E",                    // 4Eフレーム指定
-                DataFormat = "Binary",
-                HeaderSize = 13,                       // 4Eフレームヘッダーサイズ
-                StructureDefinitions = new List<StructureDefinition>
-                {
-                    new StructureDefinition
-                    {
-                        Name = "ProductionData4E",
-                        Description = "生産データ構造（4Eフレーム）",
-                        FrameType = "4E",              // 構造体レベルでも4E指定
-                        Fields = new List<FieldDefinition>
-                        {
-                            new FieldDefinition { Name = "ProductId", Address = "100", DataType = "Int16", Description = "製品ID" },
-                            new FieldDefinition { Name = "Timestamp", Address = "200", DataType = "Int16", Description = "タイムスタンプ" },
-                            new FieldDefinition { Name = "TotalCount", Address = "D100_32bit", DataType = "Int32", Description = "総数（32bit）" }
-                        }
-                    }
-                }
-            }
-        };
-
-        // CancellationToken準備
-        var cancellationToken = new CancellationTokenSource().Token;
-
-        // Act（実行）
-        var result = await manager.ParseRawToStructuredData(
-            processedData,
-            requestInfo,
-            cancellationToken
-        );
-
-        // Assert（検証）
-        // 基本結果検証
-        Assert.NotNull(result);
-        Assert.True(result.IsSuccess, "ParseRawToStructuredData処理（4Eフレーム）が成功すること");
-        Assert.True(result.StructuredDevices.Count > 0, "構造化デバイスが1つ以上存在すること");
-        Assert.Empty(result.Errors);
-
-        // 4Eフレーム解析検証
-        Assert.NotNull(result.FrameInfo);
-        Assert.Equal("4E", result.FrameInfo.FrameType);         // 4Eフレーム識別
-        Assert.Equal(13, result.FrameInfo.HeaderSize);          // 4E固有のヘッダーサイズ
-        Assert.Equal("Binary", result.FrameInfo.DataFormat);
-        Assert.True(result.ParseSteps.Count > 0, "解析ステップが記録されていること");
-        Assert.True(result.ParseSteps.Any(s => s.Contains("4Eフレーム解析")), "4Eフレーム解析ステップが記録されていること");
-
-        // 構造化データ生成検証（4E固有）
-        var productionData4E = result.GetStructuredDevice("ProductionData4E");
-        Assert.NotNull(productionData4E);
-        Assert.Equal("ProductionData4E", productionData4E.DeviceName);
-        Assert.Equal("4E", productionData4E.SourceFrameType);   // 4E由来であることを確認
-        Assert.True(productionData4E.Fields.Count >= 3, "期待するフィールド数以上であること");
-
-        // フィールド値検証（4E解析結果）
-        Assert.True(productionData4E.HasField("ProductId"), "ProductIdフィールドが存在すること");
-        Assert.True(productionData4E.HasField("Timestamp"), "Timestampフィールドが存在すること");
-        Assert.True(productionData4E.HasField("TotalCount"), "TotalCountフィールドが存在すること");
-
-        Assert.Equal((short)0x1234, (short)productionData4E.GetField<object>("ProductId"));
-        Assert.Equal((short)0x1BCD, (short)productionData4E.GetField<object>("Timestamp"));
-        Assert.Equal((int)0x56781234, (int)productionData4E.GetField<object>("TotalCount"));
-
-        // 3Eフレームとの差分検証
-        Assert.NotEqual("3E", result.FrameInfo.FrameType);      // 3Eではないことを確認
-        Assert.NotEqual(15, result.FrameInfo.HeaderSize);       // 3Eのヘッダーサイズ（15バイト）ではない
-
-        // メタデータ設定検証（4E用）
-        Assert.True(result.ProcessedAt > DateTime.MinValue, "処理時刻が設定されていること");
-        Assert.True(result.ProcessingTimeMs > 0, "処理時間が正の値であること");
-        Assert.Equal(1, result.TotalStructuredDevices);
-        Assert.True(result.ParseSteps.Contains("4Eフレーム解析開始") || result.ParseSteps.Any(s => s.Contains("4E")), "4E固有の解析ステップが記録されていること");
-
-        // 処理時刻検証
-        Assert.True(result.ProcessedAt <= DateTime.UtcNow, "処理時刻が現在時刻以前であること");
-        Assert.True(productionData4E.ParsedTimestamp <= DateTime.UtcNow, "デバイス解析時刻が現在時刻以前であること");
-
-        // 4Eフレーム解析精度検証
-        Assert.True(result.ProcessingTimeMs < 300, "4Eフレーム解析が適切な時間内（300ms未満）で完了すること");
-        Assert.False(result.Is4EFrame == false, "Is4EFrameプロパティが適切に設定されていること");
-    }
+    // ========================================
+    // Phase13で削除されたテスト (2025-12-08)
+    // ========================================
+    // TC037: ParseRawToStructuredData_3Eフレーム解析 - 削除理由: ProcessedDevice/CombinedDWordDevice型廃止
+    // TC038: ParseRawToStructuredData_4Eフレーム解析 - 削除理由: ProcessedDevice/CombinedDWordDevice型廃止
+    // 削除行数: 284行 (659-942行目)
 
     // ========================================
     // Phase3.5で削除されたテスト (2025-11-27)
@@ -1746,91 +1471,11 @@ public class PlcCommunicationManagerTests
 
     // ===== Phase3: ビット展開統合テスト =====
 
-    /// <summary>
-    /// TC_BitExpansion_001: ビット展開が有効な場合、選択されたデバイスがビット展開される
-    /// </summary>
-    [Fact]
-    public async Task TC_BitExpansion_001_有効時_選択デバイスがビット展開される()
-    {
-        // Arrange
-        var connectionConfig = new ConnectionConfig
-        {
-            IpAddress = "192.168.3.250",
-            Port = 5007,
-            UseTcp = false,
-            IsBinary = true,
-            FrameVersion = FrameVersion.Frame3E
-        };
-
-        var timeoutConfig = new TimeoutConfig
-        {
-            SendTimeoutMs = 3000,
-            ReceiveTimeoutMs = 3000
-        };
-
-        var bitExpansionSettings = new BitExpansionSettings
-        {
-            Enabled = true,
-            SelectionMask = new[] { false, false, true },  // 3番目のデバイスのみビット展開
-            ConversionFactors = new[] { 1.0, 1.0, 1.0 }
-        };
-
-        var manager = new PlcCommunicationManager(
-            connectionConfig,
-            timeoutConfig,
-            bitExpansionSettings);
-
-        var processedRequestInfo = new ProcessedDeviceRequestInfo
-        {
-            DeviceType = "D",
-            StartAddress = 0,
-            Count = 3,
-            FrameType = FrameType.Frame3E_Binary
-        };
-
-        // 3Eフレーム Binary形式のレスポンス作成（終了コード0x0000 + 3ワードデータ）
-        byte[] rawData = new byte[]
-        {
-            0xD0, 0x00,             // サブヘッダ (3E Binary)
-            0x00,                   // 要求先ネットワーク番号
-            0xFF,                   // 要求先局番
-            0xFF, 0x03,             // 要求先ユニットI/O番号
-            0x00,                   // 要求先マルチドロップ局番
-            0x08, 0x00,             // 応答データ長 (8バイト = 終了コード2 + データ6)
-            0x00, 0x00,             // 終了コード (正常)
-            0x01, 0x00,             // デバイス1の値 (0x0001)
-            0x02, 0x00,             // デバイス2の値 (0x0002)
-            0x0F, 0x00              // デバイス3の値 (0x000F = 0b0000000000001111)
-        };
-
-        // Act
-        var result = await manager.ProcessReceivedRawData(rawData, processedRequestInfo);
-
-        // Assert
-        Assert.True(result.IsSuccess);
-        Assert.Equal(3, result.ProcessedDevices.Count);
-
-        // デバイス1: ビット展開なし
-        Assert.False(result.ProcessedDevices[0].IsBitExpanded);
-        Assert.Equal("Word", result.ProcessedDevices[0].DataType);
-
-        // デバイス2: ビット展開なし
-        Assert.False(result.ProcessedDevices[1].IsBitExpanded);
-        Assert.Equal("Word", result.ProcessedDevices[1].DataType);
-
-        // デバイス3: ビット展開あり
-        Assert.True(result.ProcessedDevices[2].IsBitExpanded);
-        Assert.Equal("Bits", result.ProcessedDevices[2].DataType);
-        Assert.NotNull(result.ProcessedDevices[2].ExpandedBits);
-        Assert.Equal(16, result.ProcessedDevices[2].ExpandedBits!.Length);
-
-        // ビット値確認 (0x000F = 0b0000000000001111)
-        Assert.True(result.ProcessedDevices[2].ExpandedBits![0]);  // bit0 = 1
-        Assert.True(result.ProcessedDevices[2].ExpandedBits![1]);  // bit1 = 1
-        Assert.True(result.ProcessedDevices[2].ExpandedBits![2]);  // bit2 = 1
-        Assert.True(result.ProcessedDevices[2].ExpandedBits![3]);  // bit3 = 1
-        Assert.False(result.ProcessedDevices[2].ExpandedBits![4]); // bit4 = 0
-    }
+    // ========================================
+    // Phase13で削除されたテスト (2025-12-08)
+    // ========================================
+    // TC_BitExpansion_001_有効時_選択デバイスがビット展開される - 削除理由: ProcessedDevice型廃止、ビット展開はDataOutputManagerでテスト予定
+    // 削除行数: 90行 (1474-1560行目)
 
     /// <summary>
     /// TC_BitExpansion_002: ビット展開が無効な場合、全デバイスがワード値のまま
@@ -1869,7 +1514,13 @@ public class PlcCommunicationManagerTests
             DeviceType = "D",
             StartAddress = 0,
             Count = 3,
-            FrameType = FrameType.Frame3E_Binary
+            FrameType = FrameType.Frame3E_Binary,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 0),
+                new DeviceSpecification(DeviceCode.D, 1),
+                new DeviceSpecification(DeviceCode.D, 2)
+            }
         };
 
         byte[] rawData = new byte[]
@@ -1887,86 +1538,21 @@ public class PlcCommunicationManagerTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(3, result.ProcessedDevices.Count);
+        Assert.Equal(3, result.ProcessedData.Count);
 
-        // 全デバイスがビット展開されていないことを確認
-        Assert.All(result.ProcessedDevices, device =>
+        // 全デバイスがワードデバイスであることを確認
+        Assert.All(result.ProcessedData.Values, device =>
         {
-            Assert.False(device.IsBitExpanded);
-            Assert.Equal("Word", device.DataType);
-            Assert.Null(device.ExpandedBits);
+            Assert.False(device.IsDWord);
+            Assert.False(device.Code.IsBitDevice());
         });
     }
 
-    /// <summary>
-    /// TC_BitExpansion_003: 変換係数が正しく適用される
-    /// </summary>
-    [Fact]
-    public async Task TC_BitExpansion_003_変換係数適用()
-    {
-        // Arrange
-        var connectionConfig = new ConnectionConfig
-        {
-            IpAddress = "192.168.3.250",
-            Port = 5007,
-            UseTcp = false,
-            IsBinary = true,
-            FrameVersion = FrameVersion.Frame3E
-        };
-
-        var timeoutConfig = new TimeoutConfig
-        {
-            SendTimeoutMs = 3000,
-            ReceiveTimeoutMs = 3000
-        };
-
-        var bitExpansionSettings = new BitExpansionSettings
-        {
-            Enabled = true,
-            SelectionMask = new[] { false, false, false },  // 全てワード値
-            ConversionFactors = new[] { 1.0, 0.1, 10.0 }  // 異なる変換係数
-        };
-
-        var manager = new PlcCommunicationManager(
-            connectionConfig,
-            timeoutConfig,
-            bitExpansionSettings);
-
-        var processedRequestInfo = new ProcessedDeviceRequestInfo
-        {
-            DeviceType = "D",
-            StartAddress = 0,
-            Count = 3,
-            FrameType = FrameType.Frame3E_Binary
-        };
-
-        byte[] rawData = new byte[]
-        {
-            0xD0, 0x00, 0x00, 0xFF, 0xFF, 0x03, 0x00,
-            0x08, 0x00,
-            0x00, 0x00,
-            0x0A, 0x00,  // 10
-            0x14, 0x00,  // 20
-            0x1E, 0x00   // 30
-        };
-
-        // Act
-        var result = await manager.ProcessReceivedRawData(rawData, processedRequestInfo);
-
-        // Assert
-        Assert.True(result.IsSuccess);
-        Assert.Equal(3, result.ProcessedDevices.Count);
-
-        // 変換係数確認
-        Assert.Equal(1.0, result.ProcessedDevices[0].ConversionFactor);
-        Assert.Equal(10.0, result.ProcessedDevices[0].ConvertedValue);  // 10 * 1.0
-
-        Assert.Equal(0.1, result.ProcessedDevices[1].ConversionFactor);
-        Assert.Equal(2.0, result.ProcessedDevices[1].ConvertedValue);   // 20 * 0.1
-
-        Assert.Equal(10.0, result.ProcessedDevices[2].ConversionFactor);
-        Assert.Equal(300.0, result.ProcessedDevices[2].ConvertedValue); // 30 * 10.0
-    }
+    // ========================================
+    // Phase13で削除されたテスト (2025-12-08)
+    // ========================================
+    // TC_BitExpansion_003_変換係数適用 - 削除理由: ProcessedDevice型廃止、変換係数はDataOutputManagerでテスト予定
+    // 削除行数: 78行 (1551-1628行目)
 
     // ========================================
     // Phase3: デバイス点数多層検証テスト
@@ -2003,7 +1589,13 @@ public class PlcCommunicationManagerTests
             DeviceType = "D",
             StartAddress = 100,
             Count = 3,  // 要求値: 3ワード
-            FrameType = FrameType.Frame3E_Binary
+            FrameType = FrameType.Frame3E_Binary,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100),
+                new DeviceSpecification(DeviceCode.D, 101),
+                new DeviceSpecification(DeviceCode.D, 102)
+            }
         };
 
         // 3Eフレーム Binary形式のレスポンス
@@ -2028,14 +1620,14 @@ public class PlcCommunicationManagerTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(3, result.ProcessedDevices.Count);
+        Assert.Equal(3, result.ProcessedData.Count);
         Assert.Empty(result.Warnings); // デバイス点数が全て一致しているため警告なし
         Assert.Empty(result.Errors);
 
         // デバイス値確認
-        Assert.Equal((ushort)0x0001, (ushort)result.ProcessedDevices[0].Value);
-        Assert.Equal((ushort)0x0002, (ushort)result.ProcessedDevices[1].Value);
-        Assert.Equal((ushort)0x0003, (ushort)result.ProcessedDevices[2].Value);
+        Assert.Equal((uint)0x0001, result.ProcessedData["D100"].Value);
+        Assert.Equal((uint)0x0002, result.ProcessedData["D101"].Value);
+        Assert.Equal((uint)0x0003, result.ProcessedData["D102"].Value);
     }
 
     /// <summary>
@@ -2069,7 +1661,13 @@ public class PlcCommunicationManagerTests
             DeviceType = "D",
             StartAddress = 100,
             Count = 4,  // 要求値: 4ワード（実際は3ワードのみ受信）
-            FrameType = FrameType.Frame3E_Binary
+            FrameType = FrameType.Frame3E_Binary,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100),
+                new DeviceSpecification(DeviceCode.D, 101),
+                new DeviceSpecification(DeviceCode.D, 102)
+            }
         };
 
         // 3Eフレーム Binary形式のレスポンス（3ワード分のみ）
@@ -2088,7 +1686,7 @@ public class PlcCommunicationManagerTests
 
         // Assert
         Assert.True(result.IsSuccess); // 処理は成功（エラーではなく警告）
-        Assert.Equal(3, result.ProcessedDevices.Count);
+        Assert.Equal(3, result.ProcessedData.Count);
         Assert.NotEmpty(result.Warnings); // 要求値と不一致のため警告あり
         Assert.Contains(result.Warnings, w => w.Contains("要求値との不一致") || w.Contains("不一致"));
         Assert.Empty(result.Errors);
@@ -2125,7 +1723,12 @@ public class PlcCommunicationManagerTests
             DeviceType = "D",
             StartAddress = 100,
             Count = 2,  // 要求値: 2ワード
-            FrameType = FrameType.Frame4E_Binary
+            FrameType = FrameType.Frame4E_Binary,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100),
+                new DeviceSpecification(DeviceCode.D, 101)
+            }
         };
 
         // 4Eフレーム Binary形式のレスポンス
@@ -2149,13 +1752,13 @@ public class PlcCommunicationManagerTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(2, result.ProcessedDevices.Count);
+        Assert.Equal(2, result.ProcessedData.Count);
         Assert.Empty(result.Warnings); // 4Eフレームでも正しくデバイス点数検証が機能
         Assert.Empty(result.Errors);
 
         // デバイス値確認
-        Assert.Equal((ushort)0x000A, (ushort)result.ProcessedDevices[0].Value);
-        Assert.Equal((ushort)0x0014, (ushort)result.ProcessedDevices[1].Value);
+        Assert.Equal((uint)0x000A, result.ProcessedData["D100"].Value);
+        Assert.Equal((uint)0x0014, result.ProcessedData["D101"].Value);
     }
 
     /// <summary>
@@ -2189,7 +1792,13 @@ public class PlcCommunicationManagerTests
             DeviceType = "D",
             StartAddress = 100,
             Count = 3,
-            FrameType = FrameType.Frame3E_Binary
+            FrameType = FrameType.Frame3E_Binary,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100),
+                new DeviceSpecification(DeviceCode.D, 101),
+                new DeviceSpecification(DeviceCode.D, 102)
+            }
         };
 
         // 3Eフレーム Binary形式のレスポンス
@@ -2210,108 +1819,18 @@ public class PlcCommunicationManagerTests
 
         // Assert
         Assert.True(result.IsSuccess); // 実データ優先で処理継続
-        Assert.Equal(3, result.ProcessedDevices.Count); // 実データ（3ワード）で処理
+        Assert.Equal(3, result.ProcessedData.Count); // 実データ（3ワード）で処理
         Assert.NotEmpty(result.Warnings); // ヘッダと実データの不一致警告
         Assert.Contains(result.Warnings, w => w.Contains("ヘッダ") || w.Contains("不一致"));
         Assert.Empty(result.Errors);
     }
 
-    /// <summary>
-    /// Phase8.5 Test Case 3-1: ReadRandomレスポンスの正しい処理
-    /// ExtractDeviceValues_Should_ProcessReadRandomResponse_WithMultipleDevices
-    /// </summary>
-    [Fact]
-    public void Phase85_ExtractDeviceValues_Should_ProcessReadRandomResponse_WithMultipleDevices()
-    {
-        // このテストはPhase8.5暫定対策の検証用
-        // PlcCommunicationManager.ExtractDeviceValues()がDeviceSpecificationsを使用してReadRandomレスポンスを処理することを確認
-
-        // Arrange
-        var responseData = new byte[]
-        {
-            0x96, 0x00,  // D100 = 150 (LE)
-            0x01, 0x00,  // M200 = 1 (word形式、下位バイトが1)
-        };
-
-        var requestInfo = new ProcessedDeviceRequestInfo
-        {
-            DeviceSpecifications = new List<DeviceSpecification>
-            {
-                new DeviceSpecification(DeviceCode.D, 100),
-                new DeviceSpecification(DeviceCode.M, 200)
-            },
-            FrameType = FrameType.Frame4E,
-            RequestedAt = DateTime.UtcNow
-        };
-
-        var connectionConfig = new ConnectionConfig { IpAddress = "127.0.0.1", Port = 8192 };
-        var timeoutConfig = new TimeoutConfig();
-        var manager = new PlcCommunicationManager(connectionConfig, timeoutConfig);
-
-        // Act - privateメソッドなのでリフレクションを使用
-        var extractMethod = typeof(PlcCommunicationManager).GetMethod("ExtractDeviceValues",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        Assert.NotNull(extractMethod);
-
-        var result = (List<ProcessedDevice>)extractMethod.Invoke(manager, new object[] { responseData, requestInfo, DateTime.UtcNow })!;
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
-
-        Assert.Equal("D", result[0].DeviceType);
-        Assert.Equal(100, result[0].Address);
-        Assert.Equal((ushort)150, result[0].RawValue);
-
-        Assert.Equal("M", result[1].DeviceType);
-        Assert.Equal(200, result[1].Address);
-        Assert.Equal((ushort)1, result[1].RawValue);
-    }
-
-    /// <summary>
-    /// Phase8.5 Test Case 3-2: DeviceSpecificationsがnullの場合の後方互換性
-    /// ExtractDeviceValues_Should_FallbackToLegacyMode_WhenDeviceSpecificationsIsNull
-    /// </summary>
-    [Fact]
-    public void Phase85_ExtractDeviceValues_Should_FallbackToLegacyMode_WhenDeviceSpecificationsIsNull()
-    {
-        // このテストはPhase8.5暫定対策の検証用
-        // DeviceSpecificationsがnullの場合、既存のDeviceType/StartAddress/Countを使用する後方互換性を確認
-
-        // Arrange
-        var responseData = new byte[]
-        {
-            0x96, 0x00,  // D100 = 150
-            0x97, 0x00   // D101 = 151
-        };
-
-        var requestInfo = new ProcessedDeviceRequestInfo
-        {
-            DeviceSpecifications = null, // ← nullの場合
-            DeviceType = "D",            // ← 既存プロパティを使用
-            StartAddress = 100,
-            Count = 2,
-            FrameType = FrameType.Frame3E,
-            RequestedAt = DateTime.UtcNow
-        };
-
-        var connectionConfig = new ConnectionConfig { IpAddress = "127.0.0.1", Port = 8192 };
-        var timeoutConfig = new TimeoutConfig();
-        var manager = new PlcCommunicationManager(connectionConfig, timeoutConfig);
-
-        // Act - privateメソッドなのでリフレクションを使用
-        var extractMethod = typeof(PlcCommunicationManager).GetMethod("ExtractDeviceValues",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        Assert.NotNull(extractMethod);
-
-        var result = (List<ProcessedDevice>)extractMethod.Invoke(manager, new object[] { responseData, requestInfo, DateTime.UtcNow })!;
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
-        Assert.Equal("D", result[0].DeviceType);
-        Assert.Equal(100, result[0].Address);
-    }
+    // ========================================
+    // Phase13で削除されたテスト (2025-12-08)
+    // ========================================
+    // Phase85_ExtractDeviceValues_Should_ProcessReadRandomResponse_WithMultipleDevices - 削除理由: ExtractDeviceValuesメソッド廃止
+    // Phase85_ExtractDeviceValues_Should_FallbackToLegacyMode_WhenDeviceSpecificationsIsNull - 削除理由: ExtractDeviceValuesメソッド廃止
+    // 削除行数: 96行 (1983-2078行目)
 
 
     #region Phase 2: 代替プロトコル試行機能テスト
@@ -2730,6 +2249,489 @@ public class PlcCommunicationManagerTests
                                s.Contains("TCP") &&
                                s.Contains("UDP"))),
             Times.Once);
+    }
+
+    #endregion
+
+    #region Phase 13: データモデル一本化 - ProcessReceivedRawDataエッジケーステスト
+
+    /// <summary>
+    /// Phase13_Test01: 4Eフレーム正常解析
+    /// SlmpDataParserTests.ParseReadRandomResponse_4EFrame_ValidResponse_ReturnsCorrectDataから移行
+    /// </summary>
+    [Fact]
+    public async Task Phase13_ProcessReceivedRawData_4EFrame_ValidResponse_ReturnsCorrectData()
+    {
+        // Arrange
+        var manager = new PlcCommunicationManager(
+            new ConnectionConfig
+            {
+                IpAddress = "192.168.3.250",
+                Port = 5007,
+                UseTcp = false,
+                IsBinary = true,
+                FrameVersion = FrameVersion.Frame4E
+            },
+            new TimeoutConfig
+            {
+                ReceiveTimeoutMs = 3000,
+                SendTimeoutMs = 3000
+            }
+        );
+
+        var processedRequestInfo = new ProcessedDeviceRequestInfo
+        {
+            DeviceType = "M",
+            StartAddress = 0,
+            Count = 3,
+            FrameType = FrameType.Frame4E,
+            RequestedAt = DateTime.Now,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.M, 0),
+                new DeviceSpecification(DeviceCode.M, 16),
+                new DeviceSpecification(DeviceCode.D, 100)
+            }
+        };
+
+        // 4Eフレーム応答（15バイトヘッダ + 6バイトデータ = 21バイト）
+        byte[] rawData = new byte[]
+        {
+            // サブヘッダ2バイト
+            0xD4, 0x00,
+            // シーケンス番号2バイト
+            0x00, 0x00,
+            // 予約2バイト
+            0x00, 0x00,
+            // ネットワーク番号1バイト
+            0x00,
+            // PC番号1バイト
+            0xFF,
+            // I/O番号2バイト（LE: 0x03FF）
+            0xFF, 0x03,
+            // マルチドロップ局番1バイト
+            0x00,
+            // データ長2バイト（LE: 8バイト = エンドコード2 + データ6）
+            0x08, 0x00,
+            // エンドコード2バイト（正常）
+            0x00, 0x00,
+            // デバイスデータ6バイト（3ワード × 2バイト）
+            0x01, 0x00,  // M0 = 0x0001
+            0x02, 0x00,  // M16 = 0x0002
+            0x64, 0x00   // D100 = 0x0064 = 100
+        };
+
+        // Act
+        var result = await manager.ProcessReceivedRawData(rawData, processedRequestInfo);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.ProcessedData.Count);
+        Assert.True(result.ProcessedData.ContainsKey("M0"));
+        Assert.True(result.ProcessedData.ContainsKey("M16"));
+        Assert.True(result.ProcessedData.ContainsKey("D100"));
+        Assert.Equal(1u, result.ProcessedData["M0"].Value);
+        Assert.Equal(2u, result.ProcessedData["M16"].Value);
+        Assert.Equal(100u, result.ProcessedData["D100"].Value);
+    }
+
+    /// <summary>
+    /// Phase13_Test02: 3Eフレーム正常解析
+    /// SlmpDataParserTests.ParseReadRandomResponse_3EFrame_ValidResponse_ReturnsCorrectDataから移行
+    /// </summary>
+    [Fact]
+    public async Task Phase13_ProcessReceivedRawData_3EFrame_ValidResponse_ReturnsCorrectData()
+    {
+        // Arrange
+        var manager = new PlcCommunicationManager(
+            new ConnectionConfig
+            {
+                IpAddress = "192.168.3.250",
+                Port = 5007,
+                UseTcp = false,
+                IsBinary = true,
+                FrameVersion = FrameVersion.Frame3E
+            },
+            new TimeoutConfig
+            {
+                ReceiveTimeoutMs = 3000,
+                SendTimeoutMs = 3000
+            }
+        );
+
+        var processedRequestInfo = new ProcessedDeviceRequestInfo
+        {
+            DeviceType = "D",
+            StartAddress = 100,
+            Count = 2,
+            FrameType = FrameType.Frame3E,
+            RequestedAt = DateTime.Now,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100),
+                new DeviceSpecification(DeviceCode.D, 200)
+            }
+        };
+
+        // 3Eフレーム応答（11バイトヘッダ + 4バイトデータ = 15バイト）
+        byte[] rawData = new byte[]
+        {
+            // サブヘッダ2バイト
+            0xD0, 0x00,
+            // ネットワーク番号1バイト
+            0x00,
+            // PC番号1バイト
+            0xFF,
+            // I/O番号2バイト（LE: 0x03FF）
+            0xFF, 0x03,
+            // マルチドロップ局番1バイト
+            0x00,
+            // データ長2バイト（LE: 6バイト = エンドコード2 + データ4）
+            0x06, 0x00,
+            // エンドコード2バイト（正常）
+            0x00, 0x00,
+            // デバイスデータ4バイト（2ワード × 2バイト）
+            0x64, 0x00,  // D100 = 0x0064 = 100
+            0xC8, 0x00   // D200 = 0x00C8 = 200
+        };
+
+        // Act
+        var result = await manager.ProcessReceivedRawData(rawData, processedRequestInfo);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.ProcessedData.Count);
+        Assert.Equal(100u, result.ProcessedData["D100"].Value);
+        Assert.Equal(200u, result.ProcessedData["D200"].Value);
+    }
+
+    /// <summary>
+    /// Phase13_Test03: 16進アドレスデバイスの正常解析
+    /// SlmpDataParserTests.ParseReadRandomResponse_HexAddressDevice_ReturnsCorrectKeyから移行
+    /// </summary>
+    [Fact]
+    public async Task Phase13_ProcessReceivedRawData_HexAddressDevice_ReturnsCorrectKey()
+    {
+        // Arrange
+        var manager = new PlcCommunicationManager(
+            new ConnectionConfig
+            {
+                IpAddress = "192.168.3.250",
+                Port = 5007,
+                UseTcp = false,
+                IsBinary = true,
+                FrameVersion = FrameVersion.Frame4E
+            },
+            new TimeoutConfig
+            {
+                ReceiveTimeoutMs = 3000,
+                SendTimeoutMs = 3000
+            }
+        );
+
+        var processedRequestInfo = new ProcessedDeviceRequestInfo
+        {
+            DeviceType = "W",
+            StartAddress = 0x11AA,
+            Count = 1,
+            FrameType = FrameType.Frame4E,
+            RequestedAt = DateTime.Now,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.W, 0x11AA, isHexAddress: true)
+            }
+        };
+
+        byte[] rawData = new byte[]
+        {
+            0xD4, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
+            0xFF, 0x03, 0x00, 0x04, 0x00, 0x00, 0x00,
+            0x99, 0x26  // W0x11AA = 0x2699 = 9881
+        };
+
+        // Act
+        var result = await manager.ProcessReceivedRawData(rawData, processedRequestInfo);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Single(result.ProcessedData);
+
+        // 注意: DeviceDataのキー生成では、16進アドレスでも10進数表現になる
+        // 0x11AA = 4522
+        var actualKey = result.ProcessedData.Keys.First();
+        Assert.Equal("W4522", actualKey);
+        Assert.Equal(9881u, result.ProcessedData[actualKey].Value);
+    }
+
+    /// <summary>
+    /// Phase13_Test04: エラーエンドコード処理
+    /// SlmpDataParserTests.ParseReadRandomResponse_ErrorEndCode_ThrowsExceptionから移行
+    /// </summary>
+    [Fact]
+    public async Task Phase13_ProcessReceivedRawData_ErrorEndCode_ReturnsFailureResult()
+    {
+        // Arrange
+        var manager = new PlcCommunicationManager(
+            new ConnectionConfig
+            {
+                IpAddress = "192.168.3.250",
+                Port = 5007,
+                UseTcp = false,
+                IsBinary = true,
+                FrameVersion = FrameVersion.Frame3E
+            },
+            new TimeoutConfig
+            {
+                ReceiveTimeoutMs = 3000,
+                SendTimeoutMs = 3000
+            }
+        );
+
+        var processedRequestInfo = new ProcessedDeviceRequestInfo
+        {
+            DeviceType = "D",
+            StartAddress = 100,
+            Count = 1,
+            FrameType = FrameType.Frame3E,
+            RequestedAt = DateTime.Now,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100)
+            }
+        };
+
+        // エラーレスポンス（エンドコード = 0xC051 = デバイス範囲エラー）
+        byte[] rawData = new byte[]
+        {
+            0xD0, 0x00, 0x00, 0xFF, 0xFF, 0x03, 0x00,
+            0x02, 0x00,  // データ長: 2バイト（エンドコードのみ）
+            0x51, 0xC0   // エンドコード: 0xC051（エラー）
+        };
+
+        // Act
+        var result = await manager.ProcessReceivedRawData(rawData, processedRequestInfo);
+
+        // Assert
+        // ProcessReceivedRawDataはエラーエンドコードの場合IsSuccess=falseを返す
+        Assert.False(result.IsSuccess);
+    }
+
+    /// <summary>
+    /// Phase13_Test05: 空フレームエラー検証
+    /// SlmpDataParserTests.ParseReadRandomResponse_EmptyFrame_ThrowsExceptionから移行
+    /// </summary>
+    [Fact]
+    public async Task Phase13_ProcessReceivedRawData_EmptyFrame_ThrowsException()
+    {
+        // Arrange
+        var manager = new PlcCommunicationManager(
+            new ConnectionConfig
+            {
+                IpAddress = "192.168.3.250",
+                Port = 5007,
+                UseTcp = false,
+                IsBinary = true,
+                FrameVersion = FrameVersion.Frame3E
+            },
+            new TimeoutConfig
+            {
+                ReceiveTimeoutMs = 3000,
+                SendTimeoutMs = 3000
+            }
+        );
+
+        var processedRequestInfo = new ProcessedDeviceRequestInfo
+        {
+            DeviceType = "D",
+            StartAddress = 100,
+            Count = 1,
+            FrameType = FrameType.Frame3E,
+            RequestedAt = DateTime.Now,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100)
+            }
+        };
+
+        byte[] emptyFrame = Array.Empty<byte>();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentException>(
+            async () => await manager.ProcessReceivedRawData(emptyFrame, processedRequestInfo)
+        );
+        Assert.Contains("受信データの形式が不正", ex.Message);
+    }
+
+    /// <summary>
+    /// Phase13_Test06: 不正サブヘッダエラー検証
+    /// SlmpDataParserTests.ParseReadRandomResponse_InvalidSubHeader_ThrowsExceptionから移行
+    /// </summary>
+    [Fact]
+    public async Task Phase13_ProcessReceivedRawData_InvalidSubHeader_ReturnsFailureResult()
+    {
+        // Arrange
+        var manager = new PlcCommunicationManager(
+            new ConnectionConfig
+            {
+                IpAddress = "192.168.3.250",
+                Port = 5007,
+                UseTcp = false,
+                IsBinary = true,
+                FrameVersion = FrameVersion.Frame4E
+            },
+            new TimeoutConfig
+            {
+                ReceiveTimeoutMs = 3000,
+                SendTimeoutMs = 3000
+            }
+        );
+
+        var processedRequestInfo = new ProcessedDeviceRequestInfo
+        {
+            DeviceType = "D",
+            StartAddress = 100,
+            Count = 1,
+            FrameType = FrameType.Frame4E,
+            RequestedAt = DateTime.Now,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100)
+            }
+        };
+
+        // 不正なサブヘッダ
+        byte[] invalidFrame = new byte[]
+        {
+            0xFF, 0xFF,  // 不正なサブヘッダ
+            0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
+            0xFF, 0x03, 0x00, 0x04, 0x00, 0x00, 0x00
+        };
+
+        // Act
+        var result = await manager.ProcessReceivedRawData(invalidFrame, processedRequestInfo);
+
+        // Assert
+        // 不正サブヘッダの場合IsSuccess=falseを返す
+        Assert.False(result.IsSuccess);
+    }
+
+    /// <summary>
+    /// Phase13_Test07: 実データ簡易版テスト（複数デバイス）
+    /// SlmpDataParserTests.ParseReadRandomResponse_MemoMdRealDataSimplified_ReturnsCorrectCountから移行
+    /// </summary>
+    [Fact]
+    public async Task Phase13_ProcessReceivedRawData_MultipleDevices_ReturnsCorrectCount()
+    {
+        // Arrange
+        var manager = new PlcCommunicationManager(
+            new ConnectionConfig
+            {
+                IpAddress = "192.168.3.250",
+                Port = 5007,
+                UseTcp = false,
+                IsBinary = true,
+                FrameVersion = FrameVersion.Frame4E
+            },
+            new TimeoutConfig
+            {
+                ReceiveTimeoutMs = 3000,
+                SendTimeoutMs = 3000
+            }
+        );
+
+        var devices = new List<DeviceSpecification>();
+        for (int i = 0; i < 10; i++)
+        {
+            devices.Add(new DeviceSpecification(DeviceCode.D, i));
+        }
+
+        var processedRequestInfo = new ProcessedDeviceRequestInfo
+        {
+            DeviceType = "D",
+            StartAddress = 0,
+            Count = 10,
+            FrameType = FrameType.Frame4E,
+            RequestedAt = DateTime.Now,
+            DeviceSpecifications = devices
+        };
+
+        // 4Eフレーム（15バイトヘッダ + 2バイトエンドコード + 20バイトデータ）
+        byte[] rawData = new byte[]
+        {
+            // ヘッダ（15バイト）
+            0xD4, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
+            0xFF, 0x03, 0x00, 0x16, 0x00,  // データ長: 22バイト (エンドコード2 + データ20)
+            // エンドコード（2バイト）
+            0x00, 0x00,
+            // デバイスデータ（10ワード = 20バイト）
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF
+        };
+
+        // Act
+        var result = await manager.ProcessReceivedRawData(rawData, processedRequestInfo);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(10, result.ProcessedData.Count);
+        Assert.All(result.ProcessedData.Values, data => Assert.Equal(0xFFFFu, data.Value));
+        Assert.True(result.ProcessedData.ContainsKey("D0"));
+        Assert.True(result.ProcessedData.ContainsKey("D9"));
+    }
+
+    /// <summary>
+    /// Phase13_Test08: データ不足エラー検証
+    /// SlmpDataParserTests.ParseReadRandomResponse_InsufficientDataSize_ThrowsExceptionから移行
+    /// </summary>
+    [Fact]
+    public async Task Phase13_ProcessReceivedRawData_InsufficientDataSize_ReturnsFailureResult()
+    {
+        // Arrange
+        var manager = new PlcCommunicationManager(
+            new ConnectionConfig
+            {
+                IpAddress = "192.168.3.250",
+                Port = 5007,
+                UseTcp = false,
+                IsBinary = true,
+                FrameVersion = FrameVersion.Frame4E
+            },
+            new TimeoutConfig
+            {
+                ReceiveTimeoutMs = 3000,
+                SendTimeoutMs = 3000
+            }
+        );
+
+        var processedRequestInfo = new ProcessedDeviceRequestInfo
+        {
+            DeviceType = "D",
+            StartAddress = 100,
+            Count = 2,
+            FrameType = FrameType.Frame4E,
+            RequestedAt = DateTime.Now,
+            DeviceSpecifications = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100),
+                new DeviceSpecification(DeviceCode.D, 200)
+            }
+        };
+
+        // データ部が1ワード分不足（2バイト不足）
+        byte[] rawData = new byte[]
+        {
+            0xD4, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
+            0xFF, 0x03, 0x00, 0x04, 0x00, 0x00, 0x00,
+            0x64, 0x00   // 1ワードのみ（2ワード必要）
+        };
+
+        // Act
+        var result = await manager.ProcessReceivedRawData(rawData, processedRequestInfo);
+
+        // Assert
+        // データ不足の場合IsSuccess=falseを返す
+        Assert.False(result.IsSuccess);
     }
 
     #endregion

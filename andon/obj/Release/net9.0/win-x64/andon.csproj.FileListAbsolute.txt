@@ -235,4 +235,3 @@ C:\Users\1010821\Desktop\python\andon\andon\obj\Release\net9.0\win-x64\refint\an
 C:\Users\1010821\Desktop\python\andon\andon\obj\Release\net9.0\win-x64\andon.pdb
 C:\Users\1010821\Desktop\python\andon\andon\obj\Release\net9.0\win-x64\andon.genruntimeconfig.cache
 C:\Users\1010821\Desktop\python\andon\andon\obj\Release\net9.0\win-x64\ref\andon.dll
-C:\Users\1010821\Desktop\python\andon\andon\bin\Release\net9.0\win-x64\appsettings.json

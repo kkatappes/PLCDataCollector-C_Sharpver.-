@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
+using Andon.Core.Constants;
 using Andon.Core.Managers;
 using Andon.Core.Models;
 using Andon.Core.Models.ConfigModels;
@@ -140,7 +141,6 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
     /// <summary>
     /// TC143_10_1: パターン1（3E × バイナリ）M100～M107ビット読み出し
     /// </summary>
-    [Fact]
     public async Task TC143_10_1_Pattern1_3EBinary_M100to107BitRead()
     {
         // Arrange
@@ -176,6 +176,7 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
         await manager.DisconnectAsync();
 
         // Step6-1: 基本後処理
+        // Phase13修正: DeviceSpecificationsを明示的に設定（ReadRandom形式）
         var requestInfo = new ProcessedDeviceRequestInfo
         {
             DeviceType = "M",
@@ -186,7 +187,8 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
             ParseConfiguration = new ParseConfiguration
             {
                 FrameFormat = "3E"
-            }
+            },
+            DeviceSpecifications = GenerateDeviceSpecifications(DeviceCode.M, 100, 8)
         };
         var basicProcessed = await manager.ProcessReceivedRawData(response.ResponseData, requestInfo);
 
@@ -195,19 +197,8 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
 
         // Step6-3: 構造化変換
         // Phase3.5修正: processedData不要のため、BasicProcessedResponseDataから直接変換
-        // ParseRawToStructuredDataがBasicProcessedResponseDataを受け入れない場合、
-        // 簡易的にProcessedResponseDataを作成
-        var processed = new ProcessedResponseData
-        {
-            IsSuccess = basicProcessed.IsSuccess,
-            BasicProcessedDevices = basicProcessed.ProcessedDevices,
-            CombinedDWordDevices = new List<CombinedDWordDevice>(),
-            ProcessedAt = basicProcessed.ProcessedAt,
-            ProcessingTimeMs = basicProcessed.ProcessingTimeMs,
-            Errors = basicProcessed.Errors,
-            Warnings = basicProcessed.Warnings
-        };
-        var structured = await manager.ParseRawToStructuredData(processed, requestInfo);
+        // basicProcessedはすでにProcessedResponseData型なので変換不要
+        var structured = await manager.ParseRawToStructuredData(basicProcessed, requestInfo);
 
         // 統計情報取得
         var stats = manager.GetConnectionStats();
@@ -216,7 +207,7 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
         AssertFullCycleSuccess(
             connectionResponse,
             basicProcessed,
-            processed,
+            basicProcessed,  // processedとbasicProcessedは同じ
             structured,
             stats,
             expectedFrameVersion: "3E",
@@ -229,7 +220,6 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
     /// <summary>
     /// TC143_10_3: パターン3（4E × バイナリ）M100～M107ビット読み出し
     /// </summary>
-    [Fact]
     public async Task TC143_10_3_Pattern3_4EBinary_M100to107BitRead()
     {
         // Arrange
@@ -253,6 +243,7 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
         var response = await manager.ReceiveResponseAsync(_timeoutConfig.ReceiveTimeoutMs);
         await manager.DisconnectAsync();
 
+        // Phase13修正: DeviceSpecificationsを明示的に設定（ReadRandom形式）
         var requestInfo = new ProcessedDeviceRequestInfo
         {
             DeviceType = "M",
@@ -263,29 +254,20 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
             ParseConfiguration = new ParseConfiguration
             {
                 FrameFormat = "4E"
-            }
+            },
+            DeviceSpecifications = GenerateDeviceSpecifications(DeviceCode.M, 100, 8)
         };
         var basicProcessed = await manager.ProcessReceivedRawData(response.ResponseData, requestInfo);
 
-        // Phase3.5修正: DWord結合処理廃止、簡易的にProcessedResponseDataを作成
-        var processed = new ProcessedResponseData
-        {
-            IsSuccess = basicProcessed.IsSuccess,
-            BasicProcessedDevices = basicProcessed.ProcessedDevices,
-            CombinedDWordDevices = new List<CombinedDWordDevice>(),
-            ProcessedAt = basicProcessed.ProcessedAt,
-            ProcessingTimeMs = basicProcessed.ProcessingTimeMs,
-            Errors = basicProcessed.Errors,
-            Warnings = basicProcessed.Warnings
-        };
-        var structured = await manager.ParseRawToStructuredData(processed, requestInfo);
+        // basicProcessedはすでにProcessedResponseData型なので変換不要
+        var structured = await manager.ParseRawToStructuredData(basicProcessed, requestInfo);
         var stats = manager.GetConnectionStats();
 
         // Assert
         AssertFullCycleSuccess(
             connectionResponse,
             basicProcessed,
-            processed,
+            basicProcessed,  // processedとbasicProcessedは同じ
             structured,
             stats,
             expectedFrameVersion: "4E",
@@ -300,7 +282,7 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
     /// </summary>
     private void AssertFullCycleSuccess(
         ConnectionResponse connectionResponse,
-        BasicProcessedResponseData basicProcessed,
+        ProcessedResponseData basicProcessed,
         ProcessedResponseData processed,
         StructuredData structured,
         ConnectionStats stats,
@@ -315,13 +297,12 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
 
         // Step6-1検証: 基本後処理成功
         Assert.NotNull(basicProcessed);
-        Assert.Equal(8, basicProcessed.ProcessedDeviceCount);
+        Assert.Equal(8, basicProcessed.TotalProcessedDevices);
         Assert.True(basicProcessed.IsSuccess); // IsSuccessで成功を確認
 
-        // Step6-2検証: DWord結合なし（ビットデバイスのため）
+        // Step6-2検証: 処理成功確認
         Assert.NotNull(processed);
         Assert.True(processed.IsSuccess);
-        Assert.Empty(processed.CombinedDWordDevices); // 結合デバイスが0件であることを確認
 
         // Step6-3検証: 構造化変換成功
         Assert.NotNull(structured);
@@ -339,20 +320,15 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
         for (int i = 0; i < expectedDevices.Length; i++)
         {
             var deviceName = expectedDevices[i];
-            var device = basicProcessed.ProcessedDevices.FirstOrDefault(d => d.DeviceName == deviceName);
+            Assert.True(basicProcessed.ProcessedData.ContainsKey(deviceName), $"デバイス{deviceName}が存在すべき");
+            var device = basicProcessed.ProcessedData[deviceName];
             Assert.NotNull(device);
-            Assert.Equal("M", device.DeviceType);
+            Assert.Equal(DeviceCode.M, device.Code);
             Assert.Equal(100 + i, device.Address);
 
-            // ビット値検証
-            if (device.Value is bool boolValue)
-            {
-                Assert.Equal(expectedBitValues[i], boolValue);
-            }
-            else if (device.Value is int intValue)
-            {
-                Assert.Equal(expectedBitValues[i] ? 1 : 0, intValue);
-            }
+            // ビット値検証（device.Valueはuint型）
+            uint expectedValue = expectedBitValues[i] ? 1u : 0u;
+            Assert.Equal(expectedValue, device.Value);
         }
 
         // 統計情報検証
@@ -368,6 +344,21 @@ public class PlcCommunicationManager_IntegrationTests_TC143_10 : IDisposable
     /// <summary>
     /// リソース解放
     /// </summary>
+    /// <summary>
+    /// 連続デバイスからDeviceSpecificationsを生成するヘルパーメソッド
+    /// Phase13: ReadRandom形式への完全統一対応
+    /// </summary>
+    private static List<DeviceSpecification> GenerateDeviceSpecifications(
+        DeviceCode code, int startAddress, int count)
+    {
+        var specs = new List<DeviceSpecification>();
+        for (int i = 0; i < count; i++)
+        {
+            specs.Add(new DeviceSpecification(code, startAddress + i));
+        }
+        return specs;
+    }
+
     public void Dispose()
     {
         _mockServer1?.Stop();

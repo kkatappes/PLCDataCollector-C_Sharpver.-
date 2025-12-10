@@ -115,4 +115,29 @@ public static class ErrorMessages
                $"  - TCP接続エラー: {tcpError}\n" +
                $"  - UDP接続エラー: {udpError}";
     }
+
+    // Phase 5.0-Refactor: 代替プロトコル接続のサマリーログメッセージ生成
+    /// <summary>
+    /// 代替プロトコル接続成功のサマリーログメッセージ（ExecutionOrchestrator用）
+    /// </summary>
+    /// <param name="plcIndex">PLC番号</param>
+    /// <param name="protocol">使用されたプロトコル名</param>
+    /// <param name="fallbackReason">代替プロトコル使用理由（初期プロトコル失敗理由）</param>
+    /// <returns>ログメッセージ</returns>
+    public static string FallbackConnectionSummary(int plcIndex, string protocol, string fallbackReason)
+    {
+        return $"[INFO] PLC #{plcIndex} は代替プロトコル({protocol})で接続されました。" +
+               $" 初期プロトコル失敗理由: {fallbackReason}";
+    }
+
+    /// <summary>
+    /// 初期プロトコル接続成功のサマリーログメッセージ（ExecutionOrchestrator用）
+    /// </summary>
+    /// <param name="plcIndex">PLC番号</param>
+    /// <param name="protocol">使用されたプロトコル名</param>
+    /// <returns>ログメッセージ</returns>
+    public static string InitialProtocolConnectionSummary(int plcIndex, string protocol)
+    {
+        return $"[DEBUG] PLC #{plcIndex} は初期プロトコル({protocol})で接続されました。";
+    }
 }

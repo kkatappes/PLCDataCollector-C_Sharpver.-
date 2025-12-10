@@ -49,9 +49,9 @@ public class DataOutputManager : IDataOutputManager
             // Phase7: データ処理時刻を取得（JSON timestampフィールド用）
             var timestamp = data.ProcessedAt;
 
-            // ファイル名生成: xxx-xxx-x-xx_zzzz.json
+            // ファイル名生成: xxx-xxx-x-xx_zzzz_ターゲット名.json
             var ipString = ipAddress.Replace(".", "-");
-            var fileName = $"{ipString}_{port}.json";
+            var fileName = $"{ipString}_{port}_{plcModel}.json";
             var filePath = Path.Combine(outputDirectory, fileName);
 
             // Phase2: ディレクトリ存在確認・自動作成

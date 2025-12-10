@@ -102,7 +102,8 @@ public class ApplicationControllerTests
             o => o.RunContinuousDataCycleAsync(
                 It.IsAny<List<PlcConfiguration>>(),
                 It.IsAny<List<IPlcCommunicationManager>>(),
-                It.IsAny<System.Threading.CancellationToken>()),
+                It.IsAny<System.Threading.CancellationToken>(),
+                It.IsAny<IProgress<ProgressInfo>>()), // Phase 4-2: 進捗報告パラメータ追加
             Times.Once());
     }
 
@@ -123,12 +124,14 @@ public class ApplicationControllerTests
         var mockLogger = new Mock<ILoggingManager>();
 
         // RunContinuousDataCycleAsyncのモックを設定
+        // Phase 4-2: IProgress<ProgressInfo>パラメータ追加
         mockOrchestrator
             .Setup(o => o.RunContinuousDataCycleAsync(
                 It.IsAny<List<PlcConfiguration>>(),
                 It.IsAny<List<IPlcCommunicationManager>>(),
-                It.IsAny<System.Threading.CancellationToken>()))
-            .Returns((List<PlcConfiguration> configs, List<IPlcCommunicationManager> managers, System.Threading.CancellationToken ct) =>
+                It.IsAny<System.Threading.CancellationToken>(),
+                It.IsAny<IProgress<ProgressInfo>>()))
+            .Returns((List<PlcConfiguration> configs, List<IPlcCommunicationManager> managers, System.Threading.CancellationToken ct, IProgress<ProgressInfo> progress) =>
             {
                 var tcs = new System.Threading.Tasks.TaskCompletionSource();
                 ct.Register(() => tcs.TrySetResult());
@@ -154,7 +157,8 @@ public class ApplicationControllerTests
             o => o.RunContinuousDataCycleAsync(
                 It.IsAny<List<PlcConfiguration>>(),
                 It.IsAny<List<IPlcCommunicationManager>>(),
-                cts.Token),
+                cts.Token,
+                It.IsAny<IProgress<ProgressInfo>>()), // Phase 4-2: 進捗報告パラメータ追加
             Times.Once());
     }
 
@@ -719,7 +723,7 @@ public class ApplicationControllerTests
         {
             // ロック中のExcelファイルをシミュレート
             var lockedFile = Path.Combine(testDirectory, "locked.xlsx");
-            
+
             // テスト用の有効なExcelファイルを作成
             using (var package = new OfficeOpenXml.ExcelPackage())
             {
@@ -728,7 +732,7 @@ public class ApplicationControllerTests
                 worksheet.Cells[2, 1].Value = "TestPLC";
                 package.SaveAs(new FileInfo(lockedFile));
             }
-            
+
             // ファイルをロック
             lockStream = new FileStream(lockedFile, FileMode.Open, FileAccess.Read, FileShare.None);
 
@@ -762,12 +766,68 @@ public class ApplicationControllerTests
             // ロック解除
             lockStream?.Close();
             lockStream?.Dispose();
-            
+
             // Cleanup
             if (Directory.Exists(testDirectory))
             {
                 Directory.Delete(testDirectory, true);
             }
         }
+    }
+
+    // ========== Phase 5.0: 本番統合対応テスト ==========
+
+    /// <summary>
+    /// TC_P5_0_001: ExecuteStep1InitializationAsync - LoggingManager統合確認
+    /// Phase 5.0 Step 5.0-Red
+    /// ApplicationControllerがPlcCommunicationManagerにLoggingManagerを注入していることを確認
+    /// </summary>
+    [Fact]
+    public async Task TC_P5_0_001_ExecuteStep1_LoggingManager統合確認()
+    {
+        // Arrange
+        var mockConfigManagerLogger = new Mock<Microsoft.Extensions.Logging.ILogger<MultiPlcConfigManager>>();
+        var configManager = new MultiPlcConfigManager(mockConfigManagerLogger.Object);
+
+        // PlcConfiguration設定
+        var config = new PlcConfiguration
+        {
+            SourceExcelFile = "PLC1.xlsx",
+            IpAddress = "192.168.1.1",
+            Port = 5000,
+            ConnectionMethod = "TCP",
+            Timeout = 3000,
+            IsBinary = true,
+            FrameVersion = "4E",
+            Devices = new List<DeviceSpecification>
+            {
+                new DeviceSpecification(DeviceCode.D, 100)
+            }
+        };
+        configManager.AddConfiguration(config);
+
+        var mockOrchestrator = new Mock<IExecutionOrchestrator>();
+        var mockLogger = new Mock<ILoggingManager>();
+
+        var controller = new ApplicationController(
+            configManager,
+            mockOrchestrator.Object,
+            mockLogger.Object);
+
+        // Act
+        var result = await controller.ExecuteStep1InitializationAsync();
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(1, result.PlcCount);
+
+        // PlcCommunicationManagerが生成されていることを確認
+        var plcManagers = controller.GetPlcManagers();
+        Assert.Single(plcManagers);
+        Assert.NotNull(plcManagers[0]);
+
+        // ⚠️ 注意: このテストは現状では間接的な検証のみ
+        // LoggingManagerが実際に注入されているかは、統合テストTC_P5_0_002で確認
+        // （PlcCommunicationManagerの内部実装に依存するため、ここでは生成確認のみ）
     }
 }

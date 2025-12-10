@@ -118,7 +118,7 @@ public class ConfigurationLoaderExcel
             IpAddress = ipAddress,
             Port = port,
             MonitoringIntervalMs = ReadCell<int>(settingsSheet, "B11", "データ取得周期(sec)") * 1000,
-            PlcModel = ReadCell<string>(settingsSheet, "B12", "デバイス名"),
+            PlcModel = ReadCell<string>(settingsSheet, "B12", "ターゲット名"),
             SavePath = ReadCell<string>(settingsSheet, "B13", "データ保存先パス"),
             // Phase2: 追加プロパティ
             ConnectionMethod = connectionMethod,

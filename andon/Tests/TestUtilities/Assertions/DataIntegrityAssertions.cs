@@ -11,9 +11,10 @@ public static class DataIntegrityAssertions
 {
     /// <summary>
     /// 3段階のデータ伝達整合性を総合的に検証
+    /// Phase13修正: BasicProcessedResponseData削除により、ProcessedResponseDataのみ使用
     /// </summary>
     public static void AssertDataIntegrity(
-        BasicProcessedResponseData basicData,
+        ProcessedResponseData basicData,
         ProcessedResponseData processedData,
         StructuredData structuredData,
         int expectedDeviceCount,
@@ -34,20 +35,21 @@ public static class DataIntegrityAssertions
     }
 
     /// <summary>
-    /// Stage 1（BasicProcessedResponseData）の検証
+    /// Stage 1（ProcessedResponseData）の検証
+    /// Phase13修正: ProcessedData（Dictionary）を使用
     /// </summary>
-    public static void AssertBasicProcessedData(BasicProcessedResponseData basicData, int expectedDeviceCount)
+    public static void AssertBasicProcessedData(ProcessedResponseData basicData, int expectedDeviceCount)
     {
         // NULL検証
         Assert.NotNull(basicData);
-        Assert.NotNull(basicData.ProcessedDevices);
+        Assert.NotNull(basicData.ProcessedData);
 
         // 成功検証
-        Assert.True(basicData.IsSuccess, "BasicProcessedResponseData should indicate success");
+        Assert.True(basicData.IsSuccess, "ProcessedResponseData should indicate success");
 
         // デバイス数検証
-        Assert.Equal(expectedDeviceCount, basicData.ProcessedDevices.Count);
-        Assert.Equal(expectedDeviceCount, basicData.ProcessedDeviceCount);
+        Assert.Equal(expectedDeviceCount, basicData.ProcessedData.Count);
+        Assert.Equal(expectedDeviceCount, basicData.TotalProcessedDevices);
 
         // タイムスタンプ検証（ProcessedAtがローカル時刻の場合もUTCの場合も対応）
         var now = DateTime.UtcNow;
@@ -77,16 +79,17 @@ public static class DataIntegrityAssertions
 
     /// <summary>
     /// Stage 1 → Stage 2 のデータ伝達整合性検証
+    /// Phase13修正: ProcessedDataを使用
     /// </summary>
     public static void AssertStage1ToStage2Integrity(
-        BasicProcessedResponseData basicData,
+        ProcessedResponseData basicData,
         ProcessedResponseData processedData,
         bool hasDWordCombine,
         int expectedCombinedCount)
     {
         // NULL検証
         Assert.NotNull(processedData);
-        Assert.NotNull(processedData.BasicProcessedDevices);
+        Assert.NotNull(processedData.ProcessedData);
 
         // 成功検証
         Assert.True(processedData.IsSuccess, "ProcessedResponseData should indicate success");
@@ -94,15 +97,17 @@ public static class DataIntegrityAssertions
         if (!hasDWordCombine)
         {
             // DWord結合なしの場合: デバイス数は変わらない
-            Assert.Equal(basicData.ProcessedDeviceCount, processedData.BasicProcessedDevices.Count);
-            Assert.Empty(processedData.CombinedDWordDevices);
+            Assert.Equal(basicData.TotalProcessedDevices, processedData.ProcessedData.Count);
+            Assert.Empty(processedData.ProcessedData.Values.Where(d => d.IsDWord));
         }
         else
         {
             // DWord結合ありの場合: 結合後のデバイス数を検証
-            int totalDevices = processedData.BasicProcessedDevices.Count + processedData.CombinedDWordDevices.Count;
+            int nonDWordCount = processedData.ProcessedData.Values.Count(d => !d.IsDWord);
+            int dwordCount = processedData.ProcessedData.Values.Count(d => d.IsDWord);
+            int totalDevices = nonDWordCount + dwordCount;
             Assert.Equal(expectedCombinedCount, totalDevices);
-            Assert.NotEmpty(processedData.CombinedDWordDevices);
+            Assert.NotEmpty(processedData.ProcessedData.Values.Where(d => d.IsDWord));
         }
 
         // 処理時間の累積検証
@@ -115,6 +120,7 @@ public static class DataIntegrityAssertions
 
     /// <summary>
     /// Stage 2 → Stage 3 のデータ伝達整合性検証
+    /// Phase13修正: ProcessedDataを使用
     /// </summary>
     public static void AssertStage2ToStage3Integrity(
         ProcessedResponseData processedData,
@@ -125,7 +131,7 @@ public static class DataIntegrityAssertions
         Assert.NotNull(structuredData.StructuredDevices);
 
         // デバイス数の整合性検証
-        int expectedCount = processedData.BasicProcessedDevices.Count + processedData.CombinedDWordDevices.Count;
+        int expectedCount = processedData.ProcessedData.Count;
         Assert.Equal(expectedCount, structuredData.StructuredDevices.Count);
 
         // タイムスタンプ検証
@@ -139,9 +145,10 @@ public static class DataIntegrityAssertions
 
     /// <summary>
     /// 全段階通しての整合性検証
+    /// Phase13修正: ProcessedResponseDataのみ使用
     /// </summary>
     public static void AssertOverallIntegrity(
-        BasicProcessedResponseData basicData,
+        ProcessedResponseData basicData,
         ProcessedResponseData processedData,
         StructuredData structuredData)
     {
@@ -190,9 +197,10 @@ public static class DataIntegrityAssertions
 
     /// <summary>
     /// 値の整合性検証（ビット型）
+    /// Phase13修正: ProcessedDataを使用
     /// </summary>
     public static void AssertBitValueIntegrity(
-        BasicProcessedResponseData basicData,
+        ProcessedResponseData basicData,
         StructuredData structuredData)
     {
         Assert.NotNull(basicData);
@@ -200,9 +208,10 @@ public static class DataIntegrityAssertions
 
         // 基本デバイスとstructuredデバイスの値が対応していることを確認
         // （サンプル検証: 最初の10デバイス）
-        for (int i = 0; i < Math.Min(10, basicData.ProcessedDevices.Count); i++)
+        var firstTenDevices = basicData.ProcessedData.Take(10);
+        foreach (var kvp in firstTenDevices)
         {
-            var basicDevice = basicData.ProcessedDevices[i];
+            var basicDevice = kvp.Value;
             var structuredDevice = structuredData.StructuredDevices
                 .FirstOrDefault(d => d.DeviceName == basicDevice.DeviceName);
 
@@ -218,9 +227,10 @@ public static class DataIntegrityAssertions
 
     /// <summary>
     /// 値の整合性検証（ワード型）
+    /// Phase13修正: ProcessedResponseDataのみ使用
     /// </summary>
     public static void AssertWordValueIntegrity(
-        BasicProcessedResponseData basicData,
+        ProcessedResponseData basicData,
         StructuredData structuredData)
     {
         Assert.NotNull(basicData);
@@ -239,6 +249,7 @@ public static class DataIntegrityAssertions
 
     /// <summary>
     /// DWord結合値の整合性検証
+    /// Phase13修正: ProcessedDataを使用
     /// </summary>
     public static void AssertDWordCombineIntegrity(
         ProcessedResponseData processedData,
@@ -246,7 +257,9 @@ public static class DataIntegrityAssertions
     {
         Assert.NotNull(processedData);
         Assert.NotNull(structuredData);
-        Assert.NotEmpty(processedData.CombinedDWordDevices);
+
+        var dwordDevices = processedData.ProcessedData.Values.Where(d => d.IsDWord);
+        Assert.NotEmpty(dwordDevices);
 
         // 結合されたDWordデバイスが存在することを確認
         var combinedDevices = structuredData.StructuredDevices

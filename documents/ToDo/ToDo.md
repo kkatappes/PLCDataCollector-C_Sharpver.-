@@ -1,4 +1,4 @@
-・UDP,TCP連続トライ　C:\Users\1010821\Desktop\python\andon\documents\design\通信形式スイッチトライ実装\実装計画\Phase4_統合テスト.md
+・C:\Users\1010821\Desktop\python\andon\documents\design\read_random実装\実装計画\Phase12_ProcessedDeviceRequestInfo恒久対策.md　やり残し
 ・利用されていない設定の確認
 ・実機テスト確認
 ・各ステップのフローごとの情報繋がり整理
@@ -71,15 +71,3 @@
   - Excel編集中（ロック状態）のファイルはスキップされます（IsFileLocked()実装済み）
 
   この方式により、設定変更時に再ビルド不要で、Excelファイルのみ差し替えることができます。
-
-
-  優先度: 高
-
-  1. Phase 0テストの更新または削除
-    - 7テストをスキップ設定、またはappsettings.jsonが存在しない場合の検証に変更
-
-  優先度: 中
-
-  2. OptionsConfiguratorの確認
-    - ConnectionConfig/TimeoutConfigが実際に使用されているか確認
-    - 使用されていない場合、OptionsConfiguratorごと削除を検討

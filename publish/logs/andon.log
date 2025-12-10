@@ -137,3 +137,254 @@
 [2025-12-01 15:08:54.300] [INFO] Stopping application
 [2025-12-01 15:08:54.301] [INFO] Stopped configuration monitoring
 [2025-12-01 15:08:54.325] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC #1 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:14.375] [INFO] AndonHostedService starting
+[2025-12-09 08:33:14.402] [INFO] Starting Step1 initialization
+[2025-12-09 08:33:14.826] [INFO] Loaded configuration files from C:\Users\1010821\Desktop\python\andon\publish\
+[2025-12-09 08:33:14.828] [INFO] Step1 initialization completed
+[2025-12-09 08:33:14.829] [INFO] Started monitoring configuration directory: ./config/
+[2025-12-09 08:33:14.831] [DEBUG] [DEBUG] StartContinuousDataCycleAsync called - initResult.Success=True, _plcManagers=1, _plcConfigs=1
+[2025-12-09 08:33:14.832] [INFO] Starting continuous data cycle
+[2025-12-09 08:33:14.833] [DEBUG] [DEBUG] RunContinuousDataCycleAsync called - plcConfigs=1, plcManagers=1
+[2025-12-09 08:33:14.836] [INFO] [INFO] Starting timer with interval: 1000ms
+[2025-12-09 08:33:14.840] [INFO] [Continuous Data Cycle] 0.0% - Starting continuous cycle with interval 1000ms (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:15.850] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:15.852] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:15.854] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:15.861] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:15.862] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:15.918] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:15.921] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:15.923] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:15.932] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:16.856] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:17.016] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:17.021] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:17.021] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:17.022] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:17.850] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:17.851] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:17.853] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:17.856] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:17.857] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:17.857] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:17.857] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:17.859] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:17.860] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:18.849] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:18.896] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:18.897] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:18.898] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:18.899] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:19.842] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:19.843] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:19.844] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:19.846] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:19.846] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:19.847] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:19.848] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:19.849] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:19.850] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:20.855] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:20.885] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:20.886] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:20.887] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:20.887] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:21.849] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:21.849] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:21.850] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:21.852] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:21.852] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:21.853] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:21.853] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:21.854] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:21.855] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:22.847] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:22.894] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:22.895] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:22.897] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:22.897] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:23.847] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:23.848] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:23.848] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:23.849] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:23.849] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:23.850] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:23.850] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:23.851] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:23.852] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:24.840] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:24.887] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:24.887] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:24.888] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:24.889] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:25.853] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:25.853] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:25.854] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:25.856] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:25.857] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:25.858] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:25.858] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:25.859] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:25.859] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:26.851] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:26.898] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:26.899] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:26.900] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:26.900] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:27.846] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:27.847] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:27.848] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:27.849] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:27.850] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:27.850] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:27.850] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:27.852] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:27.852] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:28.854] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:28.886] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:28.886] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:28.888] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:28.888] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:29.853] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:29.853] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:29.854] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:29.858] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:29.858] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:29.859] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:29.859] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:29.861] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:29.862] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:30.853] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:30.899] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:30.900] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:30.902] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:30.902] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:31.845] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:31.846] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:31.847] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:31.850] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:31.850] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:31.851] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:31.851] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:31.852] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:31.853] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:32.846] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:32.893] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:32.894] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:32.895] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:32.896] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:33.856] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:33.856] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:33.857] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:33.859] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:33.860] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:33.860] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:33.860] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:33.862] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:33.862] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:34.841] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:34.889] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:34.890] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:34.891] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:34.892] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:35.852] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:35.853] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:35.854] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:35.856] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:35.857] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:35.858] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:35.858] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:35.860] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:35.861] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:36.846] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:36.893] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:36.893] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:36.895] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:36.895] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:37.844] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:37.845] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:37.846] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:37.848] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:37.849] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:37.850] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:37.851] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:37.853] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:37.854] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:38.847] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:33:38.893] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:33:38.894] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:33:38.895] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:38.895] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:39.840] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:33:39.840] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:39.841] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:33:39.843] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:33:39.844] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:33:39.845] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:33:39.845] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:33:39.847] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:33:39.848] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:33:40.104] [INFO] AndonHostedService stopping
+[2025-12-09 08:33:40.107] [INFO] Stopping application
+[2025-12-09 08:33:40.108] [INFO] Stopped configuration monitoring
+[2025-12-09 08:33:40.108] [INFO] Releasing 1 PLC manager(s)...
+[2025-12-09 08:33:40.109] [INFO] All PLC managers released
+[2025-12-09 08:33:40.109] [INFO] Application stopped successfully
+[2025-12-09 08:50:00.113] [INFO] AndonHostedService starting
+[2025-12-09 08:50:00.146] [INFO] Starting Step1 initialization
+[2025-12-09 08:50:00.602] [INFO] Loaded configuration files from C:\Users\1010821\Desktop\python\andon\publish\
+[2025-12-09 08:50:00.604] [INFO] Step1 initialization completed
+[2025-12-09 08:50:00.606] [INFO] Started monitoring configuration directory: ./config/
+[2025-12-09 08:50:00.607] [DEBUG] [DEBUG] StartContinuousDataCycleAsync called - initResult.Success=True, _plcManagers=1, _plcConfigs=1
+[2025-12-09 08:50:00.608] [INFO] Starting continuous data cycle
+[2025-12-09 08:50:00.610] [DEBUG] [DEBUG] RunContinuousDataCycleAsync called - plcConfigs=1, plcManagers=1
+[2025-12-09 08:50:00.613] [INFO] [INFO] Starting timer with interval: 1000ms
+[2025-12-09 08:50:00.615] [INFO] [Continuous Data Cycle] 0.0% - Starting continuous cycle with interval 1000ms (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:01.627] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:01.629] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:50:01.632] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:50:01.637] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:50:01.638] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:01.696] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:50:01.698] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:50:01.700] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:50:01.710] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:50:02.637] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:50:02.812] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:50:02.817] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:50:02.817] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:02.818] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:03.615] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:50:03.616] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:03.616] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:50:03.619] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:50:03.620] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:03.621] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:50:03.622] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:50:03.624] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:50:03.625] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:50:04.627] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:50:04.674] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:50:04.675] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:50:04.744] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:04.744] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:05.621] [DEBUG] [DEBUG] ExecuteMultiPlcCycleAsync_Internal called - plcManagers=1, plcConfigs=1
+[2025-12-09 08:50:05.621] [INFO] [Executing Cycle] 50.0% - Executing cycle for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:05.622] [INFO] [INFO] Starting PLC cycle for 1 PLC(s)
+[2025-12-09 08:50:05.625] [DEBUG] [DEBUG] Using ParallelExecutionController for concurrent execution
+[2025-12-09 08:50:05.625] [INFO] [Multi-PLC Cycle - Starting] 0.0% - Multi-PLC Cycle - Starting - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:05.627] [DEBUG] [DEBUG] Step2: Building frame for PLC 172.30.40.15:8192
+[2025-12-09 08:50:05.627] [DEBUG] [DEBUG] Step2: Frame built successfully, size=837 bytes
+[2025-12-09 08:50:05.629] [DEBUG] [DEBUG] Step3-6: Starting full cycle for PLC 172.30.40.15:8192
+[2025-12-09 08:50:05.629] [INFO] PLC接続試行開始: 172.30.40.15:8192, プロトコル: UDP
+[2025-12-09 08:50:06.619] [WARN] Previous cycle still running, skipping this interval
+[2025-12-09 08:50:06.681] [ERROR] [ERROR] Step3-6: Full cycle failed for PLC 172.30.40.15:8192 - Step4受信失敗: 受信タイムアウト（タイムアウト時間: 1000ms）
+[2025-12-09 08:50:06.682] [INFO] [INFO] Parallel execution completed - Success: 1/1
+[2025-12-09 08:50:06.684] [INFO] [Multi-PLC Cycle - Completed] 100.0% - Multi-PLC Cycle - Completed - 1 PLCs (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:06.684] [INFO] [Cycle Complete] 100.0% - Cycle completed for 1 PLC(s) (Elapsed: 00:00:00, Remaining: Unknown)
+[2025-12-09 08:50:07.223] [INFO] AndonHostedService stopping
+[2025-12-09 08:50:07.226] [INFO] Stopping application
+[2025-12-09 08:50:07.228] [INFO] Stopped configuration monitoring
+[2025-12-09 08:50:07.228] [INFO] Releasing 1 PLC manager(s)...
+[2025-12-09 08:50:07.228] [INFO] All PLC managers released
+[2025-12-09 08:50:07.229] [INFO] Application stopped successfully

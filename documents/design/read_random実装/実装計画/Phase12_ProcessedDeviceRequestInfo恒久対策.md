@@ -439,27 +439,62 @@ dotnet build
 
 ### Phase 12.4: PlcCommunicationManager修正（TDD）
 
-#### ステップ1: 🔴 Red - テスト作成
+#### Phase12.4-Step1: ExecuteFullCycleAsync後方互換性実装 ✅完了
+
+**実施結果**（2025-12-08調査確認）:
+- ExecuteFullCycleAsync(ReadRandomRequestInfo)実装済み（line 2585-2873）
+- ExecuteFullCycleAsync(ProcessedDeviceRequestInfo)後方互換性オーバーロード実装済み（line 2885-3154）
+- 本番フロー（ExecutionOrchestrator）からReadRandomRequestInfo使用で正常動作 ✅
+
+---
+
+#### Phase12.4-Step2: 内部メソッドオーバーロード追加（TDD）⚠️ 未完了
+
+**現状の問題**（2025-12-08調査結果）:
+
+ExecuteFullCycleAsync(ReadRandomRequestInfo)内で**一時的な型変換**が2箇所残存:
+
+```csharp
+// PlcCommunicationManager.cs line 2704-2709
+// Phase12恒久対策: ReadRandomRequestInfoから一時的にProcessedDeviceRequestInfoを生成
+// TODO: Phase12.4-Step2でExtractDeviceValuesオーバーロード追加後、直接処理に変更
+var tempProcessedRequestInfo = new ProcessedDeviceRequestInfo
+{
+    DeviceSpecifications = readRandomRequestInfo.DeviceSpecifications,
+    FrameType = readRandomRequestInfo.FrameType,
+    RequestedAt = readRandomRequestInfo.RequestedAt
+};
+
+// line 2784-2789も同様
+```
+
+**原因**:
+以下の内部メソッドが依然として`ProcessedDeviceRequestInfo`のみ受け付ける:
+- ProcessReceivedRawData(byte[], ProcessedDeviceRequestInfo, ...)
+- ParseRawToStructuredData(ProcessedResponseData, ProcessedDeviceRequestInfo, ...)
+- ExtractDeviceData(byte[], ProcessedDeviceRequestInfo)
+- ExtractDeviceDataFromReadRandom(byte[], ProcessedDeviceRequestInfo)
+- ValidateDeviceCount(int, int, ProcessedDeviceRequestInfo)
+
+---
+
+##### ステップ2-1: 🔴 Red - テスト作成
 
 **作業内容**:
 1. `Tests/Unit/Core/Managers/PlcCommunicationManagerTests.cs`に新規テスト追加:
-   - `Phase12_ExtractDeviceValues_ReadRandomRequestInfo_正しく解析()`
-   - `Phase12_ExtractDeviceValues_複数デバイス型混在_成功()`
-   - `Phase12_ExtractDeviceValues_DeviceSpecifications空_エラー()`
+   - `Phase12_Step2_ProcessReceivedRawData_ReadRandomRequestInfo_成功()`
+   - `Phase12_Step2_ParseRawToStructuredData_ReadRandomRequestInfo_成功()`
+   - `Phase12_Step2_ExtractDeviceData_ReadRandomRequestInfo_成功()`
+   - `Phase12_Step2_ValidateDeviceCount_ReadRandomRequestInfo_成功()`
 
 **テスト例**:
 ```csharp
 [Fact]
-public void Phase12_ExtractDeviceValues_ReadRandomRequestInfo_正しく解析()
+public async Task Phase12_Step2_ProcessReceivedRawData_ReadRandomRequestInfo_成功()
 {
     // Arrange
-    var responseData = new byte[]
-    {
-        0x96, 0x00,  // D100 = 150 (LE)
-        0x01, 0x00,  // M200 = 1 (word形式)
-    };
-
-    var requestInfo = new ReadRandomRequestInfo
+    var manager = CreateManager();
+    var readRandomRequestInfo = new ReadRandomRequestInfo
     {
         DeviceSpecifications = new List<DeviceSpecification>
         {
@@ -470,130 +505,289 @@ public void Phase12_ExtractDeviceValues_ReadRandomRequestInfo_正しく解析()
         RequestedAt = DateTime.UtcNow
     };
 
-    var connectionConfig = new ConnectionConfig { IpAddress = "127.0.0.1", Port = 8192 };
-    var timeoutConfig = new TimeoutConfig();
-    var manager = new PlcCommunicationManager(connectionConfig, timeoutConfig);
+    byte[] rawData = Create4EFrameWithDeviceData(new ushort[] { 150, 1 }); // D100=150, M200=1
 
-    // Act - privateメソッドなのでリフレクション使用
-    var extractMethod = typeof(PlcCommunicationManager).GetMethod("ExtractDeviceValues",
-        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-    Assert.NotNull(extractMethod);
-
-    var result = (List<ProcessedDevice>)extractMethod.Invoke(manager, new object[] { responseData, requestInfo, DateTime.UtcNow })!;
+    // Act
+    var result = await manager.ProcessReceivedRawData(rawData, readRandomRequestInfo, CancellationToken.None);
 
     // Assert
-    Assert.NotNull(result);
-    Assert.Equal(2, result.Count);
+    Assert.True(result.IsSuccess);
+    Assert.Equal(2, result.ProcessedData.Count);
+    Assert.True(result.ProcessedData.ContainsKey("D100"));
+    Assert.Equal(150, result.ProcessedData["D100"].Value);
+    Assert.True(result.ProcessedData.ContainsKey("M200"));
+    Assert.Equal(1, result.ProcessedData["M200"].Value);
+}
 
-    Assert.Equal("D", result[0].DeviceType);
-    Assert.Equal(100, result[0].Address);
-    Assert.Equal((ushort)150, result[0].RawValue);
+[Fact]
+public async Task Phase12_Step2_ParseRawToStructuredData_ReadRandomRequestInfo_成功()
+{
+    // Arrange
+    var manager = CreateManager();
+    var processedData = new ProcessedResponseData
+    {
+        ProcessedData = new Dictionary<string, DeviceData>
+        {
+            ["D100"] = DeviceData.FromDeviceSpecification(new DeviceSpecification(DeviceCode.D, 100), 150),
+            ["M200"] = DeviceData.FromDeviceSpecification(new DeviceSpecification(DeviceCode.M, 200), 1)
+        }
+    };
 
-    Assert.Equal("M", result[1].DeviceType);
-    Assert.Equal(200, result[1].Address);
-    Assert.Equal((ushort)1, result[1].RawValue);
+    var readRandomRequestInfo = new ReadRandomRequestInfo
+    {
+        DeviceSpecifications = new List<DeviceSpecification>
+        {
+            new DeviceSpecification(DeviceCode.D, 100),
+            new DeviceSpecification(DeviceCode.M, 200)
+        },
+        FrameType = FrameType.Frame4E,
+        RequestedAt = DateTime.UtcNow
+    };
+
+    // Act
+    var result = await manager.ParseRawToStructuredData(processedData, readRandomRequestInfo, CancellationToken.None);
+
+    // Assert
+    Assert.True(result.IsSuccess);
+    Assert.NotNull(result.Structures);
 }
 ```
 
 **確認**:
 ```bash
-dotnet test --filter "FullyQualifiedName~PlcCommunicationManagerTests.Phase12"
+dotnet test --filter "FullyQualifiedName~PlcCommunicationManagerTests.Phase12_Step2"
 ```
-→ 全テスト失敗（メソッドシグネチャ不一致）
+→ 全テスト失敗（メソッドオーバーロードが存在しない）
 
-**期待結果**: ❌ 全テスト失敗
+**期待結果**: ❌ 全テスト失敗（コンパイルエラーまたは実行時エラー）
 
 ---
 
-#### ステップ2: 🟢 Green - 最小実装
+##### ステップ2-2: 🟢 Green - 最小実装
 
 **作業内容**:
-1. `andon/Core/Managers/PlcCommunicationManager.cs`のメソッドシグネチャ変更:
+
+1. **IPlcCommunicationManager.cs修正** - インターフェースにオーバーロード追加:
 
 ```csharp
 /// <summary>
-/// ReadRandom(0x0403)コマンドの完全サイクル実行（Phase12恒久対策）
+/// 受信データを基本処理（ReadRandomRequestInfo版）
+/// Phase12.4-Step2: 一時変換を排除
 /// </summary>
-public async Task<FullCycleExecutionResult> ExecuteFullCycleAsync(
-    ConnectionConfig connectionConfig,
-    TimeoutConfig timeoutConfig,
-    byte[] sendFrame,
-    ReadRandomRequestInfo readRandomRequestInfo,  // ← ProcessedDeviceRequestInfoから変更
-    CancellationToken cancellationToken = default)
-{
-    // 実装内容はほぼ同じ、パラメータ型のみ変更
-    // ...
-}
+Task<ProcessedResponseData> ProcessReceivedRawData(
+    byte[] rawData,
+    ReadRandomRequestInfo requestInfo,
+    CancellationToken cancellationToken = default);
+
+/// <summary>
+/// 構造化データへ変換（ReadRandomRequestInfo版）
+/// Phase12.4-Step2: 一時変換を排除
+/// </summary>
+Task<StructuredData> ParseRawToStructuredData(
+    ProcessedResponseData processedData,
+    ReadRandomRequestInfo requestInfo,
+    CancellationToken cancellationToken = default);
 ```
 
-2. `ExtractDeviceValues()`のオーバーロード追加（ReadRandomRequestInfo用）:
+2. **PlcCommunicationManager.cs修正** - 内部メソッドオーバーロード追加:
 
 ```csharp
-/// <summary>
-/// ReadRandom(0x0403)レスポンスからデバイス値を抽出（Phase12恒久対策）
-/// </summary>
-private List<ProcessedDevice> ExtractDeviceValues(
-    byte[] deviceData,
-    ReadRandomRequestInfo requestInfo,  // ← 新しいパラメータ型
-    DateTime processedAt)
+// ProcessReceivedRawDataオーバーロード
+public async Task<ProcessedResponseData> ProcessReceivedRawData(
+    byte[] rawData,
+    ReadRandomRequestInfo requestInfo,
+    CancellationToken cancellationToken = default)
 {
-    var devices = new List<ProcessedDevice>();
+    // Phase12.4-Step2: 一時変換を排除、直接ReadRandomRequestInfo使用
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+    try
+    {
+        // ヘッダー解析
+        var header = ExtractSlmpHeader(rawData, requestInfo.FrameType, ConnectionType.Tcp);
+
+        // デバイスデータ抽出
+        byte[] deviceData = ExtractDeviceDataBytes(rawData, header);
+        var processedData = ExtractDeviceData(deviceData, requestInfo);  // ← オーバーロード呼び出し
+
+        var result = new ProcessedResponseData
+        {
+            ProcessedData = processedData,
+            Header = header,
+            ReceivedAt = DateTime.Now,
+            IsSuccess = true,
+            ProcessedAt = DateTime.Now,
+            ProcessingTimeMs = stopwatch.ElapsedMilliseconds
+        };
+
+        return result;
+    }
+    catch (Exception ex)
+    {
+        return HandleProcessingError_Phase13(new ProcessedResponseData(), stopwatch, ex.Message);
+    }
+}
+
+// ParseRawToStructuredDataオーバーロード
+public async Task<StructuredData> ParseRawToStructuredData(
+    ProcessedResponseData processedData,
+    ReadRandomRequestInfo requestInfo,
+    CancellationToken cancellationToken = default)
+{
+    // Phase12.4-Step2: 一時変換を排除、直接ReadRandomRequestInfo使用
+    // ParseConfigurationはDeviceSpecificationsから取得
+    var parseConfig = new ParseConfiguration(); // 必要に応じて設定
+
+    return await ParseRawToStructuredDataInternal(
+        processedData,
+        requestInfo.DeviceSpecifications,
+        requestInfo.FrameType,
+        parseConfig,
+        cancellationToken);
+}
+
+// ExtractDeviceDataオーバーロード
+private Dictionary<string, DeviceData> ExtractDeviceData(
+    byte[] deviceData,
+    ReadRandomRequestInfo requestInfo)
+{
+    // ReadRandom(0x0403)の場合
+    if (requestInfo.DeviceSpecifications != null && requestInfo.DeviceSpecifications.Any())
+    {
+        return ExtractDeviceDataFromReadRandom(deviceData, requestInfo);  // ← オーバーロード呼び出し
+    }
+
+    throw new NotSupportedException(
+        "ReadRandomRequestInfo.DeviceSpecificationsが空です。");
+}
+
+// ExtractDeviceDataFromReadRandomオーバーロード
+private Dictionary<string, DeviceData> ExtractDeviceDataFromReadRandom(
+    byte[] deviceData,
+    ReadRandomRequestInfo requestInfo)
+{
+    var result = new Dictionary<string, DeviceData>();
     int offset = 0;
 
-    // DeviceSpecificationsの順序でレスポンスデータを解析
     foreach (var spec in requestInfo.DeviceSpecifications)
     {
-        // データ不足チェック
         if (offset + 2 > deviceData.Length)
         {
             throw new InvalidOperationException(
-                $"レスポンスデータが不足しています: offset={offset}, dataLength={deviceData.Length}");
+                $"レスポンスデータが不足: offset={offset}, length={deviceData.Length}");
         }
 
-        // 2バイト読み出し（ReadRandomは全てワード単位で返す）
         ushort value = BitConverter.ToUInt16(deviceData, offset);
+        string key = $"{spec.DeviceType}{spec.DeviceNumber}";
 
-        devices.Add(new ProcessedDevice
-        {
-            DeviceType = spec.DeviceType,
-            Address = spec.DeviceNumber,
-            Value = value,
-            RawValue = value,
-            ConvertedValue = value,
-            ProcessedAt = processedAt,
-            DeviceName = $"{spec.DeviceType}{spec.DeviceNumber}"
-        });
+        var deviceData = spec.IsDWord
+            ? DeviceData.FromDWordDevice(spec, value, BitConverter.ToUInt16(deviceData, offset + 2))
+            : DeviceData.FromDeviceSpecification(spec, value);
 
-        offset += 2; // 次のデバイスへ
+        result[key] = deviceData;
+        offset += spec.IsDWord ? 4 : 2;
     }
 
-    return devices;
+    return result;
+}
+
+// ValidateDeviceCountオーバーロード（必要に応じて）
+private void ValidateDeviceCount(
+    int actualCount,
+    int expectedCountFromRequest,
+    ReadRandomRequestInfo requestInfo)
+{
+    int expectedFromSpec = requestInfo.DeviceSpecifications?.Count ?? 0;
+
+    if (actualCount != expectedFromSpec)
+    {
+        _loggingManager?.LogWarning(
+            $"デバイス数不一致: actual={actualCount}, expected={expectedFromSpec}");
+    }
 }
 ```
 
-3. `ProcessReceivedRawData()`メソッド修正（ReadRandomRequestInfo対応）
+3. **ExecuteFullCycleAsync修正** - 一時変換削除:
+
+```csharp
+// 変更前（line 2704-2709）
+var tempProcessedRequestInfo = new ProcessedDeviceRequestInfo
+{
+    DeviceSpecifications = readRandomRequestInfo.DeviceSpecifications,
+    FrameType = readRandomRequestInfo.FrameType,
+    RequestedAt = readRandomRequestInfo.RequestedAt
+};
+
+fullCycleResult.BasicProcessedData = await ProcessReceivedRawData(
+    fullCycleResult.ReceiveResult.ResponseData,
+    tempProcessedRequestInfo,  // ← 一時変換
+    cancellationToken);
+
+// 変更後
+fullCycleResult.BasicProcessedData = await ProcessReceivedRawData(
+    fullCycleResult.ReceiveResult.ResponseData,
+    readRandomRequestInfo,  // ← 直接使用
+    cancellationToken);
+```
+
+4. **MockPlcCommunicationManager修正** - オーバーロード追加:
+
+```csharp
+public Task<ProcessedResponseData> ProcessReceivedRawData(
+    byte[] rawData,
+    ReadRandomRequestInfo requestInfo,
+    CancellationToken cancellationToken = default)
+{
+    return Task.FromResult(new ProcessedResponseData
+    {
+        ProcessedData = new Dictionary<string, DeviceData>(),
+        IsSuccess = true
+    });
+}
+
+public Task<StructuredData> ParseRawToStructuredData(
+    ProcessedResponseData processedData,
+    ReadRandomRequestInfo requestInfo,
+    CancellationToken cancellationToken = default)
+{
+    return Task.FromResult(new StructuredData { IsSuccess = true });
+}
+```
 
 **確認**:
 ```bash
-dotnet test --filter "FullyQualifiedName~PlcCommunicationManagerTests.Phase12"
+dotnet build
+dotnet test --filter "FullyQualifiedName~PlcCommunicationManagerTests.Phase12_Step2"
 ```
-→ 全テストパス
+→ ビルド成功、全テストパス
 
-**期待結果**: ✅ 全テストパス
+**期待結果**: ✅ ビルド成功、全テストパス
 
 ---
 
-#### ステップ3: 🔵 Refactor - リファクタリング
+##### ステップ2-3: 🔵 Refactor - リファクタリング
 
 **作業内容**:
-1. 重複コードの削除（Phase8.5の暫定コード削除）
-2. ProcessedDeviceRequestInfo関連の旧コード削除
-3. エラーハンドリング強化
-4. ログ出力の改善
+1. 重複コード削除:
+   - ProcessedDeviceRequestInfo版の内部メソッド処理を共通化
+   - 型変換ロジックを一箇所に集約（必要に応じて）
+
+2. エラーハンドリング強化:
+   - DeviceSpecificationsがnullまたは空の場合の検証追加
+   - データ長不一致の詳細ログ追加
+
+3. ログ出力改善:
+   - ReadRandomRequestInfo使用時の専用ログメッセージ
+   - パフォーマンス測定の追加
+
+4. コメント整理:
+   - TODO削除（Phase12.4-Step2完了）
+   - Phase13データモデル一本化との整合性確認
 
 **確認**:
 ```bash
 dotnet test --filter "FullyQualifiedName~PlcCommunicationManagerTests"
+dotnet test  # 全テスト実行
 ```
 → 全テスト依然としてパス
 
@@ -601,17 +795,48 @@ dotnet test --filter "FullyQualifiedName~PlcCommunicationManagerTests"
 
 ---
 
-#### ステップ4: ✅ Verify - 最終確認
+##### ステップ2-4: ✅ Verify - 最終確認
 
 **確認項目**:
-- [x] 全テストパス（新規 + 既存）
-- [x] ReadRandomRequestInfo対応完了
-- [x] Phase8.5暫定コード削除完了
-- [x] ビルド成功（0 errors）
+- [ ] 全テストパス（新規 + 既存）
+- [ ] ReadRandomRequestInfo直接使用完了（一時変換削除）
+- [ ] 内部メソッドオーバーロード追加完了（5メソッド）
+- [ ] ExecuteFullCycleAsync内のTODOコメント削除
+- [ ] ビルド成功（0 errors, 0 warnings）
+- [ ] 後方互換性維持（ProcessedDeviceRequestInfo版も動作）
+
+**削除完了確認**:
+```bash
+# 一時変換コードが残って��ないことを確認
+grep -n "tempProcessedRequestInfo" andon/Core/Managers/PlcCommunicationManager.cs
+# → 結果: ヒットなし（削除済み）
+
+# TODO コメントが残っていないことを確認
+grep -n "TODO.*Phase12.4-Step2" andon/Core/Managers/PlcCommunicationManager.cs
+# → 結果: ヒットなし（削除済み）
+```
 
 **成果物**:
-- `andon/Core/Managers/PlcCommunicationManager.cs` ✅（修正）
+- `andon/Core/Interfaces/IPlcCommunicationManager.cs` ✅（オーバーロード追加）
+- `andon/Core/Managers/PlcCommunicationManager.cs` ✅（オーバーロード実装、一時変換削除）
+- `Tests/TestUtilities/Mocks/MockPlcCommunicationManager.cs` ✅（オーバーロード追加）
 - `Tests/Unit/Core/Managers/PlcCommunicationManagerTests.cs` ✅（新規テスト追加）
+
+---
+
+#### Phase12.4完了条件（更新版）
+
+- [x] **Phase12.4-Step1完了**: ExecuteFullCycleAsync後方互換性実装済み ✅
+- [ ] **Phase12.4-Step2完了**: 内部メソッドオーバーロード追加 ⚠️ 未完了
+  - [ ] ProcessReceivedRawData(ReadRandomRequestInfo)実装
+  - [ ] ParseRawToStructuredData(ReadRandomRequestInfo)実装
+  - [ ] ExtractDeviceData(ReadRandomRequestInfo)実装
+  - [ ] ExtractDeviceDataFromReadRandom(ReadRandomRequestInfo)実装
+  - [ ] ValidateDeviceCount(ReadRandomRequestInfo)実装
+  - [ ] 一時変換コード削除（2箇所）
+  - [ ] TODOコメント削除
+- [ ] 全テストパス（新規 + 既存）
+- [ ] ビルド成功（0 errors, 0 warnings）
 
 ---
 
@@ -912,11 +1137,19 @@ cd publish
 - [x] インターフェース整合性確保
 
 ### 6.4 Phase12.4完了条件
-- [x] PlcCommunicationManager.cs修正完了
-- [x] ExecuteFullCycleAsync()メソッドシグネチャ変更
-- [x] ExtractDeviceValues()オーバーロード追加
-- [x] Phase8.5暫定コード削除
-- [x] 既存テスト全てパス
+- [x] **Phase12.4-Step1**: ExecuteFullCycleAsync後方互換性実装 ✅完了
+  - [x] ExecuteFullCycleAsync(ReadRandomRequestInfo)実装
+  - [x] ExecuteFullCycleAsync(ProcessedDeviceRequestInfo)後方互換性維持
+  - [x] 本番フローでReadRandomRequestInfo使用
+- [ ] **Phase12.4-Step2**: 内部メソッドオーバーロード追加 ⚠️未完了
+  - [ ] ProcessReceivedRawData(ReadRandomRequestInfo)実装
+  - [ ] ParseRawToStructuredData(ReadRandomRequestInfo)実装
+  - [ ] ExtractDeviceData(ReadRandomRequestInfo)実装
+  - [ ] ExtractDeviceDataFromReadRandom(ReadRandomRequestInfo)実装
+  - [ ] ValidateDeviceCount(ReadRandomRequestInfo)実装
+  - [ ] 一時変換コード削除（ExecuteFullCycleAsync内2箇所）
+  - [ ] TODOコメント削除
+  - [ ] 全テストパス（新規 + 既存）
 
 ### 6.5 Phase12.5完了条件（✅ オプション実装不要）
 - [x] 統合テスト全てパス（既存14テストで検証済み）
@@ -933,9 +1166,9 @@ cd publish
 
 ---
 
-## 7. Phase12全体完了条件（✅ 完了: 2025-12-03）
+## 7. Phase12全体完了条件（⚠️ 部分完了: 2025-12-08更新）
 
-- [x] **全単体テストパス**: Phase12.1～12.4の全テストが成功（10/10合格）
+- [x] **全単体テストパス**: Phase12.1～12.4-Step1の全テストが成功（10/10合格）
 - [x] **全統合テストパス**: 既存14テストで動作検証済み（14/14合格）
 - [x] **既存テストパス**: Phase12以前の全テストが引き続き成功（リグレッションゼロ）
 - [x] **ExecutionOrchestratorTests修正完了**: ProcessedDeviceRequestInfo→ReadRandomRequestInfo型修正（9件）
@@ -945,6 +1178,8 @@ cd publish
 - [x] **Phase8.5暫定対策恒久化完了**: ReadRandomRequestInfo専用クラス実装完了
 - [x] **ProcessedDeviceRequestInfo保持**: テスト用途専用として保持（削除不要）
 - [x] **後方互換性完全維持**: メソッドオーバーロードにより既存21テストファイル修正不要
+- [ ] **Phase12.4-Step2完了**: 内部メソッドオーバーロード追加 ⚠️未完了（機能的には動作中）
+- [ ] **一時変換コード削除**: ExecuteFullCycleAsync内2箇所の型変換削除 ⚠️未完了
 - [ ] **実機テスト成功**: Phase12完了後の実機テストでエラーゼロ（次ステップ）
 
 ---
@@ -1037,15 +1272,16 @@ Console.WriteLine($"[DEBUG]   DeviceSpecifications.Count: {readRandomRequestInfo
 
 ## 10. スケジュール（TDD準拠）
 
-| Phase | 作業内容 | TDDステップ | 見積もり |
-|-------|---------|------------|---------|
-| 12.1 | ReadRandomRequestInfo実装 | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | 1ステップ |
-| 12.2 | ExecutionOrchestrator修正 | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | 1ステップ |
-| 12.3 | Interface/Mock修正 | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | 1ステップ |
-| 12.4 | PlcCommunicationManager修正 | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | 2ステップ |
-| 12.5 | 統合テスト | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | 1ステップ |
-| 12.6 | ProcessedDeviceRequestInfo削除 | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | 1ステップ |
-| **合計** | | | **7ステップ** |
+| Phase | 作業内容 | TDDステップ | 見積もり | 状態 |
+|-------|---------|------------|---------|------|
+| 12.1 | ReadRandomRequestInfo実装 | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | 1ステップ | ✅完了 |
+| 12.2 | ExecutionOrchestrator修正 | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | 1ステップ | ✅完了 |
+| 12.3 | Interface/Mock修正 | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | 1ステップ | ✅完了 |
+| 12.4-Step1 | ExecuteFullCycleAsync後方互換性 | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | 1ステップ | ✅完了 |
+| 12.4-Step2 | 内部メソッドオーバーロード | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | 1ステップ | ⚠️未完了 |
+| 12.5 | 統合テスト | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | オプション | 🔹不要 |
+| 12.6 | ProcessedDeviceRequestInfo削除 | 🔴Red → 🟢Green → 🔵Refactor → ✅Verify | オプション | 🔹不要 |
+| **合計** | | | **5必須+2オプション** | **4/5完了** |
 
 ### 各ステップの詳細時間
 
@@ -1167,7 +1403,7 @@ if (readRandomRequestInfo.DeviceSpecifications.Count > 0)
 - ExecuteFullCycleAsync()パラメータをReadRandomRequestInfoに変更
 - MockPlcCommunicationManager.cs確認（修正不要）
 
-### Phase 12.4（✅ 完了: 2025-12-02）
+### Phase 12.4-Step1（✅ 完了: 2025-12-02）
 - [x] 🔴 Red: テスト作成完了、新規テスト失敗確認（Phase12.2で実施）
 - [x] 🟢 Green: 最小実装完了、全テストパス
 - [x] 🔵 Refactor: リファクタリング完了、全テスト依然としてパス
@@ -1180,7 +1416,18 @@ if (readRandomRequestInfo.DeviceSpecifications.Count > 0)
 - ExecutionOrchestrator.cs 3パラメータコンストラクタ追加
 - 本番・テストコード共にビルド成功（0エラー、0警告）
 - 全24テスト合格（ReadRandomRequestInfo 6件 + ExecutionOrchestrator 4件 + 統合検証 14件）
-- 🔹 Phase12.4-Step2（ExtractDeviceValuesオーバーロード）はオプション実装不要
+
+### Phase 12.4-Step2（⚠️ 未完了: 2025-12-08調査で判明）
+- [ ] 🔴 Red: テスト作成（内部メソッドオーバーロード用）
+- [ ] 🟢 Green: オーバーロード実装、一時変換削除
+- [ ] 🔵 Refactor: 重複コード削除、ログ改善
+- [ ] ✅ Verify: TODO削除、全テストパス確認
+
+**未完了事項**（2025-12-08調査結果）:
+- 一時変換コードが2箇所残存（line 2704-2709, 2784-2789）
+- 内部メソッドオーバーロード未実装（5メソッド）
+- TODOコメント残存（「Phase12.4-Step2で...」）
+- 機能的には動作するが、型変換の冗長性が残存
 
 ### Phase 12.5（🔹 実装不要: 2025-12-02）
 - [x] 🔴 Red: 統合テスト検証完了（既存14テストで確認）
@@ -1398,23 +1645,46 @@ Console.WriteLine($"[DEBUG]   DeviceSpecifications.Count: {readRandomRequestInfo
 | 2025-12-03 | 2.1 | - ProcessedDeviceRequestInfo→ReadRandomRequestInfo型修正（9件） | Claude Code |
 | 2025-12-03 | 2.1 | - 全838テスト合格確認（失敗0件） | Claude Code |
 | 2025-12-03 | 2.1 | - Phase12完全完了を確認 | Claude Code |
+| 2025-12-08 | 2.2 | **Phase12.4-Step2未完了の発見と文書化** | Claude Code |
+| 2025-12-08 | 2.2 | - 一時変換コード残存の発見（ExecuteFullCycleAsync内2箇所） | Claude Code |
+| 2025-12-08 | 2.2 | - 内部メソッドオーバーロード未実装の判明（5メソッド） | Claude Code |
+| 2025-12-08 | 2.2 | - Phase12.4をStep1/Step2に分割、TDD準拠の実装計画追加 | Claude Code |
+| 2025-12-08 | 2.2 | - 完了条件・スケジュールを現状に合わせて更新 | Claude Code |
 
 ---
 
-## 16. Phase12完了確認事項（✅ 全て完了: 2025-12-02）
+## 16. Phase12完了確認事項（⚠️ 部分完了: 2025-12-08更新）
 
 **Phase12実装完了の確認**:
 - [x] Phase8.5暫定対策が完了していること（全19テストパス）
 - [x] Phase9実機テスト結果を理解していること
 - [x] TDD実施方針を理解し遵守したこと
 - [x] CLAUDE.mdのプロジェクト構造に準拠したこと
-- [x] Phase12.1～12.4の全実装完了（Phase12.5/12.6はオプション）
+- [x] Phase12.1～12.3の全実装完了 ✅
+- [x] Phase12.4-Step1完了（ExecuteFullCycleAsync後方互換性） ✅
+- [ ] Phase12.4-Step2完了（内部メソッドオーバーロード） ⚠️未完了
 - [x] 全24テスト合格（ReadRandomRequestInfo 6件 + ExecutionOrchestrator 4件 + 統合検証 14件）
 - [x] ビルド成功（0 errors, 0 warnings）
 - [x] 後方互換性完全維持（既存21テストファイル修正不要）
 - [x] 実装結果ドキュメント作成完了（Phase12_ReadRandomRequestInfo恒久対策_TestResults.md）
 
+**Phase12.4-Step2で残る作業** ⚠️:
+- [ ] ProcessReceivedRawData(ReadRandomRequestInfo)オーバーロード実装
+- [ ] ParseRawToStructuredData(ReadRandomRequestInfo)オーバーロード実装
+- [ ] ExtractDeviceData(ReadRandomRequestInfo)オーバーロード実装
+- [ ] ExtractDeviceDataFromReadRandom(ReadRandomRequestInfo)オーバーロード実装
+- [ ] ValidateDeviceCount(ReadRandomRequestInfo)オーバーロード実装
+- [ ] ExecuteFullCycleAsync内の一時変換コード削除（2箇所）
+- [ ] TODOコメント削除
+- [ ] 新規テスト追加（4テストケース）
+
+**機能への影響**:
+- ✅ 本番フローは正常動作（ReadRandomRequestInfo使用）
+- ⚠️ 一時的な型変換が残存（パフォーマンス・保守性の軽微な影響）
+- ✅ 後方互換性は完全維持（ProcessedDeviceRequestInfo版も動作）
+
 **次のステップ**:
+- [ ] **Phase12.4-Step2完了** - 内部メソッドオーバーロード追加（推奨）
 - [ ] Phase9実機テスト再実行（実機PLC接続環境で動作確認）
 - [ ] 「サポートされていないデータ型です:」エラーの解消確認
 - [ ] DeviceSpecifications.Count > 0の確認

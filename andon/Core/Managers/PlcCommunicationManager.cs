@@ -158,7 +158,7 @@ public class PlcCommunicationManager : IPlcCommunicationManager
             // Phase 3-Refactor: 初期プロトコル失敗・代替プロトコル再試行ログ（ErrorMessages使用）
             await (_loggingManager?.LogWarning(
                 ErrorMessages.InitialProtocolFailedRetrying(initialProtocolName, error!, alternativeProtocolName)) ?? Task.CompletedTask);
-            
+
             var (altSuccess, altSocket, altError, altException) = await TryConnectWithProtocolAsync(
                 alternativeProtocol,
                 _timeoutConfig.ConnectTimeoutMs);
@@ -194,11 +194,11 @@ public class PlcCommunicationManager : IPlcCommunicationManager
 
             // 5. 両プロトコル失敗
             var totalConnectionTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            
+
             // Phase 2-Refactor: エラーメッセージ生成(ErrorMessages使用)
             string tcpError = initialProtocol ? error! : altError!;
             string udpError = initialProtocol ? altError! : error!;
-            
+
             // 例外タイプ判定: 実際の例外オブジェクトから判定
             Exception? primaryException = errorException ?? altException;
             bool isTimeout = (errorException is TimeoutException) || (altException is TimeoutException);
@@ -207,7 +207,7 @@ public class PlcCommunicationManager : IPlcCommunicationManager
 
             // 統計更新: 接続失敗
             _stats.AddConnection(false);
-            
+
             // エラータイプ判定
             string errorType;
             ConnectionStatus status;
@@ -465,7 +465,7 @@ public class PlcCommunicationManager : IPlcCommunicationManager
                         await connectTask;
 
                         // UDP疎通確認をスキップ(緊急対応)
-                        Console.WriteLine($"[INFO] UDP connection established (verification skipped) - {_connectionConfig.IpAddress}:{_connectionConfig.Port}");
+                        Console.WriteLine($"[INFO] connection established (verification skipped) - {_connectionConfig.IpAddress}:{_connectionConfig.Port}");
                         connected = true;
                     }
                     catch (SocketException ex)
@@ -609,7 +609,7 @@ public class PlcCommunicationManager : IPlcCommunicationManager
     /// <exception cref="TimeoutException">送信タイムアウトが発生した場合</exception>
     /// <exception cref="SocketException">ソケットエラーが発生した場合</exception>
     public async Task<MultiFrameTransmissionResult> SendMultipleFramesAsync(
-        IEnumerable<string> frameHexStrings, 
+        IEnumerable<string> frameHexStrings,
         CancellationToken cancellationToken = default)
     {
         // 入力検証
@@ -753,10 +753,10 @@ public class PlcCommunicationManager : IPlcCommunicationManager
         {
             var errorMessage = $"{failCount}個中{successCount}個のフレーム送信に失敗しました。";
             result.ErrorMessage = errorMessage;
-            
+
             // 部分失敗の詳細ログ出力
             Console.WriteLine($"[ERROR] 部分失敗詳細: 成功フレーム[{string.Join(",", successfulFrames.Keys)}], 失敗フレーム[{string.Join(",", failedFrames.Keys)}]");
-            
+
             throw new PartialFailureException(errorMessage, successfulFrames, failedFrames);
         }
         // 6. 全失敗時の通常例外
@@ -969,7 +969,7 @@ public class PlcCommunicationManager : IPlcCommunicationManager
         try
         {
             var disconnectTime = DateTime.Now;
-            
+
             // 1. ソケット切断処理
             if (_socket.Connected)
             {
@@ -1035,7 +1035,7 @@ public class PlcCommunicationManager : IPlcCommunicationManager
     /// <param name="processedRequestInfo">前処理済み要求情報</param>
     /// <param name="cancellationToken">キャンセルトークン</param>
     /// <returns>基本処理済み応答データ</returns>
-    public async Task<BasicProcessedResponseData> ProcessReceivedRawData(
+    public async Task<ProcessedResponseData> ProcessReceivedRawData(
         byte[] rawData,
         ProcessedDeviceRequestInfo processedRequestInfo,
         CancellationToken cancellationToken = default)
@@ -1054,17 +1054,15 @@ public class PlcCommunicationManager : IPlcCommunicationManager
         // ログ出力: 処理開始
         Console.WriteLine($"[INFO] ProcessReceivedRawData開始: データ長={rawData.Length}バイト, デバイス={processedRequestInfo.DeviceType}{processedRequestInfo.StartAddress}, 開始時刻={startTime:HH:mm:ss.fff}");
 
-        // 基本処理済みデータオブジェクト作成
-        var result = new BasicProcessedResponseData
+        // Phase13: ProcessedResponseData作成（DeviceData使用）
+        var result = new ProcessedResponseData
         {
             IsSuccess = true,
-            ProcessedDevices = new List<ProcessedDevice>(),
-            Errors = new List<string>(),
+            ProcessedData = new Dictionary<string, DeviceData>(),
             Warnings = new List<string>(),
             ProcessedAt = startTime,
             ProcessingTimeMs = 0, // 後で設定
-            ProcessedDeviceCount = 0,
-            TotalDataSizeBytes = rawData.Length
+            OriginalRawData = BitConverter.ToString(rawData).Replace("-", "")
         };
 
         try
@@ -1143,142 +1141,46 @@ public class PlcCommunicationManager : IPlcCommunicationManager
                 result.Warnings.AddRange(deviceCountWarnings);
             }
 
-            // 5. デバイス値抽出（リトルエンディアン対応）
-            var extractedDevices = ExtractDeviceValues(frameData.DeviceData, processedRequestInfo, startTime);
+            // 5. Phase13: DeviceDataを直接抽出
+            result.ProcessedData = ExtractDeviceData(frameData.DeviceData, processedRequestInfo);
 
-            // 6. 処理済みデバイスリストに追加
-            foreach (var device in extractedDevices)
+            // 6. デバイス値ログ出力
+            foreach (var kvp in result.ProcessedData)
             {
-                result.ProcessedDevices.Add(device);
-                Console.WriteLine($"[DEBUG] デバイス値抽出: {device.DeviceName}={device.Value}({device.DataType})");
+                Console.WriteLine($"[DEBUG] デバイス値抽出: {kvp.Key}={kvp.Value.Value}");
             }
 
-            result.ProcessedDeviceCount = result.ProcessedDevices.Count;
-
-            // 7. ビット展開適用（Phase 2追加機能の統合）
-            if (_bitExpansionSettings.Enabled)
-            {
-                Console.WriteLine($"[INFO] ビット展開処理開始: デバイス数={result.ProcessedDevices.Count}");
-
-                result.ProcessedDevices = ApplyBitExpansion(
-                    result.ProcessedDevices,
-                    _bitExpansionSettings);
-
-                Console.WriteLine($"[INFO] ビット展開処理完了");
-            }
-
-            // 8. 処理時間計算
+            // 7. 処理時間計算
             stopwatch.Stop();
             result.ProcessingTimeMs = Math.Max(stopwatch.ElapsedMilliseconds, 1);
 
             // ログ出力: 処理完了
-            Console.WriteLine($"[INFO] ProcessReceivedRawData完了: 処理デバイス数={result.ProcessedDeviceCount}, 所要時間={result.ProcessingTimeMs}ms");
+            Console.WriteLine($"[INFO] ProcessReceivedRawData完了: 処理デバイス数={result.ProcessedData.Count}, 所要時間={result.ProcessingTimeMs}ms");
 
             return result;
         }
         catch (ArgumentException ex)
         {
-            return HandleProcessingError(result, stopwatch, ex, "前処理情報エラー");
+            return HandleProcessingError_Phase13(result, stopwatch, ex, "前処理情報エラー");
         }
         catch (FormatException ex)
         {
-            return HandleProcessingError(result, stopwatch, ex, "データ形式エラー");
+            return HandleProcessingError_Phase13(result, stopwatch, ex, "データ形式エラー");
         }
         catch (InvalidOperationException ex)
         {
-            return HandleProcessingError(result, stopwatch, ex, "処理エラー");
+            return HandleProcessingError_Phase13(result, stopwatch, ex, "処理エラー");
         }
         catch (NotSupportedException ex)
         {
-            return HandleProcessingError(result, stopwatch, ex, "未サポート機能エラー");
+            return HandleProcessingError_Phase13(result, stopwatch, ex, "未サポート機能エラー");
         }
         catch (Exception ex)
         {
-            return HandleProcessingError(result, stopwatch, ex, "予期しないエラー");
+            return HandleProcessingError_Phase13(result, stopwatch, ex, "予期しないエラー");
         }
     }
 
-    /// <summary>
-    /// デバイス値にビット展開を適用（ConMoni互換）
-    /// Phase 2で実装したBitExpansionUtilityを使用
-    /// </summary>
-    /// <param name="devices">処理済みデバイスリスト</param>
-    /// <param name="settings">ビット展開設定</param>
-    /// <returns>ビット展開適用後のデバイスリスト</returns>
-    private List<ProcessedDevice> ApplyBitExpansion(
-        List<ProcessedDevice> devices,
-        BitExpansionSettings settings)
-    {
-        // ビット展開が無効な場合はそのまま返却
-        if (!settings.Enabled)
-        {
-            Console.WriteLine("[DEBUG] Bit expansion is disabled");
-            return devices;
-        }
-
-        // 設定検証（念のため再確認）
-        try
-        {
-            settings.Validate();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[WARNING] Bit expansion validation failed: {ex.Message}. Skipping bit expansion.");
-            return devices;
-        }
-
-        // デバイス数と設定の長さチェック
-        if (devices.Count != settings.SelectionMask.Length)
-        {
-            Console.WriteLine(
-                $"[WARNING] Device count ({devices.Count}) does not match SelectionMask length ({settings.SelectionMask.Length}). " +
-                $"Bit expansion will be skipped.");
-            return devices;
-        }
-
-        Console.WriteLine($"[DEBUG] Applying bit expansion to {devices.Count} devices");
-
-        for (int i = 0; i < devices.Count; i++)
-        {
-            var device = devices[i];
-
-            // 変換係数適用
-            if (settings.ConversionFactors.Length > 0 && i < settings.ConversionFactors.Length)
-            {
-                device.ConversionFactor = settings.ConversionFactors[i];
-                device.ConvertedValue = device.RawValue * device.ConversionFactor;
-            }
-            else
-            {
-                device.ConversionFactor = 1.0;
-                device.ConvertedValue = device.RawValue;
-            }
-
-            // ビット展開フラグ確認
-            if (settings.SelectionMask[i])
-            {
-                // ビット展開モード
-                device.IsBitExpanded = true;
-                device.ExpandedBits = BitExpansionUtility.ExpandWordToBits(device.RawValue);
-                device.DataType = "Bits";
-
-                Console.WriteLine(
-                    $"[DEBUG] Device {device.DeviceName}: Expanded to bits (Raw=0x{device.RawValue:X4})");
-            }
-            else
-            {
-                // ワード値モード
-                device.IsBitExpanded = false;
-                device.ExpandedBits = null;
-                device.DataType = "Word";
-
-                Console.WriteLine(
-                    $"[DEBUG] Device {device.DeviceName}: Kept as word (Value={device.ConvertedValue}, Factor={device.ConversionFactor})");
-            }
-        }
-
-        return devices;
-    }
 
     // ========================================
     // Phase3.5で削除されたメソッド (2025-11-27)
@@ -1350,7 +1252,7 @@ public class PlcCommunicationManager : IPlcCommunicationManager
             // 下位ワード（Low）を右側、上位ワード（High）を左側に配置
             uint shiftedHigh = (uint)(highWord << 16);
             uint combined = lowWord | shiftedHigh;
-            
+
             return combined;
         }
         catch (OverflowException)
@@ -1362,89 +1264,89 @@ public class PlcCommunicationManager : IPlcCommunicationManager
     /// <summary>
     /// SLMPフレーム構造検証
     /// </summary>
-/// <summary>
-/// 受信データのサブヘッダからフレームタイプを自動判定（旧メソッド、下位互換性のために保持）
-/// </summary>
-/// <param name="rawData">受信データ</param>
-/// <returns>検出されたフレームタイプ</returns>
-/// <exception cref="FormatException">サブヘッダが不正な場合</exception>
-private FrameType DetectFrameTypeFromSubheader(byte[] rawData)
-{
-    // 新しいメソッドに委譲
-    return DetectResponseFrameType(rawData);
-}
-
-/// <summary>
-/// 応答フレームタイプの自動判定（Binary/ASCII、3E/4E）
-/// PySLMPClient方式を採用
-/// </summary>
-/// <param name="rawData">受信したバイト配列</param>
-/// <returns>検出されたフレームタイプ</returns>
-/// <exception cref="ArgumentException">データ長が不足している場合</exception>
-/// <exception cref="FormatException">不明なフレーム形式の場合</exception>
-private FrameType DetectResponseFrameType(byte[] rawData)
-{
-    // 最小データ長チェック
-    if (rawData == null || rawData.Length < 2)
+    /// <summary>
+    /// 受信データのサブヘッダからフレームタイプを自動判定（旧メソッド、下位互換性のために保持）
+    /// </summary>
+    /// <param name="rawData">受信データ</param>
+    /// <returns>検出されたフレームタイプ</returns>
+    /// <exception cref="FormatException">サブヘッダが不正な場合</exception>
+    private FrameType DetectFrameTypeFromSubheader(byte[] rawData)
     {
-        throw new ArgumentException(
-            $"Data too short for frame detection. Length: {rawData?.Length ?? 0}");
+        // 新しいメソッドに委譲
+        return DetectResponseFrameType(rawData);
     }
 
-    // Binary形式を優先判定（サブヘッダ 0xD0 0x00 / 0xD4 0x00）
-    if ((rawData[0] == 0xD0 && rawData[1] == 0x00) || (rawData[0] == 0xD4 && rawData[1] == 0x00))
+    /// <summary>
+    /// 応答フレームタイプの自動判定（Binary/ASCII、3E/4E）
+    /// PySLMPClient方式を採用
+    /// </summary>
+    /// <param name="rawData">受信したバイト配列</param>
+    /// <returns>検出されたフレームタイプ</returns>
+    /// <exception cref="ArgumentException">データ長が不足している場合</exception>
+    /// <exception cref="FormatException">不明なフレーム形式の場合</exception>
+    private FrameType DetectResponseFrameType(byte[] rawData)
     {
-        Console.WriteLine("[DEBUG] Binary frame detected");
-
-        return (rawData[0], rawData[1]) switch
+        // 最小データ長チェック
+        if (rawData == null || rawData.Length < 2)
         {
-            (0xD0, 0x00) => FrameType.Frame3E_Binary,
-            (0xD4, 0x00) => FrameType.Frame4E_Binary,
-            _ => throw new FormatException(
-                $"Unknown response subheader: 0x{rawData[0]:X2} 0x{rawData[1]:X2}")
-        };
-    }
+            throw new ArgumentException(
+                $"Data too short for frame detection. Length: {rawData?.Length ?? 0}");
+        }
 
-    // ASCII判定（先頭が 'D' = 0x44 かつ 2バイト目が '0' または '4'）
-    if (rawData[0] == 0x44 && (rawData[1] == 0x30 || rawData[1] == 0x34)) // 'D' and ('0' or '4')
-    {
-        Console.WriteLine("[DEBUG] ASCII frame detected");
-
-        return rawData[1] switch
+        // Binary形式を優先判定（サブヘッダ 0xD0 0x00 / 0xD4 0x00）
+        if ((rawData[0] == 0xD0 && rawData[1] == 0x00) || (rawData[0] == 0xD4 && rawData[1] == 0x00))
         {
-            0x30 => FrameType.Frame3E_ASCII,  // "D0"
-            0x34 => FrameType.Frame4E_ASCII,  // "D4"
-            _ => throw new FormatException(
-                $"Invalid ASCII response subheader: D{(char)rawData[1]}")
-        };
+            Console.WriteLine("[DEBUG] Binary frame detected");
+
+            return (rawData[0], rawData[1]) switch
+            {
+                (0xD0, 0x00) => FrameType.Frame3E_Binary,
+                (0xD4, 0x00) => FrameType.Frame4E_Binary,
+                _ => throw new FormatException(
+                    $"Unknown response subheader: 0x{rawData[0]:X2} 0x{rawData[1]:X2}")
+            };
+        }
+
+        // ASCII判定（先頭が 'D' = 0x44 かつ 2バイト目が '0' または '4'）
+        if (rawData[0] == 0x44 && (rawData[1] == 0x30 || rawData[1] == 0x34)) // 'D' and ('0' or '4')
+        {
+            Console.WriteLine("[DEBUG] ASCII frame detected");
+
+            return rawData[1] switch
+            {
+                0x30 => FrameType.Frame3E_ASCII,  // "D0"
+                0x34 => FrameType.Frame4E_ASCII,  // "D4"
+                _ => throw new FormatException(
+                    $"Invalid ASCII response subheader: D{(char)rawData[1]}")
+            };
+        }
+
+        // 不明なサブヘッダ
+        throw new FormatException(
+            $"Unknown response subheader: 0x{rawData[0]:X2} 0x{rawData[1]:X2}");
     }
 
-    // 不明なサブヘッダ
-    throw new FormatException(
-        $"Unknown response subheader: 0x{rawData[0]:X2} 0x{rawData[1]:X2}");
-}
+    /// <summary>
+    /// フレームタイプに応じたデバイスデータ開始位置を取得
+    /// SLMP標準仕様に準拠
+    /// </summary>
+    /// <param name="frameType">フレームタイプ</param>
+    /// <returns>デバイスデータ開始位置（バイト単位またはASCII文字位置）</returns>
+    /// <exception cref="NotSupportedException">未対応のフレームタイプ</exception>
+    private int GetDeviceDataOffset(FrameType frameType) => frameType switch
+    {
+        // Binary形式（バイト単位）
+        FrameType.Frame3E_Binary => 11,   // 標準仕様
+        FrameType.Frame4E_Binary => 15,   // 標準仕様（実機確認済み）
 
-/// <summary>
-/// フレームタイプに応じたデバイスデータ開始位置を取得
-/// SLMP標準仕様に準拠
-/// </summary>
-/// <param name="frameType">フレームタイプ</param>
-/// <returns>デバイスデータ開始位置（バイト単位またはASCII文字位置）</returns>
-/// <exception cref="NotSupportedException">未対応のフレームタイプ</exception>
-private int GetDeviceDataOffset(FrameType frameType) => frameType switch
-{
-    // Binary形式（バイト単位）
-    FrameType.Frame3E_Binary => 11,   // 標準仕様
-    FrameType.Frame4E_Binary => 15,   // 標準仕様（実機確認済み）
+        // ASCII形式（文字位置）
+        FrameType.Frame3E_ASCII => 20,    // 標準仕様（20文字目～）
+        FrameType.Frame4E_ASCII => 30,    // 標準仕様（30文字目～）
 
-    // ASCII形式（文字位置）
-    FrameType.Frame3E_ASCII => 20,    // 標準仕様（20文字目～）
-    FrameType.Frame4E_ASCII => 30,    // 標準仕様（30文字目～）
-
-    // 未対応
-    _ => throw new NotSupportedException(
-        $"Unsupported frame type for offset calculation: {frameType}")
-};
+        // 未対応
+        _ => throw new NotSupportedException(
+            $"Unsupported frame type for offset calculation: {frameType}")
+    };
 
     /// <summary>
     /// フレームタイプに応じたデータ長フィールドを抽出
@@ -1651,7 +1553,7 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
         // - ヘッダー部分: 0～8バイト目（9バイト = ネットワーク番号(1) + PC番号(1) + I/O番号(2) + 局番(1) + データ長(2) + 終了コード(2)）
         // - データ部開始位置: 11バイト目（サブヘッダ2バイト + ヘッダー9バイト）
         // - 実データ長 = データ長フィールド値 - 2（終了コード分を除く）
-        
+
         if (rawData.Length < 11)
         {
             throw new FormatException(string.Format(ErrorMessages.DataLengthMismatch, 11, rawData.Length));
@@ -1697,7 +1599,7 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
         // ヘッダー部分: 6～14バイト目（9バイト = ネットワーク番号(1) + PC番号(1) + I/O番号(2) + 局番(1) + データ長(2) + 終了コード(2)）
         // データ部開始位置: 15バイト目（サブヘッダ2バイト + シーケンス2バイト + 予約2バイト + ヘッダー9バイト）
         // 実データ長 = データ長フィールド値 - 2（終了コード分を除く）
-        
+
         if (rawData.Length < 15)
         {
             throw new FormatException(string.Format(ErrorMessages.DataLengthMismatch, 15, rawData.Length));
@@ -2058,50 +1960,21 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
         return Parse4EFrameStructure(rawData);
     }
 
-    /// <summary>
-    /// デバイス値抽出（リトルエンディアン対応）
-    /// Phase8.5暫定対策: DeviceSpecifications対応を追加
-    /// </summary>
-    private List<ProcessedDevice> ExtractDeviceValues(byte[] deviceData, ProcessedDeviceRequestInfo requestInfo, DateTime processedAt)
-    {
-        var devices = new List<ProcessedDevice>();
 
-        // Phase8.5暫定対策: DeviceSpecificationsが設定されている場合はReadRandom処理
-        if (requestInfo.DeviceSpecifications != null && requestInfo.DeviceSpecifications.Any())
-        {
-            return ExtractDeviceValuesFromReadRandom(deviceData, requestInfo, processedAt);
-        }
-
-        // 後方互換性: 既存の処理を維持（DeviceType/StartAddress/Countを使用）
-        switch (requestInfo.DeviceType.ToUpper())
-        {
-            case "D":
-                // Dデバイス（ワード型）処理
-                devices.AddRange(ExtractWordDevices(deviceData, requestInfo, processedAt));
-                break;
-
-            case "M":
-                // Mデバイス（ビット型）処理
-                devices.AddRange(ExtractBitDevices(deviceData, requestInfo, processedAt));
-                break;
-
-            default:
-                throw new NotSupportedException(string.Format(ErrorMessages.UnsupportedDataType, requestInfo.DeviceType));
-        }
-
-        return devices;
-    }
 
     /// <summary>
-    /// ReadRandomレスポンスからデバイス値を抽出（Phase8.5暫定実装）
-    /// ReadRandom(0x0403)コマンドのレスポンスは、各デバイスが1ワード（2バイト）で返される
+    /// ReadRandomレスポンスからDeviceDataを直接生成（Phase13実装）
+    /// ProcessedDevice経由を廃止し、DeviceDataを直接返す
     /// </summary>
-    private List<ProcessedDevice> ExtractDeviceValuesFromReadRandom(
+    /// <summary>
+    /// ReadRandomレスポンスからDeviceDataを直接生成（Phase13実装）
+    /// ProcessedDevice経由を廃止し、DeviceDataを直接返す
+    /// </summary>
+    private Dictionary<string, DeviceData> ExtractDeviceDataFromReadRandom(
         byte[] deviceData,
-        ProcessedDeviceRequestInfo requestInfo,
-        DateTime processedAt)
+        ProcessedDeviceRequestInfo requestInfo)
     {
-        var devices = new List<ProcessedDevice>();
+        var result = new Dictionary<string, DeviceData>();
         int offset = 0;
 
         foreach (var spec in requestInfo.DeviceSpecifications!)
@@ -2115,109 +1988,62 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
             // 2バイト（1ワード）ずつ処理（ReadRandomの仕様）
             ushort value = BitConverter.ToUInt16(deviceData, offset);
 
-            devices.Add(new ProcessedDevice
+            // DeviceDataを直接生成
+            var deviceDataItem = new DeviceData
             {
-                DeviceType = spec.DeviceType,
+                DeviceName = $"{spec.DeviceType}{spec.DeviceNumber}",
+                Code = spec.Code,
                 Address = spec.DeviceNumber,
                 Value = value,
-                RawValue = value,
-                ConvertedValue = value,
-                ProcessedAt = processedAt,
-                DeviceName = $"{spec.DeviceType}{spec.DeviceNumber}"
-            });
+                IsDWord = spec.Unit?.ToLower() == "dword",
+                IsHexAddress = spec.IsHexAddress,
+                Type = spec.DeviceType
+            };
 
+            result[deviceDataItem.DeviceName] = deviceDataItem;
             offset += 2; // 次のデバイスへ
         }
 
-        return devices;
+        return result;
     }
 
     /// <summary>
-    /// ワードデバイス値抽出（リトルエンディアン）
+    /// デバイスデータを抽出してDictionary形式で返す
+    /// Phase13実装: ProcessedDevice経由を廃止し、DeviceDataを直接生成
     /// </summary>
-    private List<ProcessedDevice> ExtractWordDevices(byte[] deviceData, ProcessedDeviceRequestInfo requestInfo, DateTime processedAt)
+    private Dictionary<string, DeviceData> ExtractDeviceData(
+        byte[] deviceData,
+        ProcessedDeviceRequestInfo requestInfo)
     {
-        var devices = new List<ProcessedDevice>();
-        int bytesPerWord = 2;
-
-        // 実データから実際に処理可能なデバイス数を計算
-        int actualDeviceCount = deviceData.Length / bytesPerWord;
-        int deviceCount = Math.Min(actualDeviceCount, requestInfo.Count);
-
-        for (int i = 0; i < deviceCount; i++)
+        // ReadRandom(0x0403)の場合
+        if (requestInfo.DeviceSpecifications != null && requestInfo.DeviceSpecifications.Any())
         {
-            int byteOffset = i * bytesPerWord;
-
-            // リトルエンディアンでワード値変換
-            ushort wordValue = (ushort)(deviceData[byteOffset] | (deviceData[byteOffset + 1] << 8));
-
-            var device = new ProcessedDevice
-            {
-                DeviceType = requestInfo.DeviceType,
-                Address = requestInfo.StartAddress + i,
-                Value = wordValue,
-                RawValue = wordValue,  // Phase2: ビット展開用にRawValue設定
-                DataType = DataTypeConstants.Word,
-                ProcessedAt = processedAt,
-                DeviceName = $"{requestInfo.DeviceType}{requestInfo.StartAddress + i}"
-            };
-
-            devices.Add(device);
+            return ExtractDeviceDataFromReadRandom(deviceData, requestInfo);
         }
 
-        return devices;
+        // Read(0x0401)は廃止
+        throw new NotSupportedException(
+            "Read(0x0401)は廃止されました。ReadRandom(0x0403)を使用してください。");
     }
 
-    /// <summary>
-    /// ビットデバイス値抽出
-    /// </summary>
-    private List<ProcessedDevice> ExtractBitDevices(byte[] deviceData, ProcessedDeviceRequestInfo requestInfo, DateTime processedAt)
-    {
-        var devices = new List<ProcessedDevice>();
-        int expectedBytes = (requestInfo.Count + 7) / 8; // ビット数を8で割り上げ
 
-        if (deviceData.Length < expectedBytes)
-        {
-            throw new FormatException(string.Format(ErrorMessages.DataLengthMismatch, expectedBytes, deviceData.Length));
-        }
 
-        for (int i = 0; i < requestInfo.Count; i++)
-        {
-            int byteIndex = i / 8;
-            int bitIndex = i % 8;
-            
-            // ビット値抽出
-            bool bitValue = (deviceData[byteIndex] & (1 << bitIndex)) != 0;
-            
-            var device = new ProcessedDevice
-            {
-                DeviceType = requestInfo.DeviceType,
-                Address = requestInfo.StartAddress + i,
-                Value = bitValue,
-                DataType = DataTypeConstants.Bit,
-                ProcessedAt = processedAt,
-                DeviceName = $"{requestInfo.DeviceType}{requestInfo.StartAddress + i}"
-            };
-
-            devices.Add(device);
-        }
-
-        return devices;
-    }
 
     /// <summary>
-    /// 処理エラーハンドリング
+    /// エラーハンドリング（Phase13版: ProcessedResponseData対応）
     /// </summary>
-    private BasicProcessedResponseData HandleProcessingError(
-        BasicProcessedResponseData result, 
-        System.Diagnostics.Stopwatch stopwatch, 
-        Exception ex, 
+    private ProcessedResponseData HandleProcessingError_Phase13(
+        ProcessedResponseData result,
+        System.Diagnostics.Stopwatch stopwatch,
+        Exception ex,
         string errorType)
     {
         stopwatch.Stop();
         result.ProcessingTimeMs = Math.Max(stopwatch.ElapsedMilliseconds, 1);
         result.IsSuccess = false;
-        result.AddError($"{errorType}: {ex.Message}");
+
+        // エラーメッセージをWarningsに追加
+        result.Warnings.Add($"{errorType}: {ex.Message}");
 
         // ログ出力: エラー発生
         Console.WriteLine($"[ERROR] ProcessReceivedRawData {errorType}: {ex.Message}, 所要時間={result.ProcessingTimeMs}ms");
@@ -2469,30 +2295,28 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
         object rawValue;
 
         // 1. アドレス解決（3パターン対応）
+        // Phase13修正: ProcessedData（Dictionary<string, DeviceData>）を使用
         if (fieldDef.Address.Contains("_32bit"))
         {
             // パターン1: DWord結合値から取得（例: "D100_32bit"）
-            var combinedDevice = processedData.CombinedDWordDevices
-                .FirstOrDefault(d => d.DeviceName == fieldDef.Address);
-
-            if (combinedDevice == null)
+            if (processedData.ProcessedData.TryGetValue(fieldDef.Address, out var dwordDevice) && dwordDevice.IsDWord)
+            {
+                rawValue = dwordDevice.Value;
+            }
+            else
             {
                 // テスト対応：フォールバック値を使用
                 Console.WriteLine($"[WARN] DWord結合デバイス '{fieldDef.Address}' が見つかりません。フォールバック値を使用します。");
                 rawValue = (uint)0x56781234;
             }
-            else
-            {
-                rawValue = combinedDevice.CombinedValue;
-            }
         }
         else if (int.TryParse(fieldDef.Address, out int address))
         {
             // パターン2: 数値アドレス形式から基本デバイスを取得（例: "100"）
-            var basicDevice = processedData.BasicProcessedDevices
+            var device = processedData.ProcessedData.Values
                 .FirstOrDefault(d => d.Address == address);
 
-            if (basicDevice == null)
+            if (device == null)
             {
                 // テスト対応：フォールバック値を使用
                 Console.WriteLine($"[WARN] 基本デバイス アドレス '{address}' が見つかりません。フォールバック値を使用します。");
@@ -2500,34 +2324,28 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
             }
             else
             {
-                rawValue = basicDevice.Value;
+                rawValue = device.Value;
             }
         }
         else
         {
             // パターン3: デバイス名形式から基本デバイスを取得（例: "M100", "D8"）
-            var basicDevice = processedData.BasicProcessedDevices
-                .FirstOrDefault(d => d.DeviceName == fieldDef.Address);
-
-            if (basicDevice == null)
+            if (processedData.ProcessedData.TryGetValue(fieldDef.Address, out var device))
             {
-                // フォールバック: DWord結合デバイスからも検索を試みる
-                var combinedDevice = processedData.CombinedDWordDevices
-                    .FirstOrDefault(d => d.DeviceName == fieldDef.Address || 
-                                       d.DeviceName == $"{fieldDef.Address}_32bit");
-
-                if (combinedDevice != null)
+                rawValue = device.Value;
+            }
+            else
+            {
+                // フォールバック: DWord結合デバイス(_32bit付き)からも検索を試みる
+                var dwordKey = $"{fieldDef.Address}_32bit";
+                if (processedData.ProcessedData.TryGetValue(dwordKey, out var dwordDevice) && dwordDevice.IsDWord)
                 {
-                    rawValue = combinedDevice.CombinedValue;
+                    rawValue = dwordDevice.Value;
                 }
                 else
                 {
                     throw new NotSupportedException($"未対応のアドレス形式です: {fieldDef.Address}");
                 }
-            }
-            else
-            {
-                rawValue = basicDevice.Value;
             }
         }
 
@@ -2916,16 +2734,15 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
             catch (Exception ex)
             {
                 // TC123-4対応: Step6-1で例外が発生した場合も失敗状態のBasicProcessedDataを作成
-                fullCycleResult.BasicProcessedData = new BasicProcessedResponseData
+                // Phase13: ProcessedResponseDataに変更
+                fullCycleResult.BasicProcessedData = new ProcessedResponseData
                 {
                     IsSuccess = false,
-                    ProcessedDevices = new List<ProcessedDevice>(),
-                    Errors = new List<string> { ex.Message },
-                    Warnings = new List<string>(),
+                    ProcessedData = new Dictionary<string, DeviceData>(),
+                    Warnings = new List<string> { ex.Message },
                     ProcessedAt = DateTime.UtcNow,
                     ProcessingTimeMs = Math.Max(stepwatch.ElapsedMilliseconds, 1),
-                    ProcessedDeviceCount = 0,
-                    TotalDataSizeBytes = fullCycleResult.ReceiveResult?.ResponseData?.Length ?? 0
+                    OriginalRawData = BitConverter.ToString(fullCycleResult.ReceiveResult?.ResponseData ?? Array.Empty<byte>()).Replace("-", "")
                 };
 
                 fullCycleResult.AddStepError("Step6_1", ex.Message);
@@ -2941,19 +2758,9 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
             stepwatch.Restart();
             try
             {
-                // Phase3.5: DWord結合処理を廃止し、BasicProcessedData → ProcessedDataの変換処理に置き換え
-                // ReadRandomコマンドでは各デバイスを個別に指定するため、DWord結合は不要
-                fullCycleResult.ProcessedData = new ProcessedResponseData
-                {
-                    IsSuccess = fullCycleResult.BasicProcessedData.IsSuccess,
-                    BasicProcessedDevices = fullCycleResult.BasicProcessedData.ProcessedDevices,
-                    CombinedDWordDevices = new List<CombinedDWordDevice>(), // 空リスト（DWord結合機能廃止）
-                    ProcessedAt = DateTime.UtcNow,
-                    ProcessingTimeMs = fullCycleResult.BasicProcessedData.ProcessingTimeMs,
-                    Errors = fullCycleResult.BasicProcessedData.Errors,
-                    Warnings = fullCycleResult.BasicProcessedData.Warnings
-                    // RawDataLengthプロパティは存在しないため削除
-                };
+                // Phase13: BasicProcessedDataが既にProcessedResponseData型なので、そのまま使用
+                // Step6-2はデータ変換が不要になったため、単純にBasicProcessedDataを参照
+                fullCycleResult.ProcessedData = fullCycleResult.BasicProcessedData;
 
                 fullCycleResult.RecordStepTime("Step6_2_DataConversion", stepwatch.Elapsed);
                 fullCycleResult.TotalStepsExecuted++;
@@ -3219,16 +3026,15 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
             }
             catch (Exception ex)
             {
-                fullCycleResult.BasicProcessedData = new BasicProcessedResponseData
+                // Phase13: ProcessedResponseDataに変更
+                fullCycleResult.BasicProcessedData = new ProcessedResponseData
                 {
                     IsSuccess = false,
-                    ProcessedDevices = new List<ProcessedDevice>(),
-                    Errors = new List<string> { ex.Message },
-                    Warnings = new List<string>(),
+                    ProcessedData = new Dictionary<string, DeviceData>(),
+                    Warnings = new List<string> { ex.Message },
                     ProcessedAt = DateTime.UtcNow,
                     ProcessingTimeMs = Math.Max(stepwatch.ElapsedMilliseconds, 1),
-                    ProcessedDeviceCount = 0,
-                    TotalDataSizeBytes = fullCycleResult.ReceiveResult?.ResponseData?.Length ?? 0
+                    OriginalRawData = BitConverter.ToString(fullCycleResult.ReceiveResult?.ResponseData ?? Array.Empty<byte>()).Replace("-", "")
                 };
 
                 fullCycleResult.AddStepError("Step6_1", ex.Message);
@@ -3244,16 +3050,8 @@ private int GetDeviceDataOffset(FrameType frameType) => frameType switch
             stepwatch.Restart();
             try
             {
-                fullCycleResult.ProcessedData = new ProcessedResponseData
-                {
-                    IsSuccess = fullCycleResult.BasicProcessedData.IsSuccess,
-                    BasicProcessedDevices = fullCycleResult.BasicProcessedData.ProcessedDevices,
-                    CombinedDWordDevices = new List<CombinedDWordDevice>(),
-                    ProcessedAt = DateTime.UtcNow,
-                    ProcessingTimeMs = fullCycleResult.BasicProcessedData.ProcessingTimeMs,
-                    Errors = fullCycleResult.BasicProcessedData.Errors,
-                    Warnings = fullCycleResult.BasicProcessedData.Warnings
-                };
+                // Phase13: BasicProcessedDataが既にProcessedResponseData型なので、そのまま使用
+                fullCycleResult.ProcessedData = fullCycleResult.BasicProcessedData;
 
                 fullCycleResult.RecordStepTime("Step6_2_DataConversion", stepwatch.Elapsed);
                 fullCycleResult.TotalStepsExecuted++;

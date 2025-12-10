@@ -46,7 +46,7 @@ public interface IPlcCommunicationManager
     /// <param name="processedRequestInfo">前処理済み要求情報</param>
     /// <param name="cancellationToken">キャンセルトークン</param>
     /// <returns>基本処理済み応答データ</returns>
-    Task<BasicProcessedResponseData> ProcessReceivedRawData(
+    Task<ProcessedResponseData> ProcessReceivedRawData(
         byte[] rawData,
         ProcessedDeviceRequestInfo processedRequestInfo,
         CancellationToken cancellationToken = default);

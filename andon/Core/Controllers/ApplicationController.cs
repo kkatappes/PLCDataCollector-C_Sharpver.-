@@ -53,7 +53,7 @@ public class ApplicationController : IApplicationController
     /// テスト用: PlcManagersリストを取得
     /// Phase 2 TDDサイクル1
     /// </summary>
-    public List<IPlcCommunicationManager> GetPlcManagers() => _plcManagers ?? new List<IPlcCommunicationManager>();
+    internal List<IPlcCommunicationManager> GetPlcManagers() => _plcManagers ?? new List<IPlcCommunicationManager>();
 
     /// <summary>
     /// Step1初期化実行
@@ -88,6 +88,7 @@ public class ApplicationController : IApplicationController
 
             // Phase 2 TDDサイクル1 Green: PlcCommunicationManager を設定ごとに初期化
             // Phase 3-4: 拡張メソッド使用（重複コード削減）
+            // Phase 5.0: LoggingManager注入（本番統合対応）
             foreach (var config in configs)
             {
                 var connectionConfig = config.ToConnectionConfig();
@@ -95,7 +96,11 @@ public class ApplicationController : IApplicationController
 
                 var manager = new PlcCommunicationManager(
                     connectionConfig,
-                    timeoutConfig);
+                    timeoutConfig,
+                    bitExpansionSettings: null,
+                    connectionResponse: null,
+                    socketFactory: null,
+                    loggingManager: _loggingManager);  // Phase 5.0: LoggingManager注入
 
                 _plcManagers.Add(manager);
             }
@@ -118,6 +123,7 @@ public class ApplicationController : IApplicationController
     /// <summary>
     /// 継続データサイクル開始
     /// Phase 継続実行モード: PlcConfiguration渡し追加
+    /// Phase 4-2: ProgressReporter統合（進捗報告機能追加）
     /// </summary>
     public async Task StartContinuousDataCycleAsync(
         InitializationResult initResult,
@@ -134,7 +140,12 @@ public class ApplicationController : IApplicationController
         }
 
         await _loggingManager.LogInfo("Starting continuous data cycle");
-        await _orchestrator.RunContinuousDataCycleAsync(_plcConfigs, _plcManagers, cancellationToken);
+
+        // Phase 4-2 Green: 進捗報告統合
+        var progressReporter = new Services.ProgressReporter<ProgressInfo>(_loggingManager);
+        var progress = new Progress<ProgressInfo>(progressReporter.Report);
+
+        await _orchestrator.RunContinuousDataCycleAsync(_plcConfigs, _plcManagers, cancellationToken, progress);
     }
 
     /// <summary>
@@ -170,7 +181,34 @@ public class ApplicationController : IApplicationController
             await _loggingManager.LogInfo("Stopped configuration monitoring");
         }
 
-        // TODO: Phase 2でリソース解放処理を拡張
+        // Phase 4-4 Green: PLCマネージャーのリソース解放
+        if (_plcManagers != null && _plcManagers.Count > 0)
+        {
+            await _loggingManager.LogInfo($"Releasing {_plcManagers.Count} PLC manager(s)...");
+
+            foreach (var manager in _plcManagers)
+            {
+                try
+                {
+                    // IDisposableを実装している場合はDispose
+                    if (manager is IDisposable disposable)
+                    {
+                        disposable.Dispose();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await _loggingManager.LogError(ex, "Failed to dispose PLC manager");
+                }
+            }
+
+            _plcManagers.Clear();
+            _plcManagers = null;
+
+            await _loggingManager.LogInfo("All PLC managers released");
+        }
+
+        await _loggingManager.LogInfo("Application stopped successfully");
     }
 
     /// <summary>
@@ -183,10 +221,14 @@ public class ApplicationController : IApplicationController
         {
             await _loggingManager.LogInfo($"Configuration file changed: {e.FilePath}");
 
-            // TODO: Phase3 Part7 - 動的再読み込み処理を実装
-            // 1. 変更されたExcelファイルの再読み込み
+            // Phase 4-3 Green (Option B): 全設定を再読み込み
+            // ExecuteStep1InitializationAsyncが内部で以下を実行:
+            // 1. ConfigurationLoaderExcel.LoadAllPlcConnectionConfigs()
             // 2. MultiPlcConfigManagerへの設定反映
-            // 3. PlcCommunicationManager再初期化（通信サイクル考慮）
+            // 3. PlcCommunicationManager再初期化
+            await ExecuteStep1InitializationAsync(_configDirectory, CancellationToken.None);
+
+            await _loggingManager.LogInfo("Configuration reloaded successfully after file change");
         }
         catch (Exception ex)
         {
