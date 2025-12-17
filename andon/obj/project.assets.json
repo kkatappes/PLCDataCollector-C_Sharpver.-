@@ -3027,11 +3027,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\1010821\\Desktop\\python\\andon\\andon\\andon.csproj",
+      "projectUniqueName": "C:\\Users\\1010821\\Desktop\\project\\andon\\andon\\andon.csproj",
       "projectName": "andon",
-      "projectPath": "C:\\Users\\1010821\\Desktop\\python\\andon\\andon\\andon.csproj",
+      "projectPath": "C:\\Users\\1010821\\Desktop\\project\\andon\\andon\\andon.csproj",
       "packagesPath": "C:\\Users\\1010821\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\1010821\\Desktop\\python\\andon\\andon\\obj\\",
+      "outputPath": "C:\\Users\\1010821\\Desktop\\project\\andon\\andon\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\1010821\\AppData\\Roaming\\NuGet\\NuGet.Config"
