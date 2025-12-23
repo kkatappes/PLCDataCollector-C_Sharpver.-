@@ -46,11 +46,4 @@
     <Compile Remove="verify_hex_length.cs" />
   </ItemGroup>
 
-  <!-- appsettings.json を出力ディレクトリにコピー -->
-  <ItemGroup>
-    <None Update="appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>

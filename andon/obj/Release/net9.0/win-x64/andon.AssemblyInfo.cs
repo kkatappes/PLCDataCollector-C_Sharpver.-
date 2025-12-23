@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("PLC通信データ取得・記録システム")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c69fed3ce87efec693899eaa1d35ad782f397aed")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c6f1ecc23fd6fa42d0dcd91eb38fe7dddfca4258")]
 [assembly: System.Reflection.AssemblyProductAttribute("Andon - PLC通信システム")]
 [assembly: System.Reflection.AssemblyTitleAttribute("andon")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

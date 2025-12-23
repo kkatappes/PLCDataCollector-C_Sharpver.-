@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("andon.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6eb7d8b9be4967d1f24bef67f84c051fd806233f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c6f1ecc23fd6fa42d0dcd91eb38fe7dddfca4258")]
 [assembly: System.Reflection.AssemblyProductAttribute("andon.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("andon.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

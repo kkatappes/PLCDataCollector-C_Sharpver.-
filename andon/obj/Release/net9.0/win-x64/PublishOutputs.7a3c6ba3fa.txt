@@ -1,0 +1,2 @@
+C:\Users\1010821\Desktop\project\andon\andon\bin\Release\net9.0\win-x64\publish\andon.pdb
+C:\Users\1010821\Desktop\project\andon\andon\bin\Release\net9.0\win-x64\publish\andon.exe

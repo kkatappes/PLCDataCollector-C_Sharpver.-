@@ -24,7 +24,7 @@ public class ApplicationController : IApplicationController
     private readonly ConfigurationLoaderExcel? _configLoader; // Phase2 Step2-7追加
     private List<IPlcCommunicationManager>? _plcManagers;
     private List<PlcConfiguration>? _plcConfigs;
-    private string _configDirectory = "./config/";
+    private string _configDirectory = AppContext.BaseDirectory;
 
     /// <summary>
     /// コンストラクタ
